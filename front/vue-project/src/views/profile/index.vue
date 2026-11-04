@@ -35,7 +35,9 @@
           <template #header>
             <div class="certificate-heading">
               <span class="section-title">账户余额</span>
-              <el-button type="primary" size="small" @click="rechargeVisible = true">充值</el-button>
+              <el-button type="primary" size="small" class="recharge-entry-button" @click="rechargeVisible = true">
+                <img :src="alipaySquareLogo" alt="" />支付宝充值
+              </el-button>
             </div>
           </template>
           <div class="wallet-amount">¥ {{ walletBalance }}</div>
@@ -189,7 +191,10 @@
       </el-col>
     </el-row>
 
-    <el-dialog v-model="rechargeVisible" title="支付宝扫码充值" width="360px" @closed="stopRechargePolling">
+    <el-dialog v-model="rechargeVisible" width="360px" @closed="stopRechargePolling">
+      <template #header>
+        <div class="recharge-title"><img :src="alipaySquareLogo" alt="" />支付宝扫码充值</div>
+      </template>
       <el-form-item v-if="!rechargeQr" label="充值金额">
         <el-input v-model="rechargeAmount" type="number" min="0.01" max="1000000" placeholder="请输入金额（元）" />
       </el-form-item>
@@ -200,7 +205,7 @@
       </div>
       <template #footer>
         <el-button @click="rechargeVisible = false">关闭</el-button>
-        <el-button v-if="!rechargeQr" type="primary" :loading="rechargeLoading" @click="startRecharge">生成二维码</el-button>
+        <el-button v-if="!rechargeQr" type="primary" :loading="rechargeLoading" @click="startRecharge">支付宝支付</el-button>
       </template>
     </el-dialog>
 
@@ -255,6 +260,7 @@ import {
 } from '@/api/userInfo'
 import { getDefaultCertificates, getCertificates, checkCertificateNameAvailable, generateCertificate, addCertificate, renewCertificate } from '@/api/asset'
 import { getWallet, getWalletLedger, createRecharge, getRechargeStatus } from '@/api/wallet'
+import alipaySquareLogo from '@/assets/img/支付宝logo-方形.png'
 
 const walletBalance = ref('0.00')
 const walletLedger = ref<any[]>([])
@@ -677,6 +683,10 @@ onMounted(() => {
 .wallet-amount { font-size: 24px; font-weight: 600; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
 .recharge-content { display: flex; align-items: center; flex-direction: column; gap: 10px; }
 .ledger-pages { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 12px; }
+.recharge-entry-button { display: inline-flex; align-items: center; gap: 5px; }
+.recharge-entry-button img { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; }
+.recharge-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.recharge-title img { width: 24px; height: 24px; border-radius: 5px; object-fit: contain; }
 
 .profile-header {
   margin-bottom: 12px;

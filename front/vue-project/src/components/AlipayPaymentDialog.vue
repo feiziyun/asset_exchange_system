@@ -2,10 +2,16 @@
   <el-dialog :model-value="modelValue" title="支付订单" width="360px" destroy-on-close
     @update:model-value="emit('update:modelValue', $event)">
     <div class="payment-body" v-loading="loading">
-      <el-radio-group v-if="status === 'PENDING' && !qrImage" v-model="method" aria-label="支付方式">
-        <el-radio-button value="alipay">支付宝</el-radio-button>
-        <el-radio-button value="balance">余额支付</el-radio-button>
-      </el-radio-group>
+      <div v-if="status === 'PENDING' && !qrImage" class="payment-methods" role="radiogroup" aria-label="支付方式">
+        <button type="button" class="payment-method" :class="{ active: method === 'alipay' }" @click="method = 'alipay'">
+          <img :src="alipayLogo" alt="" class="alipay-logo" />
+          <span>支付宝</span>
+        </button>
+        <button type="button" class="payment-method" :class="{ active: method === 'balance' }" @click="method = 'balance'">
+          <span class="balance-logo">¥</span>
+          <span>余额支付</span>
+        </button>
+      </div>
       <div v-if="method === 'balance' && !qrImage" class="wallet-balance">可用余额：¥ {{ balance }}</div>
       <div class="amount">¥ {{ amount }}</div>
       <div v-if="qrImage && status === 'PENDING'" class="countdown">
@@ -31,6 +37,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import QRCode from 'qrcode'
 import { createAlipayPayment, getAlipayPaymentStatus } from '@/api/asset'
 import { getWallet, getWalletOrderAmount, payWithBalance } from '@/api/wallet'
+import alipayLogo from '@/assets/img/支付宝logo.png'
 
 const props = defineProps<{ modelValue: boolean; orderNo: string }>()
 const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void; (e: 'paid'): void }>()
@@ -179,4 +186,9 @@ onBeforeUnmount(stopTimers)
 .qr { width: 220px; height: 220px; }
 .order-no { color: #667085; font-size: 12px; overflow-wrap: anywhere; }
 .wallet-balance { color: #606266; font-size: 14px; }
+.payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.payment-method { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid #dcdfe6; border-radius: 6px; background: #fff; color: #303133; cursor: pointer; font-size: 14px; transition: border-color .2s, background-color .2s; }
+.payment-method.active { border-color: #1677ff; background: #f0f7ff; color: #1677ff; box-shadow: 0 0 0 1px #1677ff inset; }
+.alipay-logo { width: 22px; height: 22px; object-fit: contain; }
+.balance-logo { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #eef2f7; color: #5f6b7a; font-weight: 700; }
 </style>
