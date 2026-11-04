@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "baseUrl": "",
+  "publicKeyPath": "/home/super/r/cert/client3/client3.pem",
+  "privateKeyPath": "/home/super/r/cert/client3/client3.sign.key",
+  "modelDir": "/home/super/fzy/wjr/models"
+}

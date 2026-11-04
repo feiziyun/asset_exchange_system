@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+.DS_Store
+back/logs/
+back/storage/
+back/public/upload/
+back/config/pcp.local.json
+back/.claude/settings.local.json

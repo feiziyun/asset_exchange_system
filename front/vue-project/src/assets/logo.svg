@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="70 65 550 175" width="550" height="175">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 左侧图标部分 -->
+  <g transform="translate(0, 0)">
+    <circle cx="150" cy="150" r="65" fill="url(#grad1)" opacity="0.1"/>
+    <path d="M 110 160 L 120 140 L 135 140 L 145 125 L 155 125 L 165 140 L 180 140 L 190 160 Z"
+          fill="url(#grad1)" opacity="0.9"/>
+    <path d="M 137 140 L 145 128 L 155 128 L 163 140 Z"
+          fill="#ffffff" opacity="0.3"/>
+    <circle cx="125" cy="160" r="8" fill="url(#grad2)"/>
+    <circle cx="175" cy="160" r="8" fill="url(#grad2)"/>
+    <circle cx="125" cy="160" r="4" fill="#1e293b"/>
+    <circle cx="175" cy="160" r="4" fill="#1e293b"/>
+
+    <path d="M 80 135 Q 95 130 105 135"
+          fill="none" stroke="url(#grad2)" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+    <circle cx="80" cy="135" r="4" fill="url(#grad2)" opacity="0.9"/>
+
+    <path d="M 195 135 Q 205 130 220 135"
+          fill="none" stroke="url(#grad2)" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+    <circle cx="220" cy="135" r="4" fill="url(#grad2)" opacity="0.9"/>
+
+    <path d="M 150 110 Q 142 115 145 120"
+          fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <path d="M 150 110 Q 158 115 155 120"
+          fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+
+    <path d="M 130 180 L 135 185 L 130 190"
+          fill="none" stroke="url(#grad2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+    <path d="M 140 180 L 145 185 L 140 190"
+          fill="none" stroke="url(#grad2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+    <path d="M 160 180 L 155 185 L 160 190"
+          fill="none" stroke="url(#grad2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+    <path d="M 170 180 L 165 185 L 170 190"
+          fill="none" stroke="url(#grad2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+  </g>
+
+  <!-- 右侧文字部分 -->
+  <g transform="translate(230, 0)">
+    <text x="0" y="130" font-family="'Microsoft YaHei', 'PingFang SC', sans-serif"
+          font-size="50" font-weight="bold" fill="url(#grad1)">
+      自动驾驶
+    </text>
+    <text x="0" y="190" font-family="'Microsoft YaHei', 'PingFang SC', sans-serif"
+          font-size="45" font-weight="600" fill="url(#grad2)">
+      数字资产流通平台
+    </text>
+
+    <line x1="0" y1="185" x2="200" y2="185" stroke="url(#grad2)" stroke-width="2" opacity="0.3"/>
+  </g>
+
+  <!-- 中间连接虚线 -->
+  <path d="M 240 140 L 260 145"
+        fill="none" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round" opacity="0.4" stroke-dasharray="5,5"/>
+  <path d="M 240 150 L 260 150"
+        fill="none" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round" opacity="0.4" stroke-dasharray="5,5"/>
+  <path d="M 240 160 L 260 155"
+        fill="none" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round" opacity="0.4" stroke-dasharray="5,5"/>
+</svg>
