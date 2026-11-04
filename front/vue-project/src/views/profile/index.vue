@@ -30,114 +30,43 @@
     </el-card>
 
     <el-row :gutter="12" class="main-row">
-      <el-col :span="16">
+      <el-col :xs="24" :sm="24" :md="16">
         <el-card shadow="never" class="certificate-card">
           <template #header>
-            <div class="section-title">证书管理</div>
+            <div class="certificate-heading">
+              <span class="section-title">我的证书</span>
+              <el-button v-if="activeCertificate" size="small" plain @click="openCertificateDialog('renew')">续期证书</el-button>
+              <el-button v-else size="small" type="primary" plain :disabled="certLoading || Boolean(certLoadError)" @click="openCertificateDialog('apply')">申请证书</el-button>
+            </div>
           </template>
-          <div class="certificate-section">
-            <div class="certificate-info">
-              <el-input
-                v-model="certificateSearchQuery"
-                placeholder="请输入证书名称搜索"
-                style="max-width: 300px"
-              />
-              <el-button v-if="!activeCertificate" type="primary" @click="openCertificateDialog">申请证书</el-button>
-              <el-button v-else :loading="certSubmitting" @click="renewActiveCertificate">续期证书</el-button>
+          <div class="certificate-section" v-loading="certLoading">
+            <div v-if="activeCertificate" class="cert-surface">
+              <div class="cert-main">
+                <div>
+                  <div class="cert-name">{{ activeCertificate.cert_name }}</div>
+                  <div class="cert-org">{{ activeCertificate.org_code }}</div>
+                </div>
+                <span class="cert-badge" :class="{ expired: certificateExpired }">
+                  {{ certificateExpired ? '已过期' : '有效' }}
+                </span>
+              </div>
+              <div class="cert-grid">
+                <div class="cert-item span-2">
+                  <span>证书地址</span>
+                  <strong class="mono">{{ activeCertificate.chain_address || '-' }}</strong>
+                </div>
+                <div class="cert-item">
+                  <span>创建时间</span>
+                  <strong>{{ activeCertificate.created_at ? formatDateTime(activeCertificate.created_at) : '未知' }}</strong>
+                </div>
+                <div class="cert-item">
+                  <span>过期时间</span>
+                  <strong>{{ activeCertificate.expires_at ? formatDateTime(activeCertificate.expires_at) : '未知' }}</strong>
+                </div>
+              </div>
             </div>
-            <div class="default-cert-row">
-              <el-form inline label-width="108px" class="default-cert-form">
-                <el-form-item label="默认登记证书">
-                  <el-select
-                    v-model="defaultCertForm.defaultRegisterCert"
-                    clearable
-                    placeholder="未设置"
-                    class="default-register-cert-select"
-                  >
-                    <el-option
-                      v-for="item in defaultCertOptions"
-                      :key="`register-${item.cert_name}`"
-                      :label="item.cert_name"
-                      :value="item.cert_name"
-                    />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="默认交易证书">
-                  <el-select
-                    v-model="defaultCertForm.defaultTradeCert"
-                    clearable
-                    placeholder="未设置"
-                    class="default-cert-select"
-                  >
-                    <el-option
-                      v-for="item in defaultCertOptions"
-                      :key="`trade-${item.cert_name}`"
-                      :label="item.cert_name"
-                      :value="item.cert_name"
-                    />
-                  </el-select>
-                </el-form-item>
-                <el-form-item>
-                  <el-button
-                    type="primary"
-                    plain
-                    :loading="defaultCertSaving"
-                    @click="saveDefaultCertSetting"
-                  >
-                    保存默认证书
-                  </el-button>
-                </el-form-item>
-              </el-form>
-            </div>
-            <el-table
-              class="certificate-table"
-              :data="filteredCertificates"
-              border
-              style="width: 100%"
-              v-loading="certLoading"
-              empty-text="暂无证书"
-            >
-              <el-table-column prop="cert_name" label="证书名称" />
-              <el-table-column prop="org_code" label="所属组织" />
-              <el-table-column label="默认用途" min-width="150">
-                <template #default="scope">
-                  <div class="default-tags">
-                    <el-tag
-                      v-if="scope.row.cert_name === defaultCertForm.defaultRegisterCert"
-                      size="small"
-                      type="success"
-                      effect="plain"
-                      >登记</el-tag
-                    >
-                    <el-tag
-                      v-if="scope.row.cert_name === defaultCertForm.defaultTradeCert"
-                      size="small"
-                      type="warning"
-                      effect="plain"
-                      >交易</el-tag
-                    >
-                    <span
-                      v-if="
-                        scope.row.cert_name !== defaultCertForm.defaultRegisterCert &&
-                        scope.row.cert_name !== defaultCertForm.defaultTradeCert
-                      "
-                    >
-                      -
-                    </span>
-                  </div>
-                </template>
-              </el-table-column>
-              <el-table-column prop="expires_at" label="过期时间">
-                <template #default="scope">{{ scope.row.expires_at ? formatDateTime(scope.row.expires_at) : '-' }}</template>
-              </el-table-column>
-              <el-table-column prop="status" label="状态">
-                <template #default="scope">
-                  <el-tag :type="scope.row.expires_at && new Date(scope.row.expires_at).getTime() <= Date.now() ? 'danger' : 'success'">
-                    {{ scope.row.expires_at && new Date(scope.row.expires_at).getTime() <= Date.now() ? '已过期' : '有效' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-            </el-table>
+            <el-alert v-else-if="certLoadError" :title="certLoadError" type="error" :closable="false" />
+            <el-empty v-else-if="!certLoading" description="暂无证书" />
           </div>
         </el-card>
 
@@ -219,7 +148,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="8">
+      <el-col :xs="24" :sm="24" :md="8">
         <el-card shadow="never">
           <template #header>
             <div class="section-title">角色工作台</div>
@@ -236,9 +165,16 @@
       </el-col>
     </el-row>
 
-    <!-- 申请证书对话框 -->
-    <el-dialog v-model="certificateDialogVisible" title="申请证书" width="500px">
-      <el-form :model="certificateForm" label-width="100px">
+    <el-dialog v-model="certificateDialogVisible" :title="certificateDialogMode === 'renew' ? '续期证书' : '申请证书'" width="500px">
+      <template v-if="certificateDialogMode === 'renew'">
+        <el-descriptions :column="1">
+          <el-descriptions-item label="证书名称">{{ activeCertificate?.cert_name }}</el-descriptions-item>
+          <el-descriptions-item label="所属组织">{{ activeCertificate?.org_code }}</el-descriptions-item>
+          <el-descriptions-item label="当前有效期">{{ activeCertificate?.expires_at ? formatDateTime(activeCertificate.expires_at) : '未知' }}</el-descriptions-item>
+        </el-descriptions>
+        <el-alert title="证书名称和链上地址保持不变，续期后有效期延长。" type="info" show-icon :closable="false" style="margin-top: 12px" />
+      </template>
+      <el-form v-else :model="certificateForm" label-width="100px">
         <el-form-item label="证书名称" required>
           <el-input
             v-model="certificateForm.certificateName"
@@ -254,8 +190,8 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="certificateDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="certSubmitting" @click="submitCertificateApplication">
-            确认
+          <el-button type="primary" :loading="certSubmitting" @click="certificateDialogMode === 'renew' ? renewActiveCertificate() : submitCertificateApplication()">
+            {{ certificateDialogMode === 'renew' ? '确认续期' : '确认申请' }}
           </el-button>
         </div>
       </template>
@@ -277,13 +213,14 @@ import {
   updateUserEmail,
   updatePassword,
 } from '@/api/userInfo'
-import { getDefaultCertificates, getCertificates, saveDefaultCertificates, checkCertificateNameAvailable, renewCertificate } from '@/api/asset'
+import { getDefaultCertificates, getCertificates, checkCertificateNameAvailable, renewCertificate } from '@/api/asset'
 import instance from '@/http/index.js'
 
 const router = useRouter()
 const loading = ref(false)
-const certLoading = ref(false)
+const certLoading = ref(true)
 const certSubmitting = ref(false)
+const certLoadError = ref('')
 const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png')
 const avatarInputRef = ref<HTMLInputElement | null>(null)
 const tokenPayload = parseTokenPayload() || {}
@@ -315,9 +252,8 @@ const passwordForm = reactive({
 })
 
 const certificateDialogVisible = ref(false)
-const certificateSearchQuery = ref('')
+const certificateDialogMode = ref<'apply' | 'renew'>('apply')
 const userCertificates = ref<any[]>([])
-const defaultCertSaving = ref(false)
 const certificateForm = reactive({
   certificateName: '',
 })
@@ -329,23 +265,14 @@ const defaultCertForm = reactive({
 const roleLabel = computed(() => getRoleLabel(user.identity || tokenPayload.identity || ''))
 const roleKey = computed(() => getRoleKey(user.identity || tokenPayload.identity || ''))
 const displayName = computed(() => user.name || user.account || '未命名用户')
-const filteredCertificates = computed(() => {
-  const keyword = String(certificateSearchQuery.value || '')
-    .trim()
-    .toLowerCase()
-  if (!keyword) return userCertificates.value
-  return userCertificates.value.filter((item) => {
-    const certName = String(item.cert_name || '').toLowerCase()
-    const orgCode = String(item.org_code || '').toLowerCase()
-    return certName.includes(keyword) || orgCode.includes(keyword)
-  })
-})
-const defaultCertOptions = computed(() =>
-  userCertificates.value.filter((item) => item.org_code === 'wx-org1'),
-)
 const activeCertificate = computed(() => {
   const preferred = defaultCertForm.defaultRegisterCert || defaultCertForm.defaultTradeCert
   return userCertificates.value.find((item) => item.cert_name === preferred) || userCertificates.value[0] || null
+})
+const certificateExpired = computed(() => {
+  if (!activeCertificate.value?.expires_at) return false
+  const expiresAt = new Date(activeCertificate.value.expires_at).getTime()
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now()
 })
 
 const roleModuleMap: Record<string, Array<{ title: string; desc: string; path: string }>> = {
@@ -510,15 +437,21 @@ const goPath = (path: string) => {
   router.push(path)
 }
 
-const openCertificateDialog = () => {
+const openCertificateDialog = (mode: 'apply' | 'renew') => {
+  certificateDialogMode.value = mode
   certificateForm.certificateName = ''
   certificateDialogVisible.value = true
 }
 
 const fetchUserCertificates = async () => {
-  if (!user.id) return
+  if (!user.id) {
+    certLoadError.value = '用户身份缺失，请重新登录'
+    certLoading.value = false
+    return
+  }
 
   certLoading.value = true
+  certLoadError.value = ''
   try {
     const [org1Res, defaultRes] = await Promise.allSettled([
       getCertificates(),
@@ -551,8 +484,10 @@ const fetchUserCertificates = async () => {
       })
     }
 
-    if (org1Res.status === 'fulfilled') {
+    if (org1Res.status === 'fulfilled' && org1Res.value.data?.status === 0) {
       pushRows(org1Res.value.data?.certificates || [], 'wx-org1')
+    } else {
+      throw new Error('证书加载失败，请稍后重试')
     }
     userCertificates.value = merged
     if (defaultRes.status === 'fulfilled') {
@@ -562,33 +497,9 @@ const fetchUserCertificates = async () => {
     }
   } catch (error) {
     console.error('获取证书列表失败:', error)
+    certLoadError.value = '证书加载失败，请稍后重试'
   } finally {
     certLoading.value = false
-  }
-}
-
-const saveDefaultCertSetting = async () => {
-  if (!user.id) {
-    ElMessage.error('用户信息缺失，请重新登录')
-    return
-  }
-
-  defaultCertSaving.value = true
-  try {
-    const res = await saveDefaultCertificates({
-      defaultRegisterCert: defaultCertForm.defaultRegisterCert,
-      defaultTradeCert: defaultCertForm.defaultTradeCert,
-    })
-    if (res.data.status === 0) {
-      ElMessage.success('默认证书保存成功')
-      await fetchUserCertificates()
-    } else {
-      ElMessage.error(res.data.message || '默认证书保存失败')
-    }
-  } catch (error: any) {
-    ElMessage.error(error?.response?.data?.message || '默认证书保存失败')
-  } finally {
-    defaultCertSaving.value = false
   }
 }
 
@@ -656,6 +567,7 @@ const renewActiveCertificate = async () => {
       throw new Error(result.data?.message || '证书续期失败')
     }
     ElMessage.success(result.data.message || '证书续期成功')
+    certificateDialogVisible.value = false
     await fetchUserCertificates()
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || error?.message || '证书续期失败')
@@ -735,35 +647,98 @@ onMounted(() => {
 }
 
 .certificate-section {
-  .certificate-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .default-cert-row {
-    margin-top: 16px;
-  }
-
-  .default-cert-form :deep(.el-form-item) {
-    margin-right: 12px;
-    margin-bottom: 0;
-  }
-
-  .default-register-cert-select,
-  .default-cert-select {
-    width: 150px;
-  }
-
-  .certificate-table {
-    margin-top: 16px;
-  }
+  min-height: 120px;
 }
 
-.default-tags {
+.certificate-heading {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cert-surface {
+  background: #f7f7f7;
+  border-radius: 8px;
+  padding: 20px 22px;
+}
+
+.cert-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.cert-name {
+  color: #111827;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.cert-org {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.cert-badge {
+  flex: none;
+  color: #047857;
+  background: #ecfdf5;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.cert-badge.expired {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.cert-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 28px;
+}
+
+.cert-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cert-item.span-2 {
+  grid-column: 1 / -1;
+}
+
+.cert-item span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.cert-item strong {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .cert-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cert-item.span-2 {
+    grid-column: auto;
+  }
 }
 
 .role-tip {
