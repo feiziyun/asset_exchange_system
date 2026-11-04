@@ -335,17 +335,7 @@ exports.saveDefaultCertificates = async ({ userId, defaultRegisterCert = '', def
   };
 };
 
-const getDefaultCertificateInfo = async (userId, type = 'register') => {
-  const defaults = await getUserDefaultCertNames(userId);
-  const certName =
-    type === 'trade'
-      ? String(defaults.default_trade_cert || '').trim()
-      : String(defaults.default_register_cert || '').trim();
-
-  if (!certName) {
-    return null;
-  }
-
+const getDefaultCertificateInfo = async (userId) => {
   const [rows] = await pool.query(
     `
       SELECT
@@ -360,18 +350,16 @@ const getDefaultCertificateInfo = async (userId, type = 'register') => {
         created_at
       FROM certificate_registry
       WHERE user_id = ?
-        AND certificate_name = ?
         AND org = ?
       ORDER BY created_at DESC, id DESC
-      LIMIT 1
+      LIMIT 2
     `,
-    [userId, certName, forceDefaultOrgCode()],
+    [userId, forceDefaultOrgCode()],
   );
 
   const row = rows?.[0];
-  if (!row) {
-    throw new Error(`默认证书 ${certName} 未在 certificate_registry 中找到`);
-  }
+  if (!row) return null;
+  if (rows.length > 1) throw new Error('当前账户存在多张证书，请先整理历史证书数据');
 
   return {
     user_id: row.user_id,
@@ -389,9 +377,9 @@ const getDefaultCertificateInfo = async (userId, type = 'register') => {
   };
 };
 
-exports.getDefaultRegisterCertInfo = async (userId) => getDefaultCertificateInfo(userId, 'register');
+exports.getDefaultRegisterCertInfo = async (userId) => getDefaultCertificateInfo(userId);
 
-exports.getDefaultTradeCertInfo = async (userId) => getDefaultCertificateInfo(userId, 'trade');
+exports.getDefaultTradeCertInfo = async (userId) => getDefaultCertificateInfo(userId);
 
 // 登记链调用使用当前用户的默认登记证书，并以 certificate_registry.address 为准。
 // 历史数据如果地址为空，则按原始系统流程通过 cert-to-addr 补解析并回写。

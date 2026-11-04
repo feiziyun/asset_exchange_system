@@ -346,7 +346,7 @@ const mintRegisterAssetOnChain = async (registerData, userId) => {
   const tokenId = String(registerData.file_hash || '').trim();
   const defaultRegisterCert = await certificateService.resolveDefaultRegisterCertInfo(userId);
 
-  // 链上身份只使用当前登录用户的默认登记证书，忽略前端传入的任意证书地址。
+  // Mint 由平台 client1 签名，资产所属地址取当前用户的证书。
   registerData.certificate_name = defaultRegisterCert.certificate_name;
   registerData.owner_address = defaultRegisterCert.address || defaultRegisterCert.owner_address || '';
   registerData.org_name = defaultRegisterCert.org || 'wx-org1.chainmaker.org';
@@ -3077,13 +3077,9 @@ exports.createOrder = async (
     const [existsRowsFinal] = await conn.query('SELECT id FROM asset_order WHERE order_no = ? LIMIT 1', [orderNo]);
     if (existsRowsFinal.length) throw new Error('订单号生成失败，请重试');
 
-    let normalizedBuyerAddress = String(buyer_address || '').trim();
-    let buyerCertificateName = '';
-    if (!normalizedBuyerAddress) {
-      const defaultTradeCert = await getDefaultTradeCertInfoByUserId(buyerId);
-      buyerCertificateName = String(defaultTradeCert?.certificate_name || defaultTradeCert?.cert || '').trim();
-      normalizedBuyerAddress = String(defaultTradeCert?.owner_address || defaultTradeCert?.address || '').trim();
-    }
+    const buyerCert = await certificateService.getDefaultTradeCertInfo(buyerId);
+    const buyerCertificateName = String(buyerCert?.certificate_name || '').trim();
+    const normalizedBuyerAddress = String(buyerCert?.address || '').trim();
     if (!normalizedBuyerAddress || !buyerCertificateName) {
       throw new Error('请先在个人中心设置默认交易证书后再购买资产');
     }
@@ -3257,10 +3253,8 @@ const transferOrderRightOnChain = async (order, sellerId) => {
     throw new Error('订单缺少资产标识或交易双方证书地址，无法执行链上权益转移');
   }
 
-  const defaultTradeCert = await getDefaultTradeCertInfoByUserId(sellerId);
-  const sellerCertificateName = String(
-    order.seller_certificate_name || defaultTradeCert?.certificate_name || defaultTradeCert?.cert || '',
-  ).trim();
+  const defaultTradeCert = await certificateService.getDefaultTradeCertInfo(sellerId);
+  const sellerCertificateName = String(defaultTradeCert?.certificate_name || '').trim();
   const sellerOrg = String(
     defaultTradeCert?.org || defaultTradeCert?.organization || 'wx-org1.chainmaker.org',
   ).trim();
@@ -3409,17 +3403,9 @@ exports.payOrder = async (orderNo, buyerId, payload = {}, paymentProof = {}) => 
     if (Number(order.buyer_id) !== Number(buyerId)) throw new Error('无权限支付该订单');
     if (Number(order.order_status) !== 0) throw new Error('订单当前状态不可支付');
 
-    let buyerAddress = String(payload.buyer_address || order.buyer_address || '').trim();
-    let buyerCertificateName = String(order.buyer_certificate_name || '').trim();
-    if (!buyerAddress || !buyerCertificateName) {
-      const defaultTradeCert = await getDefaultTradeCertInfoByUserId(buyerId);
-      if (!buyerCertificateName) {
-        buyerCertificateName = String(defaultTradeCert?.certificate_name || defaultTradeCert?.cert || '').trim();
-      }
-      if (!buyerAddress) {
-        buyerAddress = String(defaultTradeCert?.owner_address || defaultTradeCert?.address || '').trim();
-      }
-    }
+    const buyerCert = await certificateService.getDefaultTradeCertInfo(buyerId);
+    const buyerAddress = String(buyerCert?.address || '').trim();
+    const buyerCertificateName = String(buyerCert?.certificate_name || '').trim();
     if (!buyerAddress || !buyerCertificateName) {
       throw new Error('请先在个人中心设置默认交易证书后再确认购买');
     }
@@ -3711,14 +3697,9 @@ exports.bindBuyerDeliveryCertificate = async (orderNo, buyerId, payload = {}) =>
       throw new Error('当前订单状态不可绑定买方证书');
     }
 
-    let certificateName = String(order.buyer_certificate_name || payload.certificate_name || '').trim();
-    let buyerAddress = String(order.buyer_address || payload.buyer_address || '').trim();
-    if (!certificateName || !buyerAddress) {
-      const defaultTradeCert = await getDefaultTradeCertInfoByUserId(buyerId);
-      certificateName =
-        certificateName || String(defaultTradeCert?.certificate_name || defaultTradeCert?.cert || '').trim();
-      buyerAddress = buyerAddress || String(defaultTradeCert?.owner_address || defaultTradeCert?.address || '').trim();
-    }
+    const buyerCert = await certificateService.getDefaultTradeCertInfo(buyerId);
+    const certificateName = String(buyerCert?.certificate_name || '').trim();
+    const buyerAddress = String(buyerCert?.address || '').trim();
     if (!certificateName || !buyerAddress) {
       throw new Error('请先在个人中心设置默认交易证书');
     }

@@ -345,7 +345,6 @@ import {
   checkOmniPrintSimilarity,
   getAssetMeta,
   getCertificates,
-  getDefaultCertificates,
   generateAssetFingerprint,
   getUserIdByUsername,
   registerAsset,
@@ -1051,18 +1050,8 @@ const initUserAndCertificates = async () => {
     form.user_id = userId
 
     certLoading.value = true
-    const [certRes, defaultsRes] = await Promise.all([
-      getCertificates(),
-      getDefaultCertificates(),
-    ])
+    const certRes = await getCertificates()
     certificates.value = certRes.data?.certificates || []
-
-    const defaultCertName = String(
-      defaultsRes.data?.data?.default_register_cert
-      || defaultsRes.data?.default_register_cert
-      || '',
-    ).trim()
-    const defaultCertHit = certificates.value.find((item) => item.cert === defaultCertName) || null
 
     if (certificates.value.length === 0) {
       ElMessage.warning({
@@ -1073,21 +1062,10 @@ const initUserAndCertificates = async () => {
       return
     }
 
-    if (defaultCertHit?.cert) {
-      await applyResolvedCertificate(defaultCertHit, true)
-    } else {
-      defaultRegisterCertificate.value = null
-      form.selectedCertificate = ''
-      form.certificate_name = ''
-      form.owner_address = ''
-      ElMessage.warning({
-        message: defaultCertName
-          ? '默认登记证书未在证书列表中找到，请重新申请或重新设置'
-          : '请先前往个人中心设置默认登记证书后再进行资产登记',
-        duration: 5000,
-        showClose: true,
-      })
+    if (certificates.value.length !== 1) {
+      throw new Error('当前账户存在多张证书，请先整理历史证书数据')
     }
+    await applyResolvedCertificate(certificates.value[0], true)
   } catch (_error) {
     ElMessage.warning('加载用户证书失败，请检查后端证书接口')
   } finally {
