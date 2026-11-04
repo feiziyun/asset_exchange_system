@@ -44,6 +44,8 @@
                 </td>
                 <td>
                   <div class="upload-section">
+                    <el-button v-if="item.order_status === 1 && item.wallet_payment_status === 'PAID' && item.transaction_status !== '已确认'"
+                      type="danger" link :loading="actionLoadingNo === item.order_no" @click="rejectPaidOrder(item)">拒绝并退款</el-button>
                     <button
                       v-if="isHeOrder(item) || isPreOrder(item) || isFlOrder(item) || isMpcOrder(item)"
                       class="upload-btn"
@@ -266,7 +268,7 @@ import DigitalContractPreview from '@/components/DigitalContractPreview.vue'
 // index.vue 只做角色分发，本文件只保留卖家“数字资产上传/执行交付”视角。
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   createFlPrivacyContract,
   createMpcPrivacyTask,
@@ -282,6 +284,7 @@ import {
   getMpcStatus,
   getMpcPrivacyResult,
   getOrderList,
+  rejectOrder,
   getPreStatus,
   joinFlPrivacyContract,
   requestSecureDelivery,
@@ -317,6 +320,8 @@ interface OrderItem {
   buy_qty?: number
   trade_mode?: string
   order_status: number
+  wallet_payment_status?: string | null
+  transaction_status?: string | null
   transaction?: NestedRecord | null
   digital_contract?: NestedRecord | null
   latest_delivery_request?: NestedRecord | null
@@ -1291,6 +1296,19 @@ const submitMpcSellerDelivery = async () => {
     mpcSellerDialog.submitting = false
     actionLoadingNo.value = ''
   }
+}
+
+const rejectPaidOrder = async (order: OrderItem) => {
+  try { await ElMessageBox.confirm('拒绝后将关闭订单、恢复库存并退回买家余额。', '拒绝订单', { type: 'warning' }) }
+  catch { return }
+  actionLoadingNo.value = order.order_no
+  try {
+    const result = await rejectOrder(order.order_no)
+    if (result.data.status !== 0) throw new Error(result.data.message || '拒绝订单失败')
+    ElMessage.success('订单已关闭，余额已退回')
+    await fetchOrders()
+  } catch (error: any) { ElMessage.error(error?.response?.data?.message || error?.message || '拒绝订单失败') }
+  finally { actionLoadingNo.value = '' }
 }
 
 const fetchOrders = async () => {

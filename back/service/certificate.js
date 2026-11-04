@@ -495,21 +495,34 @@ const postCa = async (endpoint, body, raw = false) => {
   return raw ? text : JSON.parse(text);
 };
 
+const parseLatestCertSn = (raw, name, usage) => {
+  // Quote certSn before JSON.parse: CA serial numbers can exceed Number.MAX_SAFE_INTEGER.
+  const response = JSON.parse(raw.replace(/("certSn"\s*:\s*)(\d+)/g, '$1"$2"'));
+  let latest = null;
+  const visit = (value) => {
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value)) return value.forEach(visit);
+    if (value.certSn && value.certContent &&
+        String(value.userId) === `${name}.${usage}`) {
+      const expires = Number(value.expirationDate || 0);
+      if (!latest || expires > latest.expires) latest = { sn: String(value.certSn), expires };
+    }
+    Object.values(value).forEach(visit);
+  };
+  visit(response);
+  if (!latest) throw new Error(`${usage} 证书不存在`);
+  return latest.sn;
+};
+
 const latestCertSn = async (name, usage) => {
   const raw = await postCa('/api/ca/querycerts', JSON.stringify({
     orgId: DEFAULT_CERT_ORG_NAME, userId: `${name}.${usage}`,
     userType: 'client', certUsage: usage,
   }), true);
-  let latest = null;
-  for (const block of raw.split('{"userId"').slice(1)) {
-    if (!block.includes('"certContent"')) continue;
-    const sn = block.match(/"certSn"\s*:\s*(\d+)/)?.[1];
-    const expires = Number(block.match(/"expirationDate"\s*:\s*(\d+)/)?.[1] || 0);
-    if (sn && (!latest || expires > latest.expires)) latest = { sn, expires };
-  }
-  if (!latest) throw new Error(`${usage} 证书不存在`);
-  return latest.sn;
+  return parseLatestCertSn(raw, name, usage);
 };
+
+exports.parseLatestCertSn = parseLatestCertSn;
 
 const renewCaCert = async (sn) => {
   for (let attempt = 0; attempt < 24; attempt += 1) {

@@ -80,6 +80,7 @@ router.use('/order/alipay', alipayRouter);
 router.post('/order/pay/:order_no', expressJoi(payOrder_limit), assetHandler.payOrder);
 
 router.post('/order/cancel/:order_no', assetHandler.cancelOrder);
+router.post('/order/reject/:order_no', assetHandler.rejectOrder);
 router.delete('/order/closed/:order_no', assetHandler.deleteClosedOrder);
 
 // 订单：卖家确认交易（对齐原始系统卖家交易市场）

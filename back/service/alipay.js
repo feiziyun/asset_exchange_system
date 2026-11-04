@@ -226,9 +226,14 @@ async function handleNotify(params) {
     throw fail('支付宝通知验签失败');
   }
   if (String(params.app_id) !== String(config.appId)) throw fail('支付宝应用ID不匹配');
+  if (String(params.out_trade_no || '').startsWith('REC')) {
+    await require('./wallet').settleRecharge(params.out_trade_no, params);
+    return;
+  }
   const [rows] = await db.query('SELECT * FROM alipay_payment WHERE out_trade_no=?', [params.out_trade_no]);
   if (!rows.length) throw fail('支付记录不存在', 404);
   if (paidTrade(params)) await settle(rows[0], params);
 }
 
-module.exports = { createPayment, getPaymentStatus, handleNotify, closeUnpaidPaymentsForOrder };
+module.exports = { createPayment, getPaymentStatus, handleNotify, closeUnpaidPaymentsForOrder,
+  execAlipay, queryTrade, paidTrade };

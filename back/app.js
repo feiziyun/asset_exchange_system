@@ -130,6 +130,7 @@ app.use('/asset', businessJwt, assetRouter);
 // digital-contract fallback after it so /asset/order/list is not returned as 503.
 app.use('/asset/order', businessJwt, digitalContractRouter);
 app.use('/asset/certificate', businessJwt, certificateRouter);
+app.use('/asset/wallet', businessJwt, require('./router/wallet'));
 app.use('/admin', businessJwt, adminAuth, adminRouter);
 app.use('/api/privacy', businessJwt);
 

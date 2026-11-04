@@ -3391,12 +3391,13 @@ const getOrderDeliveryContextByTransactionId = async (conn, transactionId) => {
 };
 
 exports.payOrder = async (orderNo, buyerId, payload = {}, paymentProof = {}) => {
-  if (paymentProof.verifiedAlipay !== true && alipayConfig.skipPayment !== true) {
-    throw new Error('请通过支付宝完成支付');
+  if (paymentProof.verifiedAlipay !== true && paymentProof.verifiedWallet !== true && alipayConfig.skipPayment !== true) {
+    throw new Error('请先完成支付');
   }
-  const conn = await pool.getConnection();
+  const ownsConnection = !paymentProof.connection;
+  const conn = paymentProof.connection || await pool.getConnection();
   try {
-    await conn.beginTransaction();
+    if (ownsConnection) await conn.beginTransaction();
 
     const order = await getOrderDeliveryContext(conn, orderNo);
     if (!order) throw new Error('订单不存在');
@@ -3442,7 +3443,7 @@ exports.payOrder = async (orderNo, buyerId, payload = {}, paymentProof = {}) => 
       pc_type: refreshedOrder.pc_type || '',
     });
 
-    await conn.commit();
+    if (ownsConnection) await conn.commit();
     return {
       order_no: orderNo,
       buyer_address: buyerAddress,
@@ -3451,14 +3452,14 @@ exports.payOrder = async (orderNo, buyerId, payload = {}, paymentProof = {}) => 
       digital_contract: digitalContract,
     };
   } catch (error) {
-    await conn.rollback();
+    if (ownsConnection) await conn.rollback();
     throw error;
   } finally {
-    conn.release();
+    if (ownsConnection) conn.release();
   }
 };
 
-exports.cancelOrder = async (orderNo, buyerId) => {
+exports.cancelOrder = async (orderNo, buyerId, options = {}) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -3468,14 +3469,26 @@ exports.cancelOrder = async (orderNo, buyerId) => {
     );
     const order = orders[0];
     if (!order) throw new Error('订单不存在');
-    if (Number(order.buyer_id) !== Number(buyerId)) throw new Error('无权取消该订单');
+    if (!options.sellerId && Number(order.buyer_id) !== Number(buyerId)) throw new Error('无权取消该订单');
     if (Number(order.order_status) === 4) {
       await conn.commit();
       return { order_no: orderNo, order_status: 4 };
     }
-    if (Number(order.order_status) !== 0) throw new Error('只有待支付订单可以取消');
-
-    await require('./alipay').closeUnpaidPaymentsForOrder(orderNo, conn);
+    if (![0, 1].includes(Number(order.order_status))) throw new Error('订单已进入交付或完成，不能取消');
+    if (options.sellerId) {
+      const [owners] = await conn.query('SELECT publisher_id FROM asset_publish_record WHERE id=?', [order.publish_id]);
+      if (Number(owners[0]?.publisher_id) !== Number(options.sellerId)) throw new Error('无权拒绝该订单');
+      if (Number(order.order_status) !== 1) throw new Error('只能拒绝已付款、待确认的订单');
+    }
+    if (Number(order.order_status) === 0) {
+      await require('./alipay').closeUnpaidPaymentsForOrder(orderNo, conn);
+    } else {
+      const [payments] = await conn.query('SELECT status FROM wallet_order_payment WHERE order_no=? FOR UPDATE', [orderNo]);
+      if (payments[0]?.status !== 'PAID') throw new Error('该订单不是可退回的余额付款');
+      const [confirmed] = await conn.query("SELECT id FROM transactions WHERE order_no=? AND status='已确认' LIMIT 1", [orderNo]);
+      if (confirmed.length) throw new Error('卖家已确认交易，不能直接退款');
+      await require('./wallet').refundOrder(conn, orderNo, order.buyer_id);
+    }
 
     const [assets] = await conn.query(
       'SELECT id, status FROM digital_asset WHERE id=? FOR UPDATE', [order.asset_id],
@@ -3519,7 +3532,11 @@ exports.cancelOrder = async (orderNo, buyerId) => {
         [quantity, asset.id],
       );
     }
-    await conn.query('UPDATE asset_order SET order_status=4 WHERE id=? AND order_status=0', [order.id]);
+    await conn.query('UPDATE asset_order SET order_status=4 WHERE id=? AND order_status=?', [order.id, order.order_status]);
+    if (Number(order.order_status) === 1) {
+      await conn.query("UPDATE transactions SET status='已取消' WHERE order_no=? AND status<>'已确认'", [orderNo]);
+      await conn.query("UPDATE digital_contracts SET status='已取消' WHERE order_no=? AND status<>'已生效'", [orderNo]);
+    }
     await conn.commit();
     return { order_no: orderNo, order_status: 4 };
   } catch (error) {
@@ -4125,6 +4142,8 @@ exports.listOrders = async (query, userId, identity = '') => {
         ao.payment_confirm_time,
         ao.seller_delivery_time,
         ao.buyer_confirm_time,
+        (SELECT wop.status FROM wallet_order_payment wop WHERE wop.order_no=ao.order_no) AS wallet_payment_status,
+        (SELECT t.status FROM transactions t WHERE t.order_no=ao.order_no LIMIT 1) AS transaction_status,
         da.asset_name,
         da.classification_category_name,
         da.classification_data_level,

@@ -24,6 +24,9 @@ DROP TABLE IF EXISTS `delivery_records`;
 DROP TABLE IF EXISTS `delivery_requests`;
 DROP TABLE IF EXISTS `digital_contracts`;
 DROP TABLE IF EXISTS `transactions`;
+DROP TABLE IF EXISTS `wallet_ledger`;
+DROP TABLE IF EXISTS `wallet_recharge`;
+DROP TABLE IF EXISTS `wallet_order_payment`;
 DROP TABLE IF EXISTS `asset_order`;
 DROP TABLE IF EXISTS `auction_settlement`;
 DROP TABLE IF EXISTS `auction_bid`;
@@ -53,6 +56,7 @@ CREATE TABLE `users` (
   `avatarMimeType` VARCHAR(120) NOT NULL DEFAULT '' COMMENT '头像 MIME 类型',
   `default_register_cert` VARCHAR(100) DEFAULT NULL COMMENT '默认登记证书',
   `default_trade_cert` VARCHAR(100) DEFAULT NULL COMMENT '默认交易证书',
+  `balance` DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '可用余额（人民币）',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_account` (`account`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
@@ -334,6 +338,48 @@ CREATE TABLE `asset_order` (
   CONSTRAINT `fk_order_asset` FOREIGN KEY (`asset_id`) REFERENCES `digital_asset` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_order_buyer` FOREIGN KEY (`buyer_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
+
+CREATE TABLE `wallet_ledger` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT NOT NULL,
+  `event_key` VARCHAR(100) NOT NULL,
+  `event_type` VARCHAR(24) NOT NULL,
+  `amount` DECIMAL(18,2) NOT NULL,
+  `balance_after` DECIMAL(18,2) NOT NULL,
+  `order_no` VARCHAR(64) DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_wallet_event` (`event_key`),
+  KEY `idx_wallet_user` (`user_id`, `id`),
+  CONSTRAINT `fk_wallet_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `wallet_recharge` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT NOT NULL,
+  `out_trade_no` VARCHAR(64) NOT NULL,
+  `trade_no` VARCHAR(64) DEFAULT NULL,
+  `amount` DECIMAL(18,2) NOT NULL,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  `qr_code` TEXT,
+  `expires_at` DATETIME NOT NULL,
+  `paid_at` DATETIME DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uk_recharge_trade` (`out_trade_no`),
+  UNIQUE KEY `uk_recharge_alipay_trade` (`trade_no`),
+  KEY `idx_recharge_user` (`user_id`, `id`),
+  CONSTRAINT `fk_recharge_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `wallet_order_payment` (
+  `order_no` VARCHAR(40) NOT NULL PRIMARY KEY,
+  `user_id` BIGINT NOT NULL,
+  `amount` DECIMAL(18,2) NOT NULL,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'PAID',
+  `paid_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `refunded_at` DATETIME DEFAULT NULL,
+  CONSTRAINT `fk_wallet_payment_order` FOREIGN KEY (`order_no`) REFERENCES `asset_order` (`order_no`),
+  CONSTRAINT `fk_wallet_payment_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `transactions` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',

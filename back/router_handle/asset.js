@@ -401,6 +401,14 @@ exports.cancelOrder = async (req, res) => {
   }
 };
 
+exports.rejectOrder = async (req, res) => {
+  try {
+    if (!req.auth?.id) return res.cc('缺少用户身份信息');
+    const result = await assetService.cancelOrder(req.params.order_no, null, { sellerId: req.auth.id });
+    return res.send({ status: 0, message: '订单已拒绝并退款', data: result });
+  } catch (error) { return res.cc(error); }
+};
+
 exports.deleteClosedOrder = async (req, res) => {
   try {
     if (!req.auth?.id) return res.cc('缺少用户身份信息');

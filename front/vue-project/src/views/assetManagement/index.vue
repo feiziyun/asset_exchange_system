@@ -155,12 +155,12 @@
                               继续购买
                             </el-button>
                             <el-button
-                              v-if="item.order_status === 0"
+                              v-if="item.order_status === 0 || (item.order_status === 1 && item.wallet_payment_status === 'PAID' && item.transaction_status !== '已确认')"
                               type="danger"
                               link
                               :loading="actionLoadingNo === item.order_no"
                               @click="cancelCurrentOrder(item.order_no)"
-                            >取消订单</el-button>
+                            >{{ item.order_status === 1 ? '取消并退款' : '取消订单' }}</el-button>
                             <el-button
                               v-if="item.order_status === 4"
                               type="danger"
@@ -535,6 +535,8 @@ interface PurchasedItem {
   deal_price?: number
   price_unit?: string
   order_status?: number
+  wallet_payment_status?: string | null
+  transaction_status?: string | null
   created_at?: string
 }
 
@@ -804,7 +806,7 @@ const payCurrentOrder = async (orderNo?: string) => {
 const cancelCurrentOrder = async (orderNo?: string) => {
   if (!orderNo) return
   try {
-    await ElMessageBox.confirm('取消后订单将关闭，预留库存会恢复。', '取消订单', {
+    await ElMessageBox.confirm('取消后订单将关闭，预留库存会恢复；余额支付将原路退回账户余额。', '取消订单', {
       confirmButtonText: '确认取消',
       cancelButtonText: '返回',
       type: 'warning',

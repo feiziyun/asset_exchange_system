@@ -1,7 +1,12 @@
 <template>
-  <el-dialog :model-value="modelValue" title="支付宝扫码支付" width="360px" destroy-on-close
+  <el-dialog :model-value="modelValue" title="支付订单" width="360px" destroy-on-close
     @update:model-value="emit('update:modelValue', $event)">
     <div class="payment-body" v-loading="loading">
+      <el-radio-group v-if="status === 'PENDING' && !qrImage" v-model="method" aria-label="支付方式">
+        <el-radio-button value="alipay">支付宝</el-radio-button>
+        <el-radio-button value="balance">余额支付</el-radio-button>
+      </el-radio-group>
+      <div v-if="method === 'balance' && !qrImage" class="wallet-balance">可用余额：¥ {{ balance }}</div>
       <div class="amount">¥ {{ amount }}</div>
       <div v-if="qrImage && status === 'PENDING'" class="countdown">
         剩余支付时间 <strong>{{ countdownText }}</strong>
@@ -15,7 +20,8 @@
     </div>
     <template #footer>
       <el-button @click="emit('update:modelValue', false)">关闭</el-button>
-      <el-button v-if="error && status === 'PENDING'" type="primary" :loading="loading" @click="loadPayment">重试</el-button>
+      <el-button v-if="status === 'PENDING' && !qrImage" type="primary" :loading="loading" @click="submitPayment">确认支付</el-button>
+      <el-button v-if="error && status === 'PENDING' && qrImage" type="primary" :loading="loading" @click="loadPayment">重试</el-button>
     </template>
   </el-dialog>
 </template>
@@ -24,10 +30,13 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import QRCode from 'qrcode'
 import { createAlipayPayment, getAlipayPaymentStatus } from '@/api/asset'
+import { getWallet, getWalletOrderAmount, payWithBalance } from '@/api/wallet'
 
 const props = defineProps<{ modelValue: boolean; orderNo: string }>()
 const emit = defineEmits<{ (e: 'update:modelValue', value: boolean): void; (e: 'paid'): void }>()
 const loading = ref(false)
+const method = ref('alipay')
+const balance = ref('0.00')
 const qrImage = ref('')
 const amount = ref('0.00')
 const status = ref('PENDING')
@@ -128,8 +137,35 @@ const loadPayment = async () => {
   }
 }
 
+const submitPayment = async () => {
+  if (method.value === 'alipay') return loadPayment()
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await payWithBalance(props.orderNo)
+    if (response.data.status !== 0) throw new Error(response.data.message || '余额支付失败')
+    status.value = 'PAID'
+    emit('paid')
+    emit('update:modelValue', false)
+  } catch (cause) {
+    error.value = (cause as any)?.response?.data?.message || (cause as Error).message
+  } finally { loading.value = false }
+}
+
 watch(() => [props.modelValue, props.orderNo], ([visible]) => {
-  if (visible) loadPayment()
+  if (visible) {
+    stopTimers()
+    qrImage.value = ''
+    error.value = ''
+    status.value = 'PENDING'
+    method.value = 'alipay'
+    void getWallet().then((response) => {
+      if (response.data.status === 0) balance.value = response.data.data.balance
+    }).catch(() => {})
+    void getWalletOrderAmount(props.orderNo).then((response) => {
+      if (response.data.status === 0) amount.value = response.data.data.amount
+    }).catch(() => {})
+  }
   else stopTimers()
 })
 onBeforeUnmount(stopTimers)
@@ -142,4 +178,5 @@ onBeforeUnmount(stopTimers)
 .countdown strong { color: #d94841; font-variant-numeric: tabular-nums; }
 .qr { width: 220px; height: 220px; }
 .order-no { color: #667085; font-size: 12px; overflow-wrap: anywhere; }
+.wallet-balance { color: #606266; font-size: 14px; }
 </style>

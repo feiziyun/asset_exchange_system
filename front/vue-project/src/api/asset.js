@@ -149,6 +149,8 @@ export const sellerConfirmOrder = (orderNo) => {
   })
 }
 
+export const rejectOrder = (orderNo) => instance.post(`/asset/order/reject/${orderNo}`)
+
 // 保存订单数字合约与交付方式
 export const saveOrderContract = (orderNo, data = {}) => {
   return instance.post(`/asset/order/contract/${orderNo}`, data)

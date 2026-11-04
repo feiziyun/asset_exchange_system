@@ -31,6 +31,30 @@
 
     <el-row :gutter="12" class="main-row">
       <el-col :xs="24" :sm="24" :md="16">
+        <el-card shadow="never" class="wallet-card">
+          <template #header>
+            <div class="certificate-heading">
+              <span class="section-title">账户余额</span>
+              <el-button type="primary" size="small" @click="rechargeVisible = true">充值</el-button>
+            </div>
+          </template>
+          <div class="wallet-amount">¥ {{ walletBalance }}</div>
+          <el-table :data="walletLedger" size="small" empty-text="暂无流水">
+            <el-table-column label="时间" min-width="145">
+              <template #default="scope">{{ formatDateTime(scope.row.created_at) }}</template>
+            </el-table-column>
+            <el-table-column label="类型" min-width="85">
+              <template #default="scope">{{ ({ RECHARGE: '充值', PAY: '支付', REFUND: '退款' } as Record<string, string>)[scope.row.event_type] || scope.row.event_type }}</template>
+            </el-table-column>
+            <el-table-column prop="amount" label="金额（元）" min-width="90" />
+            <el-table-column prop="balance_after" label="余额（元）" min-width="90" />
+          </el-table>
+          <div class="ledger-pages">
+            <el-button :disabled="ledgerPage === 1" @click="changeLedgerPage(-1)">上一页</el-button>
+            <span>第 {{ ledgerPage }} 页</span>
+            <el-button :disabled="walletLedger.length < 20" @click="changeLedgerPage(1)">下一页</el-button>
+          </div>
+        </el-card>
         <el-card shadow="never" class="certificate-card">
           <template #header>
             <div class="certificate-heading">
@@ -165,6 +189,21 @@
       </el-col>
     </el-row>
 
+    <el-dialog v-model="rechargeVisible" title="支付宝扫码充值" width="360px" @closed="stopRechargePolling">
+      <el-form-item v-if="!rechargeQr" label="充值金额">
+        <el-input v-model="rechargeAmount" type="number" min="0.01" max="1000000" placeholder="请输入金额（元）" />
+      </el-form-item>
+      <div v-if="rechargeQr" class="recharge-content">
+        <strong>¥ {{ rechargeAmount }}</strong>
+        <img :src="rechargeQr" alt="支付宝充值二维码" width="220" height="220" />
+        <span>请使用支付宝扫码付款</span>
+      </div>
+      <template #footer>
+        <el-button @click="rechargeVisible = false">关闭</el-button>
+        <el-button v-if="!rechargeQr" type="primary" :loading="rechargeLoading" @click="startRecharge">生成二维码</el-button>
+      </template>
+    </el-dialog>
+
     <el-dialog v-model="certificateDialogVisible" :title="certificateDialogMode === 'renew' ? '续期证书' : '申请证书'" width="500px">
       <template v-if="certificateDialogMode === 'renew'">
         <el-descriptions :column="1">
@@ -200,7 +239,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import QRCode from 'qrcode'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { clearAuthData, parseTokenPayload, getRoleKey, getRoleLabel } from '@/utils/auth'
@@ -214,6 +254,56 @@ import {
   updatePassword,
 } from '@/api/userInfo'
 import { getDefaultCertificates, getCertificates, checkCertificateNameAvailable, generateCertificate, addCertificate, renewCertificate } from '@/api/asset'
+import { getWallet, getWalletLedger, createRecharge, getRechargeStatus } from '@/api/wallet'
+
+const walletBalance = ref('0.00')
+const walletLedger = ref<any[]>([])
+const ledgerPage = ref(1)
+const rechargeVisible = ref(false)
+const rechargeAmount = ref('')
+const rechargeQr = ref('')
+const rechargeLoading = ref(false)
+let rechargeTimer: ReturnType<typeof setInterval> | undefined
+const stopRechargePolling = () => { if (rechargeTimer) clearInterval(rechargeTimer); rechargeTimer = undefined }
+const refreshWallet = async () => {
+  try {
+    const [balance, ledger] = await Promise.all([getWallet(), getWalletLedger(ledgerPage.value)])
+    if (balance.data.status === 0) walletBalance.value = balance.data.data.balance
+    if (ledger.data.status === 0) walletLedger.value = ledger.data.data
+  } catch (error: any) { ElMessage.error(error?.response?.data?.message || '余额加载失败') }
+}
+const changeLedgerPage = (offset: number) => {
+  ledgerPage.value = Math.max(1, ledgerPage.value + offset)
+  void refreshWallet()
+}
+const startRecharge = async () => {
+  rechargeLoading.value = true
+  try {
+    const response = await createRecharge(rechargeAmount.value)
+    if (response.data.status !== 0) throw new Error(response.data.message || '创建充值单失败')
+    const recharge = response.data.data
+    rechargeQr.value = await QRCode.toDataURL(recharge.qr_code, { width: 220, margin: 1 })
+    stopRechargePolling()
+    rechargeTimer = setInterval(async () => {
+      try {
+        const result = await getRechargeStatus(recharge.out_trade_no)
+        if (result.data.data?.status === 'PAID') {
+          stopRechargePolling()
+          rechargeVisible.value = false
+          ElMessage.success('充值成功')
+          void refreshWallet()
+        } else if (result.data.data?.status === 'EXPIRED') {
+          stopRechargePolling()
+          ElMessage.warning('充值二维码已过期')
+          rechargeQr.value = ''
+        }
+      } catch (error: any) { stopRechargePolling(); ElMessage.error(error?.response?.data?.message || '充值状态查询失败') }
+    }, 3000)
+  } catch (error: any) { ElMessage.error(error?.response?.data?.message || error?.message || '充值失败') }
+  finally { rechargeLoading.value = false }
+}
+watch(rechargeVisible, (visible) => { if (!visible) { stopRechargePolling(); rechargeQr.value = ''; rechargeAmount.value = '' } })
+onBeforeUnmount(stopRechargePolling)
 
 const router = useRouter()
 const loading = ref(false)
@@ -573,6 +663,7 @@ const renewActiveCertificate = async () => {
 onMounted(() => {
   fetchUserInfo()
   fetchUserCertificates()
+  refreshWallet()
 })
 </script>
 
@@ -581,6 +672,11 @@ onMounted(() => {
   width: 85%;
   margin: 14px auto;
 }
+
+.wallet-card { margin-bottom: 12px; }
+.wallet-amount { font-size: 24px; font-weight: 600; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
+.recharge-content { display: flex; align-items: center; flex-direction: column; gap: 10px; }
+.ledger-pages { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 12px; }
 
 .profile-header {
   margin-bottom: 12px;

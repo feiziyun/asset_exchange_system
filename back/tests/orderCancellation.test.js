@@ -76,9 +76,9 @@ test('only the buyer can cancel an unpaid order', async () => {
   assert.equal(state.remaining, 0);
 });
 
-test('a paid order cannot be canceled or return stock', async () => {
+test('a paid order without a refundable wallet payment cannot return stock', async () => {
   const state = makeConnection(1);
-  await assert.rejects(assetService.cancelOrder('OD1', 7), /只有待支付订单/);
+  await assert.rejects(assetService.cancelOrder('OD1', 7), /不是可退回的余额付款/);
   assert.equal(state.remaining, 0);
   assert.equal(state.sold, 1);
 });
