@@ -3,7 +3,8 @@ const { loggedFetch, preview } = require('./httpLogger');
 
 const CHAIN_BASE_URL = services.chainBaseUrl;
 const MINT_CHAIN_BASE_URL = services.mintChainBaseUrl || services.chainBaseUrl;
-const CHAIN_TIMEOUT_MS = Number(process.env.CHAIN_TIMEOUT_MS || 300000);
+// Axios in the reference chain flow has no request timeout. A positive override can cap it.
+const CHAIN_TIMEOUT_MS = Number(process.env.CHAIN_TIMEOUT_MS || 0);
 const CHAIN_DEBUG = process.env.CHAIN_DEBUG === '1';
 
 const ensureFetch = () => {
@@ -28,7 +29,9 @@ const postChain = async (path, payload, options = {}) => {
   ensureFetch();
   const url = `${baseUrl}${path}`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CHAIN_TIMEOUT_MS);
+  const timer = CHAIN_TIMEOUT_MS > 0
+    ? setTimeout(() => controller.abort(), CHAIN_TIMEOUT_MS)
+    : null;
 
   if (CHAIN_DEBUG) {
     console.log('[chainClient][request]', { path, url, payload: preview(payload) });

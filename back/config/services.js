@@ -38,6 +38,10 @@ const services = {
   certGenerateUrl:
     process.env.CERT_GENERATE_URL ||
     buildLocalUrl(process.env.CERT_GENERATE_PORT || 9081),
+  certGenerateTimeoutMs: 30 * 60 * 1000,
+  certAddressTimeoutMs: 5 * 60 * 1000,
+  certCaQueryTimeoutMs: 30 * 1000,
+  certCaRenewTimeoutMs: 60 * 1000,
 
   certCaBaseUrl: process.env.CERT_CA_BASE_URL || buildLocalUrl(process.env.CERT_CA_PORT || 8090),
   certStoreRoot: process.env.CERT_STORE_ROOT || '/home/super/fqh/cert-store',

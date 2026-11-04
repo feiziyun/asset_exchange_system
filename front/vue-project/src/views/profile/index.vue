@@ -213,8 +213,7 @@ import {
   updateUserEmail,
   updatePassword,
 } from '@/api/userInfo'
-import { getDefaultCertificates, getCertificates, checkCertificateNameAvailable, renewCertificate } from '@/api/asset'
-import instance from '@/http/index.js'
+import { getDefaultCertificates, getCertificates, checkCertificateNameAvailable, generateCertificate, addCertificate, renewCertificate } from '@/api/asset'
 
 const router = useRouter()
 const loading = ref(false)
@@ -527,16 +526,11 @@ const submitCertificateApplication = async () => {
       return
     }
     // 第一步：调用后端 /asset/certificate/generate 接口生成证书
-    const generateResponse = await instance.post('/asset/certificate/generate', {
-      client_number: certificateForm.certificateName,
-      org: 'wx-org1.chainmaker.org',
-    })
+    const generateResponse = await generateCertificate(certificateForm.certificateName)
 
     if (generateResponse.status === 200 && generateResponse.data.status === 'success') {
       // 第二步：调用 /asset/certificate/add-certificate 接口添加证书
-      const addCertResponse = await instance.post('/asset/certificate/add-certificate', {
-        certificateName: certificateForm.certificateName,
-      })
+      const addCertResponse = await addCertificate(certificateForm.certificateName)
 
       if (addCertResponse.status === 200 && addCertResponse.data.status === 0) {
         ElMessage.success('证书申请成功')

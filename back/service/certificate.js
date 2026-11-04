@@ -196,6 +196,7 @@ exports.generateCertificate = async (clientNumber) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_number: clientNumber, org: forceDefaultOrgCode() }),
+      signal: AbortSignal.timeout(services.certGenerateTimeoutMs),
     });
   } catch (error) {
     throw new Error(describeFetchError('证书生成服务', generateUrl, error));
@@ -498,6 +499,8 @@ const postCa = async (endpoint, body, raw = false) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body,
+    signal: AbortSignal.timeout(endpoint.endsWith('/querycerts')
+      ? services.certCaQueryTimeoutMs : services.certCaRenewTimeoutMs),
   });
   const text = await response.text();
   if (!response.ok) throw new Error(`CA 请求失败：${text || response.status}`);
@@ -596,6 +599,7 @@ exports.resolveOwnerAddressByCertificate = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cert_path: signCertPath }),
+      signal: AbortSignal.timeout(services.certAddressTimeoutMs),
     });
   } catch (error) {
     if (registryCert?.address) {

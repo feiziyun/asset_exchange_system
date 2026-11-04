@@ -41,6 +41,11 @@ export default defineConfig(({ mode }) => {
       })
     },
   }
+  const certificateProxy = {
+    ...backendProxy,
+    proxyTimeout: 35 * 60 * 1000,
+    timeout: 35 * 60 * 1000,
+  }
 
   return {
     plugins: [
@@ -63,6 +68,7 @@ export default defineConfig(({ mode }) => {
       cors: true,
       https: httpsOptions,
       proxy: {
+        '/asset/certificate': certificateProxy,
         '/api': backendProxy,
         '/asset': backendProxy,
         '/userInfo': backendProxy,

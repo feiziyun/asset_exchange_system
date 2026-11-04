@@ -4,7 +4,7 @@ import instance from '@/http/index.js'
 export const registerAsset = (data) => {
   return instance.post('/asset/register', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 300000,
+    timeout: 0,
   })
 }
 
@@ -78,7 +78,9 @@ export const updateAssetStatus = (id, status) => {
 }
 
 export const proxyCustodyAsset = (id, data) => {
-  return instance.post(`/asset/manage/${id}/proxy-custody`, data)
+  return instance.post(`/asset/manage/${id}/proxy-custody`, data, {
+    timeout: 0,
+  })
 }
 
 // 资产上架
@@ -142,7 +144,9 @@ export const getAlipayPaymentStatus = (orderNo) => {
 
 // 卖家确认交易
 export const sellerConfirmOrder = (orderNo) => {
-  return instance.post(`/asset/order/seller-confirm/${orderNo}`)
+  return instance.post(`/asset/order/seller-confirm/${orderNo}`, {}, {
+    timeout: 0,
+  })
 }
 
 // 保存订单数字合约与交付方式
@@ -285,44 +289,66 @@ export const getMpcPrivacyResult = (transactionId) => {
 }
 
 // 证书：根据用户名获取用户ID
+const CERT_READ_TIMEOUT_MS = 30000
+const CERT_ADDRESS_TIMEOUT_MS = 5 * 60 * 1000
+const CERT_OPERATION_TIMEOUT_MS = 35 * 60 * 1000
+
 export const getUserIdByUsername = (username) => {
-  return instance.post('/asset/certificate/get-user-id', { username })
+  return instance.post('/asset/certificate/get-user-id', { username }, { timeout: CERT_READ_TIMEOUT_MS })
 }
 
 // 证书：不可分割资产（org1）
 export const getCertificates = () => {
-  return instance.post('/asset/certificate/get-certificates')
+  return instance.post('/asset/certificate/get-certificates', {}, { timeout: CERT_READ_TIMEOUT_MS })
 }
 
 export const checkCertificateNameAvailable = (certificateName) => {
-  return instance.get('/asset/certificate/certificate-name-available', { params: { certificateName } })
+  return instance.get('/asset/certificate/certificate-name-available', {
+    params: { certificateName }, timeout: CERT_READ_TIMEOUT_MS,
+  })
+}
+
+export const generateCertificate = (clientNumber) => {
+  return instance.post('/asset/certificate/generate', {
+    client_number: clientNumber, org: 'wx-org1.chainmaker.org',
+  }, { timeout: CERT_OPERATION_TIMEOUT_MS })
+}
+
+export const addCertificate = (certificateName) => {
+  return instance.post('/asset/certificate/add-certificate', {
+    certificateName,
+  }, { timeout: CERT_ADDRESS_TIMEOUT_MS })
 }
 
 export const renewCertificate = (certificateName) => {
-  return instance.post('/asset/certificate/renew-certificate', { certificateName, org: 'wx-org1' })
+  return instance.post('/asset/certificate/renew-certificate', {
+    certificateName, org: 'wx-org1',
+  }, { timeout: CERT_OPERATION_TIMEOUT_MS })
 }
 
 export const getAllUserCertificates = () => {
-  return instance.get('/asset/certificate/user-certificates')
+  return instance.get('/asset/certificate/user-certificates', { timeout: CERT_READ_TIMEOUT_MS })
 }
 
 export const getDefaultCertificates = () => {
-  return instance.get('/asset/certificate/default-cert')
+  return instance.get('/asset/certificate/default-cert', { timeout: CERT_READ_TIMEOUT_MS })
 }
 
 export const saveDefaultCertificates = (data) => {
-  return instance.post('/asset/certificate/default-cert', data)
+  return instance.post('/asset/certificate/default-cert', data, { timeout: CERT_READ_TIMEOUT_MS })
 }
 
 export const getDefaultRegisterCertInfo = () => {
-  return instance.get('/asset/certificate/default-register-cert-info')
+  return instance.get('/asset/certificate/default-register-cert-info', { timeout: CERT_READ_TIMEOUT_MS })
 }
 
 export const getDefaultTradeCertInfo = () => {
-  return instance.get('/asset/certificate/default-trade-cert-info')
+  return instance.get('/asset/certificate/default-trade-cert-info', { timeout: CERT_READ_TIMEOUT_MS })
 }
 
 // 证书地址解析（按 1015c 流程）
 export const resolveOwnerAddress = (certificateName, orgName = 'wx-org1.chainmaker.org') => {
-  return instance.post('/asset/certificate/resolve-owner-address', { certificateName, orgName })
+  return instance.post('/asset/certificate/resolve-owner-address', {
+    certificateName, orgName,
+  }, { timeout: CERT_ADDRESS_TIMEOUT_MS })
 }
