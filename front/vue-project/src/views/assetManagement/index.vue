@@ -298,7 +298,7 @@
             />
           </el-form-item>
           <el-form-item label="总数量">
-            <el-input-number v-model="editForm.total_qty" :min="1" style="width: 100%" />
+            <el-input-number v-model="editForm.total_qty" :min="1" :max="1" disabled style="width: 100%" />
           </el-form-item>
         </div>
         <div class="edit-grid-row">
@@ -321,7 +321,7 @@
         </div>
         <div class="edit-grid-row">
           <el-form-item label="可用数量">
-            <el-input-number v-model="editForm.available_qty" :min="0" style="width: 100%" />
+            <el-input-number v-model="editForm.available_qty" :min="0" :max="1" style="width: 100%" />
           </el-form-item>
           <el-form-item label="价格单位">
             <el-input v-model="editForm.price_unit" />

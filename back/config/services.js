@@ -39,6 +39,11 @@ const services = {
     process.env.CERT_GENERATE_URL ||
     buildLocalUrl(process.env.CERT_GENERATE_PORT || 9081),
 
+  certCaBaseUrl: process.env.CERT_CA_BASE_URL || buildLocalUrl(process.env.CERT_CA_PORT || 8090),
+  certStoreRoot: process.env.CERT_STORE_ROOT || '/home/super/fqh/cert-store',
+  certFileRoot: process.env.CERT_FILE_ROOT || '/home/super/r/GoSDK/crypto-config',
+  certAdditionalSdkRoot: process.env.CERT_ADDITIONAL_SDK_ROOT || '/home/super/lihuihao/otherwork/mint_service/GoSDK/crypto-config',
+
   certAddrBaseUrl:
     process.env.CERT_ADDR_BASE_URL ||
     buildLocalUrl(process.env.CERT_ADDR_PORT || 9092),

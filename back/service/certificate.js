@@ -1,12 +1,15 @@
 const db = require('../db/index');
 const { services } = require('../config/services');
 const { loggedFetch } = require('./httpLogger');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { X509Certificate } = require('node:crypto');
 
 const pool = db.promise();
 const DEFAULT_CERT_ORG_CODE = 'wx-org1';
 const DEFAULT_CERT_ORG_NAME = 'wx-org1.chainmaker.org';
 const CERT_ADDR_BASE_URL = services.certAddrBaseUrl;
-const CERT_FILE_ROOT = process.env.CERT_FILE_ROOT || '/home/super/r/GoSDK/crypto-config';
+const CERT_FILE_ROOT = services.certFileRoot;
 const CERT_GENERATE_URL = services.certGenerateUrl;
 
 const normalizeOrgCode = (org) => {
@@ -430,36 +433,142 @@ exports.resolveDefaultRegisterCertInfo = async (userId) => {
 };
 
 exports.addCertificate = async ({ userId, certificateName }) => {
-  if (!userId || !certificateName) {
+  const name = String(certificateName || '').trim();
+  if (!userId || !/^[a-zA-Z0-9]{1,10}$/.test(name)) {
     throw new Error('缺少 userId 或 certificateName 参数');
   }
-
   const normalizedOrg = forceDefaultOrgCode();
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [existing] = await connection.query(
+      'SELECT id, user_id, address FROM certificate_registry WHERE certificate_name = ? LIMIT 1 FOR UPDATE',
+      [name],
+    );
+    if (existing.length && existing[0].user_id != null) {
+      throw new Error('证书名称已被使用');
+    }
+    const [owned] = await connection.query(
+      'SELECT id FROM certificate_registry WHERE user_id = ? LIMIT 1', [userId],
+    );
+    if (owned.length) throw new Error('当前账户已有证书，请使用续期功能');
+    const certPaths = buildCertPaths(name, normalizedOrg);
+    const resolved = await exports.resolveOwnerAddressByCertificate(name, normalizedOrg);
+    let expiresAt = null;
+    try {
+      expiresAt = new Date(new X509Certificate(await fs.readFile(certPaths.sign_cert_path)).validTo);
+    } catch (_) {
+      // The generator may store files on another host; renewal will refresh this value.
+    }
+    await connection.query(
+      `INSERT INTO certificate_registry
+       (user_id, certificate_name, org, sign_cert_path, tls_cert_path, pem_path, address, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), sign_cert_path = VALUES(sign_cert_path),
+         tls_cert_path = VALUES(tls_cert_path), pem_path = VALUES(pem_path),
+         address = VALUES(address), expires_at = VALUES(expires_at)`,
+      [userId, name, normalizedOrg, certPaths.sign_cert_path, certPaths.tls_cert_path,
+        certPaths.pem_path, resolved.owner_address, expiresAt],
+    );
+    await connection.query(
+      'UPDATE users SET default_register_cert = ?, default_trade_cert = ? WHERE id = ?',
+      [name, name, userId],
+    );
+    await connection.commit();
+    return { cert: name, organization: normalizedOrg, address: resolved.owner_address, expiresAt };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
 
-  const resolved = await exports.resolveOwnerAddressByCertificate(
-    certificateName,
-    normalizedOrg,
-    userId,
+exports.certificateNameAvailable = async (certificateName) => {
+  const name = String(certificateName || '').trim();
+  if (!/^[a-zA-Z0-9]{1,10}$/.test(name)) throw new Error('证书名称格式不正确');
+  const [rows] = await pool.query(
+    'SELECT id FROM certificate_registry WHERE certificate_name = ? LIMIT 1', [name],
   );
-  const certPaths = buildCertPaths(certificateName, normalizedOrg);
+  return rows.length === 0;
+};
 
-  await upsertCertificateRegistry({
-    userId,
-    certificateName,
-    org: normalizedOrg,
-    signCertPath: certPaths.sign_cert_path,
-    tlsCertPath: certPaths.tls_cert_path,
-    pemPath: certPaths.pem_path,
-    address: resolved.owner_address,
-    expiresAt: null,
+const postCa = async (endpoint, body, raw = false) => {
+  const response = await loggedFetch(`${services.certCaBaseUrl}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
   });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`CA 请求失败：${text || response.status}`);
+  return raw ? text : JSON.parse(text);
+};
 
-  return {
-    certificateName,
-    org: normalizedOrg,
-    address: resolved.owner_address,
-    ...certPaths,
-  };
+const latestCertSn = async (name, usage) => {
+  const raw = await postCa('/api/ca/querycerts', JSON.stringify({
+    orgId: DEFAULT_CERT_ORG_NAME, userId: `${name}.${usage}`,
+    userType: 'client', certUsage: usage,
+  }), true);
+  let latest = null;
+  for (const block of raw.split('{"userId"').slice(1)) {
+    if (!block.includes('"certContent"')) continue;
+    const sn = block.match(/"certSn"\s*:\s*(\d+)/)?.[1];
+    const expires = Number(block.match(/"expirationDate"\s*:\s*(\d+)/)?.[1] || 0);
+    if (sn && (!latest || expires > latest.expires)) latest = { sn, expires };
+  }
+  if (!latest) throw new Error(`${usage} 证书不存在`);
+  return latest.sn;
+};
+
+const renewCaCert = async (sn) => {
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    const result = await postCa('/api/ca/renewcert', `{"certSn":${sn}}`);
+    const cert = result?.data?.cert;
+    if (!cert) throw new Error(result?.msg || '证书续期返回为空');
+    if (new Date(new X509Certificate(cert).validTo).getTime() > Date.now()) return cert;
+  }
+  throw new Error('证书已过期过久，续期后仍未生效');
+};
+
+exports.renewCertificate = async (userId, certificateName) => {
+  const name = String(certificateName || '').trim();
+  if (!name) throw new Error('缺少 certificateName 参数');
+  const [rows] = await pool.query(
+    `SELECT certificate_name, org, address, sign_cert_path, tls_cert_path
+     FROM certificate_registry WHERE user_id = ? AND certificate_name = ? AND org = ? LIMIT 1`,
+    [userId, name, DEFAULT_CERT_ORG_CODE],
+  );
+  if (!rows.length) throw new Error('证书不存在或不属于当前用户');
+  const [signSn, tlsSn] = await Promise.all([latestCertSn(name, 'sign'), latestCertSn(name, 'tls')]);
+  const [signCert, tlsCert] = await Promise.all([renewCaCert(signSn), renewCaCert(tlsSn)]);
+  const baseDir = path.join(services.certStoreRoot, DEFAULT_CERT_ORG_NAME, name);
+  const signPath = rows[0].sign_cert_path || path.join(baseDir, `${name}.sign.crt`);
+  const tlsPath = rows[0].tls_cert_path || path.join(baseDir, `${name}.tls.crt`);
+  const destinations = [
+    [signPath, tlsPath],
+    ...[services.certFileRoot, services.certAdditionalSdkRoot].filter(Boolean).map((root) => {
+      const dir = path.join(root, DEFAULT_CERT_ORG_NAME, 'user', name);
+      return [path.join(dir, `${name}.sign.crt`), path.join(dir, `${name}.tls.crt`)];
+    }),
+  ];
+  for (const [index, [sign, tls]] of destinations.entries()) {
+    try {
+      await fs.mkdir(path.dirname(sign), { recursive: true });
+      await fs.mkdir(path.dirname(tls), { recursive: true });
+      await fs.writeFile(sign, signCert, { mode: 0o644 });
+      await fs.writeFile(tls, tlsCert, { mode: 0o644 });
+    } catch (error) {
+      if (index < 2) throw error;
+      console.warn('同步续期证书到附加 GoSDK 目录失败:', error.message);
+    }
+  }
+  const expiresAt = new Date(new X509Certificate(signCert).validTo);
+  await pool.query(
+    `UPDATE certificate_registry SET sign_cert_path = ?, tls_cert_path = ?, expires_at = ?
+     WHERE user_id = ? AND certificate_name = ? AND org = ?`,
+    [signPath, tlsPath, expiresAt, userId, name, DEFAULT_CERT_ORG_CODE],
+  );
+  return { cert: name, organization: rows[0].org, address: rows[0].address, expiresAt };
 };
 
 exports.resolveOwnerAddressByCertificate = async (

@@ -294,6 +294,14 @@ export const getCertificates = () => {
   return instance.post('/asset/certificate/get-certificates')
 }
 
+export const checkCertificateNameAvailable = (certificateName) => {
+  return instance.get('/asset/certificate/certificate-name-available', { params: { certificateName } })
+}
+
+export const renewCertificate = (certificateName) => {
+  return instance.post('/asset/certificate/renew-certificate', { certificateName, org: 'wx-org1' })
+}
+
 export const getAllUserCertificates = () => {
   return instance.get('/asset/certificate/user-certificates')
 }

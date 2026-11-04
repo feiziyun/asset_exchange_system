@@ -10,6 +10,13 @@ exports.generateCertificate = async (req, res) => {
     if (!client_number) {
       return res.cc('缺少 client_number 参数');
     }
+    const userId = getCurrentUserId(req);
+    if (!userId) return res.cc('身份认证失败，请重新登录');
+    const owned = await certificateService.getAllCertificates(userId);
+    if (owned.length) return res.cc('当前账户已有证书，请使用续期功能');
+    if (!(await certificateService.certificateNameAvailable(client_number))) {
+      return res.cc('证书名称已被使用，请更换');
+    }
     const result = await certificateService.generateCertificate(client_number, DEFAULT_CERT_ORG);
     return res.send(result);
   } catch (error) {
@@ -143,7 +150,7 @@ exports.addCertificate = async (req, res) => {
   try {
     const userId = getCurrentUserId(req);
     if (!userId) return res.cc('身份认证失败，请重新登录');
-    await certificateService.addCertificate({
+    const certificate = await certificateService.addCertificate({
       ...(req.body || {}),
       userId,
       org: DEFAULT_CERT_ORG,
@@ -151,7 +158,28 @@ exports.addCertificate = async (req, res) => {
     return res.send({
       status: 0,
       message: '证书添加成功',
+      certificate,
     });
+  } catch (error) {
+    return res.cc(error);
+  }
+};
+
+exports.certificateNameAvailable = async (req, res) => {
+  try {
+    const available = await certificateService.certificateNameAvailable(req.query.certificateName);
+    return res.send({ success: true, available });
+  } catch (error) {
+    return res.cc(error);
+  }
+};
+
+exports.renewCertificate = async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req);
+    if (!userId) return res.cc('身份认证失败，请重新登录');
+    const certificate = await certificateService.renewCertificate(userId, req.body?.certificateName);
+    return res.send({ status: 0, success: true, message: '证书续期成功', certificate });
   } catch (error) {
     return res.cc(error);
   }

@@ -2476,6 +2476,9 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
 
     const finalTotalQty = Number(updateData.total_qty ?? asset.total_qty);
     const finalAvailableQty = Number(updateData.available_qty ?? asset.available_qty);
+    if (finalTotalQty !== 1 || ![0, 1].includes(finalAvailableQty)) {
+      throw new Error('不可分割资产总数量固定为 1，可用数量只能为 0 或 1');
+    }
     if (finalAvailableQty > finalTotalQty) {
       throw new Error('available_qty 不能大于 total_qty');
     }

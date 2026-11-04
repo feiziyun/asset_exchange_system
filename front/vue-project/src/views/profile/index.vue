@@ -42,7 +42,8 @@
                 placeholder="请输入证书名称搜索"
                 style="max-width: 300px"
               />
-              <el-button type="primary" @click="openCertificateDialog">申请新证书</el-button>
+              <el-button v-if="!activeCertificate" type="primary" @click="openCertificateDialog">申请证书</el-button>
+              <el-button v-else :loading="certSubmitting" @click="renewActiveCertificate">续期证书</el-button>
             </div>
             <div class="default-cert-row">
               <el-form inline label-width="108px" class="default-cert-form">
@@ -126,10 +127,13 @@
                   </div>
                 </template>
               </el-table-column>
+              <el-table-column prop="expires_at" label="过期时间">
+                <template #default="scope">{{ scope.row.expires_at ? formatDateTime(scope.row.expires_at) : '-' }}</template>
+              </el-table-column>
               <el-table-column prop="status" label="状态">
                 <template #default="scope">
-                  <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
-                    {{ scope.row.status === 1 ? '正常' : '未激活' }}
+                  <el-tag :type="scope.row.expires_at && new Date(scope.row.expires_at).getTime() <= Date.now() ? 'danger' : 'success'">
+                    {{ scope.row.expires_at && new Date(scope.row.expires_at).getTime() <= Date.now() ? '已过期' : '有效' }}
                   </el-tag>
                 </template>
               </el-table-column>
@@ -245,7 +249,7 @@
         <el-form-item label="所属组织">
           <el-input model-value="wx-org1.chainmaker.org" disabled />
         </el-form-item>
-        <el-alert title="证书有效期暂定为6个月，到期后可联系官方续期。" type="info" show-icon />
+        <el-alert title="证书有效期暂定为6个月，到期后可续期。" type="info" show-icon />
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -273,7 +277,7 @@ import {
   updateUserEmail,
   updatePassword,
 } from '@/api/userInfo'
-import { getDefaultCertificates, getCertificates, saveDefaultCertificates } from '@/api/asset'
+import { getDefaultCertificates, getCertificates, saveDefaultCertificates, checkCertificateNameAvailable, renewCertificate } from '@/api/asset'
 import instance from '@/http/index.js'
 
 const router = useRouter()
@@ -339,6 +343,10 @@ const filteredCertificates = computed(() => {
 const defaultCertOptions = computed(() =>
   userCertificates.value.filter((item) => item.org_code === 'wx-org1'),
 )
+const activeCertificate = computed(() => {
+  const preferred = defaultCertForm.defaultRegisterCert || defaultCertForm.defaultTradeCert
+  return userCertificates.value.find((item) => item.cert_name === preferred) || userCertificates.value[0] || null
+})
 
 const roleModuleMap: Record<string, Array<{ title: string; desc: string; path: string }>> = {
   seller: [
@@ -585,6 +593,10 @@ const saveDefaultCertSetting = async () => {
 }
 
 const submitCertificateApplication = async () => {
+  if (activeCertificate.value) {
+    ElMessage.warning('当前账户已有证书，请使用续期功能')
+    return
+  }
   if (!certificateForm.certificateName) {
     ElMessage.warning('请输入证书名称')
     return
@@ -598,6 +610,11 @@ const submitCertificateApplication = async () => {
 
   certSubmitting.value = true
   try {
+    const nameCheck = await checkCertificateNameAvailable(certificateForm.certificateName)
+    if (!nameCheck.data?.available) {
+      ElMessage.error('证书名称已被使用，请更换')
+      return
+    }
     // 第一步：调用后端 /asset/certificate/generate 接口生成证书
     const generateResponse = await instance.post('/asset/certificate/generate', {
       client_number: certificateForm.certificateName,
@@ -625,6 +642,23 @@ const submitCertificateApplication = async () => {
     ElMessage.error(
       error?.response?.data?.message || error?.message || '申请证书失败，服务器不可用',
     )
+  } finally {
+    certSubmitting.value = false
+  }
+}
+
+const renewActiveCertificate = async () => {
+  if (!activeCertificate.value) return
+  certSubmitting.value = true
+  try {
+    const result = await renewCertificate(activeCertificate.value.cert_name)
+    if (result.data?.status !== 0 || !result.data?.success) {
+      throw new Error(result.data?.message || '证书续期失败')
+    }
+    ElMessage.success(result.data.message || '证书续期成功')
+    await fetchUserCertificates()
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '证书续期失败')
   } finally {
     certSubmitting.value = false
   }

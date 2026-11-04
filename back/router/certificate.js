@@ -11,6 +11,8 @@ router.post('/get-user-id', certificateHandler.getUserId);
 router.post('/get-certificates', certificateHandler.getCertificates);
 router.post('/get-certificates2', certificateHandler.getCertificates2);
 router.post('/add-certificate', certificateHandler.addCertificate);
+router.get('/certificate-name-available', certificateHandler.certificateNameAvailable);
+router.post('/renew-certificate', certificateHandler.renewCertificate);
 router.post('/resolve-owner-address', certificateHandler.resolveOwnerAddress);
 router.get('/user-certificates', certificateHandler.getAllCertificates);
 router.get('/default-cert', certificateHandler.getDefaultCertificates);
