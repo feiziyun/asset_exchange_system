@@ -14,6 +14,10 @@
       </div>
       <div v-if="method === 'balance' && !qrImage" class="wallet-balance">可用余额：¥ {{ balance }}</div>
       <div class="amount">¥ {{ amount }}</div>
+      <div v-if="qrImage && status === 'PENDING'" class="alipay-scan-title">
+        <img :src="alipayLogo" alt="" />
+        <span>支付宝扫码支付</span>
+      </div>
       <div v-if="qrImage && status === 'PENDING'" class="countdown">
         剩余支付时间 <strong>{{ countdownText }}</strong>
       </div>
@@ -191,4 +195,6 @@ onBeforeUnmount(stopTimers)
 .payment-method.active { border-color: #1677ff; background: #f0f7ff; color: #1677ff; box-shadow: 0 0 0 1px #1677ff inset; }
 .alipay-logo { width: 22px; height: 22px; object-fit: contain; }
 .balance-logo { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #eef2f7; color: #5f6b7a; font-weight: 700; }
+.alipay-scan-title { display: flex; align-items: center; gap: 7px; color: #1677ff; font-size: 15px; font-weight: 600; }
+.alipay-scan-title img { width: 22px; height: 22px; object-fit: contain; }
 </style>
