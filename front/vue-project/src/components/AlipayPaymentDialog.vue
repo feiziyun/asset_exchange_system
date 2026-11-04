@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :model-value="modelValue" title="支付订单" width="360px" destroy-on-close
+  <el-dialog :model-value="modelValue" title="" width="360px" destroy-on-close
     @update:model-value="emit('update:modelValue', $event)">
     <div class="payment-body" v-loading="loading">
       <div v-if="status === 'PENDING' && !qrImage" class="payment-methods" role="radiogroup" aria-label="支付方式">
@@ -14,7 +14,7 @@
       </div>
       <div v-if="method === 'balance' && !qrImage" class="wallet-balance">可用余额：¥ {{ balance }}</div>
       <div class="amount">¥ {{ amount }}</div>
-      <div v-if="qrImage && status === 'PENDING'" class="alipay-scan-title">
+      <div v-if="method === 'alipay' && status === 'PENDING'" class="alipay-scan-title">
         <img :src="alipayLogo" alt="" />
         <span>支付宝扫码支付</span>
       </div>
