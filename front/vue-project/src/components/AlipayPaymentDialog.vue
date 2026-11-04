@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :model-value="modelValue" title="" width="360px" destroy-on-close
+  <el-dialog :model-value="modelValue" title="支付订单" width="360px" destroy-on-close
     @update:model-value="emit('update:modelValue', $event)">
     <template #header>
       <div class="alipay-scan-title">
