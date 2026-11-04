@@ -74,6 +74,11 @@
         <div class="result-top">
           <span class="result-count">共 {{ pagination.total }} 个数据资产</span>
         </div>
+        <el-alert v-if="listError" :title="listError" type="error" :closable="false">
+          <template #default>
+            <el-button type="primary" link @click="fetchList()">重试加载</el-button>
+          </template>
+        </el-alert>
 
         <div v-if="list.length" class="asset-list">
           <el-card v-for="item in list" :key="item.id" class="asset-card" shadow="hover">
@@ -181,7 +186,7 @@
           </el-card>
         </div>
 
-        <el-empty v-else description="暂无符合条件的资产" />
+        <el-empty v-else-if="!loading && !listError" description="暂无符合条件的资产" />
 
         <div class="pager">
           <el-pagination
@@ -395,6 +400,8 @@ const mergePresetCategories = (items: CategoryOption[] = []) => {
 
 const router = useRouter()
 const loading = ref(false)
+const listError = ref('')
+let listRequestId = 0
 const list = ref<AssetItem[]>([])
 const selectedAsset = ref<AssetItem | null>(null)
 const buyVisible = ref(false)
@@ -543,23 +550,34 @@ const fetchMeta = async () => {
     : []
 }
 
-const fetchList = async () => {
+const fetchList = async (retries = 0) => {
+  const requestId = ++listRequestId
+  const params = { ...query }
   loading.value = true
-  try {
-    const res = await getAssetList(query)
-    if (res.data.status === 0) {
+  listError.value = ''
+  list.value = []
+  pagination.total = 0
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const res = await getAssetList(params)
+      if (requestId !== listRequestId) return
+      if (res.data.status !== 0) throw new Error(res.data.message || '查询失败')
       list.value = res.data.data?.list || []
       const p = res.data.data?.pagination || {}
       pagination.page = p.page || 1
-      pagination.page_size = p.page_size || query.page_size
+      pagination.page_size = p.page_size || params.page_size
       pagination.total = p.total || 0
-    } else {
-      ElMessage.error(res.data.message || '查询失败')
+      loading.value = false
+      return
+    } catch (error: any) {
+      if (requestId !== listRequestId) return
+      if (attempt < retries) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1500 * (attempt + 1)))
+        continue
+      }
+      listError.value = error?.response?.data?.message || '资产加载失败，请检查后端服务'
+      loading.value = false
     }
-  } catch (error) {
-    ElMessage.error('查询失败，请检查网络或登录状态')
-  } finally {
-    loading.value = false
   }
 }
 
@@ -733,12 +751,20 @@ const onPaymentPaid = () => {
 }
 
 onMounted(async () => {
+  Object.assign(query, {
+    page: 1,
+    page_size: 10,
+    keyword: '',
+    category_id: undefined,
+    region_id: undefined,
+    classification_data_level: undefined,
+  })
+  fetchList(2)
   try {
     await fetchMeta()
   } catch (_error) {
     ElMessage.error('加载筛选元数据失败')
   }
-  fetchList()
 })
 </script>
 

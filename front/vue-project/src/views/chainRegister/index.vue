@@ -112,7 +112,7 @@
 
                 <el-form-item label="证书" class="row-item">
                   <div v-if="defaultRegisterCertificate?.cert" class="field-inline-tip">
-                    当前默认登记证书：{{ defaultRegisterCertificate.cert }}
+                    当前证书：{{ defaultRegisterCertificate.cert }}
                   </div>
                   <div
                     v-else-if="certLoading"
@@ -120,14 +120,14 @@
                   >
                     正在加载证书信息...
                   </div>
-                  <div
-                    v-else-if="certificates.length === 0"
-                    class="field-inline-tip field-inline-tip--danger"
-                  >
+                  <div v-else-if="certLoadError" class="field-inline-tip field-inline-tip--danger">
+                    {{ certLoadError }} <el-button type="primary" link @click="initUserAndCertificates">重试</el-button>
+                  </div>
+                  <div v-else-if="certificates.length === 0" class="field-inline-tip field-inline-tip--danger">
                     暂无证书，请前往<router-link to="/profile">个人中心</router-link>申请证书
                   </div>
                   <div v-else class="field-inline-tip field-inline-tip--danger">
-                    已有证书，但尚未设置默认登记证书，请前往<router-link to="/profile">个人中心</router-link>设置
+                    证书信息不完整，请重试加载
                   </div>
                 </el-form-item>
 
@@ -346,7 +346,6 @@ import {
   getAssetMeta,
   getCertificates,
   generateAssetFingerprint,
-  getUserIdByUsername,
   registerAsset,
 } from '@/api/asset'
 import { roundPrice } from '@/utils/price'
@@ -471,7 +470,8 @@ const initForm = () => ({
 
 const form = reactive(initForm())
 const submitting = ref(false)
-const certLoading = ref(false)
+const certLoading = ref(true)
+const certLoadError = ref('')
 const uploadingSource = ref(false)
 const similarityChecking = ref(false)
 const classifying = ref(false)
@@ -773,23 +773,6 @@ const disablePastDate = (date: Date) => {
   return date.getTime() < today.getTime()
 }
 
-const parseJwtPayload = (token: string) => {
-  try {
-    const pureToken = token.replace(/^Bearer\s+/i, '')
-    const base64Url = pureToken.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
-        .join(''),
-    )
-    return JSON.parse(jsonPayload)
-  } catch {
-    return null
-  }
-}
-
 const applyDefaultMetaSelection = () => {
   const defaultRegion = regions.value.find((item) => item.region_key === 'all') || regions.value[0]
   if (defaultRegion) {
@@ -1032,26 +1015,19 @@ const onPictureSelected = (event: Event) => {
 }
 
 const initUserAndCertificates = async () => {
-  if (currentRole !== 'seller') return
-
-  const token = localStorage.getItem('token') || ''
-  const payload = parseJwtPayload(token)
+  certLoading.value = true
+  certLoadError.value = ''
+  const payload = parseTokenPayload()
   const username = payload?.account || payload?.username || ''
   form.username = username
-
-  if (!username) {
-    ElMessage.warning('未解析到登录账号，请重新登录后再登记')
-    return
-  }
+  form.user_id = String(payload?.id || '')
 
   try {
-    const userIdRes = await getUserIdByUsername(username)
-    const userId = String(userIdRes.data?.id || '')
-    form.user_id = userId
-
-    certLoading.value = true
     const certRes = await getCertificates()
-    certificates.value = certRes.data?.certificates || []
+    if (certRes.data?.status !== 0 || !Array.isArray(certRes.data?.certificates)) {
+      throw new Error(certRes.data?.message || '证书查询失败')
+    }
+    certificates.value = certRes.data.certificates
 
     if (certificates.value.length === 0) {
       ElMessage.warning({
@@ -1066,8 +1042,9 @@ const initUserAndCertificates = async () => {
       throw new Error('当前账户存在多张证书，请先整理历史证书数据')
     }
     await applyResolvedCertificate(certificates.value[0], true)
-  } catch (_error) {
-    ElMessage.warning('加载用户证书失败，请检查后端证书接口')
+  } catch (error: any) {
+    certLoadError.value = error?.response?.data?.message || error?.message || '证书查询失败，请检查后端服务'
+    ElMessage.warning(certLoadError.value)
   } finally {
     certLoading.value = false
   }
@@ -1313,13 +1290,14 @@ watch(
 
 onMounted(async () => {
   loadLocalSubCategories()
-  try {
-    await loadAssetMeta()
-  } catch (_error) {
-    ElMessage.error('加载资产分类失败，请检查后端分类元数据接口')
-  }
-  await initUserAndCertificates()
+  await Promise.allSettled([
+    loadAssetMeta().catch(() => ElMessage.error('加载资产分类失败，请检查后端分类元数据接口')),
+    initUserAndCertificates(),
+  ])
   restoreRegisterDraft()
+  if (defaultRegisterCertificate.value?.cert) {
+    await applyResolvedCertificate(defaultRegisterCertificate.value, true)
+  }
 })
 </script>
 
