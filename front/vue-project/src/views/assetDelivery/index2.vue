@@ -39,6 +39,12 @@
                 <td class="buyer-action-col">
                   <div class="buyer-actions buyer-actions--inline">
                     <el-button
+                      type="info"
+                      link
+                      :disabled="!canOpenDeliveryDetail(item)"
+                      @click="openDeliveryDetail(item)"
+                    >交付详情</el-button>
+                    <el-button
                       v-if="isHeOrder(item)"
                       type="primary"
                       link
@@ -146,6 +152,17 @@
     <template #footer>
       <el-button @click="contractPreviewVisible = false">关闭</el-button>
     </template>
+  </el-dialog>
+
+  <el-dialog v-model="genericDetailVisible" title="交付详情" width="min(560px, 92vw)">
+    <div v-if="genericDetail" class="dialog-body">
+      <div class="dialog-row"><span class="dialog-label">交易ID</span><span class="dialog-value">{{ genericDetail.transactionId }}</span></div>
+      <div class="dialog-row"><span class="dialog-label">交付方式</span><span>{{ genericDetail.method }}</span></div>
+      <div class="dialog-row"><span class="dialog-label">当前状态</span><span>{{ genericDetail.status }}</span></div>
+      <div v-if="genericDetail.reference" class="dialog-row"><span class="dialog-label">交付记录</span><span class="dialog-value">{{ genericDetail.reference }}</span></div>
+      <div v-if="genericDetail.error" class="dialog-row"><span class="dialog-label">异常说明</span><span class="dialog-value">{{ genericDetail.error }}</span></div>
+    </div>
+    <template #footer><el-button @click="genericDetailVisible = false">关闭</el-button></template>
   </el-dialog>
 
   <el-dialog v-model="historyDialogVisible" title="交付详情" width="700px">
@@ -380,6 +397,14 @@ const contractPreviewVisible = ref(false)
 const contractDialogVisible = ref(false)
 const contractSubmitting = ref(false)
 const historyDialogVisible = ref(false)
+const genericDetailVisible = ref(false)
+const genericDetail = ref<{
+  transactionId: string
+  method: string
+  status: string
+  reference: string
+  error: string
+} | null>(null)
 const requestDialogVisible = ref(false)
 const requestSubmitting = ref(false)
 const requestTargetOrder = ref<OrderItem | null>(null)
@@ -605,6 +630,38 @@ const canConfigureContract = (order: OrderItem) => roleKey !== 'buyer' && [1, 2]
 const canSellerDeliver = (order: OrderItem) => roleKey !== 'buyer' && Number(order.order_status) === 1
 const getPcType = (order: OrderItem) => String(order.digital_contract?.pc_type || order.transaction?.pc_type || order.pc_type || '').toUpperCase()
 const getTransactionId = (order: OrderItem) => String(order.transaction?.transaction_id || '').trim()
+const deliveryDetailRecord = (order: OrderItem) => {
+  const pcType = getPcType(order)
+  if (pcType === 'HE') return order.he_record
+  if (pcType === 'FL') return order.fl_record
+  if (pcType === 'PRE') return order.pre_record
+  if (pcType === 'MPC') return order.mpc_record
+  return null
+}
+const canOpenDeliveryDetail = (order: OrderItem) => {
+  const pcType = getPcType(order)
+  if (pcType === 'TEE') return Boolean(order.latest_delivery_request)
+  const record = deliveryDetailRecord(order)
+  if (!record) return false
+  if (pcType === 'MPC') return Boolean(record.remote_task_id)
+  if (pcType === 'HE') return Boolean(record.has_record || record.pcp_contract_id || record.current_attempt_id || record.public_keys_ready)
+  if (pcType === 'FL') return Boolean(record.has_record || record.pcp_contract_id || record.current_attempt_id)
+  if (pcType === 'PRE') return Boolean(record.has_record || record.pcp_contract_id || record.current_attempt_id || record.buyer_public_key_ready)
+  return false
+}
+const openDeliveryDetail = (order: OrderItem) => {
+  if (!canOpenDeliveryDetail(order)) return
+  if (getPcType(order) === 'TEE') return openHistoryDialog(order)
+  const record = deliveryDetailRecord(order)
+  genericDetail.value = {
+    transactionId: getTransactionId(order),
+    method: ({ HE: '同态加密', PRE: '代理重加密', FL: '联邦学习', MPC: '多方安全计算' } as Record<string, string>)[getPcType(order)] || pcTypeText(getPcType(order)),
+    status: getBuyerDeliveryStatusText(order),
+    reference: String(getPcType(order) === 'MPC' ? record?.remote_task_id || '' : record?.pcp_contract_id || record?.current_attempt_id || ''),
+    error: String(record?.last_error || ''),
+  }
+  genericDetailVisible.value = true
+}
 const isDeliveryExpired = (order: OrderItem) => {
   const value = order.transaction?.expiration_time || order.digital_contract?.expiration_time || order.expiration_time
   if (!value) return false
