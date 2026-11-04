@@ -289,7 +289,7 @@ export const getMpcPrivacyResult = (transactionId) => {
 }
 
 // 证书：根据用户名获取用户ID
-const CERT_READ_TIMEOUT_MS = 30000
+const CERT_READ_TIMEOUT_MS = 60000
 const CERT_ADDRESS_TIMEOUT_MS = 5 * 60 * 1000
 const CERT_OPERATION_TIMEOUT_MS = 35 * 60 * 1000
 

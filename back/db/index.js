@@ -8,6 +8,7 @@ const db = mysql.createPool({
   password: process.env.DB_PASSWORD || '123456',
   database: process.env.DB_NAME || 'autonomous_asset_exchange',
   charset: 'utf8mb4',
+  connectTimeout: 60000,
 })
 
 //对外暴露

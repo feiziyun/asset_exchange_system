@@ -6,7 +6,7 @@ const instance = axios.create({
   // 默认走当前访问域名，部署到 HTTPS/Nginx 后由反向代理转发到后端。
   // 本地开发如需直连后端，可设置 VITE_API_BASE_URL=http://127.0.0.1:3007。
   baseURL: import.meta.env.VITE_API_BASE_URL || '',
-  timeout: 6000,
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 })
 
