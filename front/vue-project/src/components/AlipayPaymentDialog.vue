@@ -1,6 +1,18 @@
 <template>
-  <el-dialog :model-value="modelValue" title="支付订单" width="360px" destroy-on-close
+  <el-dialog :model-value="modelValue" title="" width="360px" destroy-on-close
     @update:model-value="emit('update:modelValue', $event)">
+    <template #header>
+      <div class="alipay-scan-title">
+        <template v-if="method === 'alipay'">
+          <img :src="alipayLogo" alt="" />
+          <span>支付宝扫码支付</span>
+        </template>
+        <template v-else>
+          <span class="balance-logo">¥</span>
+          <span>余额支付</span>
+        </template>
+      </div>
+    </template>
     <div class="payment-body" v-loading="loading">
       <div v-if="status === 'PENDING' && !qrImage" class="payment-methods" role="radiogroup" aria-label="支付方式">
         <button type="button" class="payment-method" :class="{ active: method === 'alipay' }" @click="method = 'alipay'">
@@ -14,10 +26,6 @@
       </div>
       <div v-if="method === 'balance' && !qrImage" class="wallet-balance">可用余额：¥ {{ balance }}</div>
       <div class="amount">¥ {{ amount }}</div>
-      <div v-if="qrImage && status === 'PENDING'" class="alipay-scan-title">
-        <img :src="alipayLogo" alt="" />
-        <span>支付宝扫码支付</span>
-      </div>
       <div v-if="qrImage && status === 'PENDING'" class="countdown">
         剩余支付时间 <strong>{{ countdownText }}</strong>
       </div>
