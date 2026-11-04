@@ -6,6 +6,7 @@ const { buildHeContractPayload } = require('../service/pcp/he');
 const { buildPreContractPayload } = require('../service/pcp/pre');
 const { buildFlContractPayload } = require('../service/pcp/fl');
 const { extractPreResultNotificationPayload } = require('../service/pcp/result');
+const { extractFlNotificationPayload } = require('../service/pcp/fl-routes');
 
 const transaction = { buyer_address: 'buyer-1', seller_address: 'seller-1' };
 const firstDefined = (...values) => values.find((value) => value !== undefined && value !== null);
@@ -37,4 +38,14 @@ test('PRE result notification identifies a PCC contract', () => {
 
   assert.equal(payload.transactionId, 'tx-1');
   assert.equal(payload.pcpContractId, 'pcc-1');
+});
+
+test('FL epoch notification identifies the PCC contract before a legacy contract id', () => {
+  const payload = extractFlNotificationPayload({
+    data: { transaction_id: 'tx-1', pcc_contract_id: 'pcc-1', contract_id: 'legacy-1',
+      result_role: 'fl_gradient_epoch_bundle', receiver_id: 'seller-1' }
+  }, firstDefined);
+  assert.equal(payload.pcpContractId, 'pcc-1');
+  assert.equal(payload.resultRole, 'fl_gradient_epoch_bundle');
+  assert.equal(payload.receiverId, 'seller-1');
 });

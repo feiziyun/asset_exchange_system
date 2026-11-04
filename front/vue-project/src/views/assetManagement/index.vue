@@ -86,12 +86,16 @@
                     </td>
                     <td>
                       <div class="single-action-cell">
-                        <el-button
-                          type="info"
-                          link
-                          :disabled="Number(item.is_proxied || 0) !== 1"
-                          @click="openProxyCustody(item)"
-                        >代理托管</el-button>
+                        <el-tooltip :content="Number(item.is_proxied || 0) === 1 ? '转交已托管资产' : '该资产尚未处于可代理托管状态'">
+                          <span>
+                            <el-button
+                              type="info"
+                              link
+                              :disabled="Number(item.is_proxied || 0) !== 1"
+                              @click="openProxyCustody(item)"
+                            >代理托管</el-button>
+                          </span>
+                        </el-tooltip>
                       </div>
                     </td>
                   </tr>

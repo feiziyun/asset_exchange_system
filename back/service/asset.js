@@ -1916,7 +1916,7 @@ exports.listAssets = async (query) => {
         da.asset_name,
         da.brief,
         da.description,
-        da.picture,
+        da.file_hash,
         da.picture_mime_type,
         da.cover_image_url,
         da.category_id,
@@ -1953,13 +1953,8 @@ exports.listAssets = async (query) => {
     [...params, pageSize, offset],
   );
 
-  const normalizedRows = listRows.map((row) => ({
-    ...row,
-    picture: toBase64Picture(row.picture),
-  }));
-
   return {
-    list: normalizedRows,
+    list: listRows,
     pagination: {
       page,
       page_size: pageSize,
@@ -2186,6 +2181,10 @@ exports.getAssetDetail = async (id) => {
     `
       SELECT
         da.*,
+        owner_user.account AS owner_account,
+        seller_user.account AS seller_account,
+        COALESCE(agent_user.account,
+          CASE WHEN apr.publisher_id <> da.user_id THEN seller_user.account ELSE NULL END) AS proxy_agent_account,
         ac.category_name,
         ascg.sub_category_name,
         r.region_name,
@@ -2206,12 +2205,17 @@ exports.getAssetDetail = async (id) => {
         apr.auction_bid_count,
         apr.auction_status
       FROM digital_asset da
+      LEFT JOIN users owner_user ON owner_user.id = da.user_id
       LEFT JOIN asset_category ac ON da.category_id = ac.id
       LEFT JOIN asset_sub_category ascg ON da.sub_category_id = ascg.id
       LEFT JOIN region r ON da.region_id = r.id
       LEFT JOIN asset_chain_info aci ON da.id = aci.asset_id
       LEFT JOIN asset_publish_record apr ON apr.asset_id = da.id
+      LEFT JOIN users seller_user ON seller_user.id = apr.publisher_id
+      LEFT JOIN certificate_registry agent_cert ON agent_cert.address = da.proxy_agent_address
+      LEFT JOIN users agent_user ON agent_user.id = agent_cert.user_id
       WHERE da.id = ?
+      ORDER BY (apr.publish_status = 1) DESC, apr.id DESC
       LIMIT 1
     `,
     [id],
@@ -2797,6 +2801,8 @@ exports.proxyCustodyByOwner = async (assetId, userId, payload = {}, identity = '
     tokenId,
     isApproval: 'true',
   });
+
+  await pool.query('UPDATE digital_asset SET proxy_agent_address=? WHERE id=?', [targetAddress, asset.id]);
 
   return {
     asset_id: Number(asset.id),

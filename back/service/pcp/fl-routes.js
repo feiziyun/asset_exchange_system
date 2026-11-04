@@ -121,7 +121,8 @@ function extractFlNotificationPayload(body, firstDefined) {
 
   return {
     transactionId: firstDefined(payload.transaction_id, body?.transaction_id),
-    pcpContractId: firstDefined(payload.contract_id, body?.contract_id, body?.pcp_contract_id),
+    pcpContractId: firstDefined(payload.pcc_contract_id, payload.pcp_contract_id, payload.contract_id,
+      body?.pcc_contract_id, body?.pcp_contract_id, body?.contract_id),
     pcpStatus: firstDefined(payload.status, body?.status),
     currentEpoch: firstDefined(payload.current_epoch, body?.current_epoch),
     receiverId: firstDefined(payload.receiver_id, body?.receiver_id),
@@ -1759,5 +1760,6 @@ function registerFlRoutes({
 }
 
 module.exports = {
-  registerFlRoutes
+  registerFlRoutes,
+  extractFlNotificationPayload
 };

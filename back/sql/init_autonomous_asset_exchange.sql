@@ -168,6 +168,7 @@ CREATE TABLE `digital_asset` (
   `can_sell_process_right` TINYINT NOT NULL DEFAULT 0 COMMENT '是否允许出售加工使用权',
   `allow_resale` TINYINT NOT NULL DEFAULT 0 COMMENT '是否允许转售',
   `is_proxied` TINYINT NOT NULL DEFAULT 0 COMMENT '是否可代理',
+  `proxy_agent_address` VARCHAR(128) DEFAULT NULL COMMENT '最近一次成功授权的代理地址',
   `is_third_party` TINYINT NOT NULL DEFAULT 0 COMMENT '是否第三方托管',
   `trade_region` VARCHAR(255) DEFAULT NULL COMMENT '交易区域限制',
   `trade_valid_start` DATETIME DEFAULT NULL COMMENT '交易有效开始时间',

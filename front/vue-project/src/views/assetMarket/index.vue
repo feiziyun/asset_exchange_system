@@ -86,6 +86,7 @@
               <img
                 class="asset-cover"
                 :src="resolveCover(item)"
+                @error="onCoverError"
                 alt="asset"
                 @click="goDetail(item.id)"
               />
@@ -323,6 +324,7 @@ import defaultCover from '@/assets/logo.svg'
 interface AssetItem {
   id: number
   asset_name: string
+  file_hash?: string
   picture?: string | null
   picture_mime_type?: string
   category_name?: string
@@ -424,10 +426,17 @@ const categories = ref<CategoryOption[]>([])
 const regions = ref<RegionOption[]>([])
 const classificationDataLevels = ref<string[]>([])
 const resolveCover = (item: AssetItem) => {
+  if (item.file_hash && /^[A-Za-z0-9._~-]{1,255}$/.test(item.file_hash)) {
+    return `/api/asset-picture/${encodeURIComponent(item.file_hash)}`
+  }
   if (item.picture) {
     return `data:${item.picture_mime_type || 'image/jpeg'};base64,${item.picture}`
   }
   return defaultCover
+}
+const onCoverError = (event: Event) => {
+  const image = event.target as HTMLImageElement
+  if (image.src !== new URL(defaultCover, window.location.href).href) image.src = defaultCover
 }
 
 const regionOptions = computed(() => [

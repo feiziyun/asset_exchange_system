@@ -22,7 +22,7 @@
 
           <div class="hero-main">
             <div class="cover-wrap">
-              <img class="asset-cover" :src="coverImage" alt="asset-cover" />
+              <img class="asset-cover" :src="coverImage" alt="asset-cover" @error="onCoverError" />
             </div>
             <div class="main-left">
               <div class="title-row">
@@ -35,7 +35,9 @@
               <p class="desc">{{ detail.description || detail.brief || '暂无详细描述' }}</p>
 
               <div class="meta-row">
-                <span>登记主体：{{ detail.user_id || '-' }}</span>
+                <span>登记主体：{{ detail.owner_account || detail.user_id || '-' }}</span>
+                <span>卖家：{{ detail.seller_account || detail.owner_account || '-' }}</span>
+                <span v-if="detail.proxy_agent_account || detail.proxy_agent_address">代理人：{{ detail.proxy_agent_account || detail.proxy_agent_address }}</span>
                 <span>登记时间：{{ formatDateTime(detail.created_at) }}</span>
                 <span>登记地区：{{ detail.region_name || '-' }}</span>
               </div>
@@ -81,9 +83,6 @@
                   <h3>基本信息</h3>
                   <ul>
                     <li>
-                      <label>资产名称：</label><span>{{ detail.asset_name || '-' }}</span>
-                    </li>
-                    <li>
                       <label>数据产品类型/方向：</label
                       ><span
                         >{{ detail.category_name || '-' }} /
@@ -91,10 +90,7 @@
                       >
                     </li>
                     <li>
-                      <label>地区：</label><span>{{ detail.region_name || '-' }}</span>
-                    </li>
-                    <li>
-                      <label>数据产品类型：</label
+                      <label>数据分类：</label
                       ><span>{{ detail.classification_category_name || '-' }}</span>
                     </li>
                     <li>
@@ -118,10 +114,6 @@
                     </li>
                     <li>
                       <label>文件大小：</label><span>{{ detail.file_size || 0 }} bytes</span>
-                    </li>
-                    <li>
-                      <label>价格：</label
-                      ><span>{{ formatPrice(detail.price) }} {{ detail.price_unit || '人民币' }}</span>
                     </li>
                     <li>
                       <label>交易次数：</label><span>{{ detail.trade_count || 0 }}</span>
@@ -332,6 +324,10 @@ interface AssetDetail {
   classification_data_level?: string
   status?: number
   file_hash?: string
+  owner_account?: string
+  seller_account?: string
+  proxy_agent_account?: string
+  proxy_agent_address?: string
   file_format?: string
   file_size?: number
   price?: number
@@ -379,6 +375,7 @@ const buyForm = ref({
   expiration_time: '',
 })
 const coverImage = ref(defaultCover)
+const onCoverError = () => { coverImage.value = defaultCover }
 const roleKey = getRoleKey(parseTokenPayload()?.identity || '')
 const canBuyAsset = roleKey === 'buyer' || roleKey === 'admin'
 const showExpirationInput = computed(() => buyForm.value.trade_mode !== 'ownership')
@@ -453,7 +450,9 @@ const fetchDetail = async () => {
     const res = await getAssetDetail(String(id))
     if (res.data.status === 0) {
       detail.value = res.data.data || {}
-      if (detail.value.picture) {
+      if (detail.value.file_hash && /^[A-Za-z0-9._~-]{1,255}$/.test(detail.value.file_hash)) {
+        coverImage.value = `/api/asset-picture/${encodeURIComponent(detail.value.file_hash)}`
+      } else if (detail.value.picture) {
         coverImage.value = `data:${detail.value.picture_mime_type || 'image/jpeg'};base64,${detail.value.picture}`
       } else {
         coverImage.value = defaultCover

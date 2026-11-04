@@ -73,6 +73,7 @@ app.use(
       '/api/pam/entry-start',
       '/api/pam/authorize',
       '/api/alipay/notify',
+      /^\/api\/asset-picture\//,
       /^\/api\/privacy\//,
     ],
   }),
@@ -106,10 +107,12 @@ const auditRouter = require('./router/audit');
 const originalCompatRouter = require('./router/originalCompat');
 const transactionSupervisionRouter = require('./router/transactionSupervision');
 const alipayService = require('./service/alipay');
+const assetPicture = require('./service/assetPicture');
 const { startPaymentTimeoutScheduler } = require('./service/paymentTimeout');
 const adminAuth = require('./middleware/adminAuth');
 const { startReconcileScheduler } = require('./service/reconcile');
 app.use('/api',loginRouter); //把 "/api" 路径交给 loginRouter 处理
+app.get('/api/asset-picture/:fileHash', assetPicture);
 app.post('/api/alipay/notify', async (req, res) => {
   try {
     await alipayService.handleNotify(req.body || {});
