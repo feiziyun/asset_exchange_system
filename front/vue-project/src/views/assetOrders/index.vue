@@ -65,6 +65,13 @@
                     >
                       确认交易
                     </el-button>
+                    <el-button
+                      v-else-if="item.delegation_id && item.chain_transfer_status !== 'SUCCESS' && ['已确认', '已完成'].includes(item.transaction?.status || '')"
+                      type="primary"
+                      link
+                      :loading="actionLoadingNo === item.order_no"
+                      @click="transferProxyOrder(item)"
+                    >链上过户</el-button>
                     <span v-else>-</span>
                   </div>
                 </td>
@@ -95,7 +102,7 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getOrderList, sellerConfirmOrder } from '@/api/asset'
+import { getOrderList, proxyTransfer, sellerConfirmOrder } from '@/api/asset'
 import { formatPrice } from '@/utils/price'
 
 interface OrderItem {
@@ -108,6 +115,8 @@ interface OrderItem {
   order_status: number
   order_status_text?: string
   price_unit?: string
+  delegation_id?: number | null
+  chain_transfer_status?: string
   buyer_address?: string
   transaction?: {
     transaction_id?: string
@@ -196,6 +205,19 @@ const handleSellerConfirm = async (order: OrderItem) => {
   try {
     const res = await sellerConfirmOrder(order.order_no)
     if (res.data.status === 0) {
+      if (order.delegation_id && res.data.data?.transaction?.transaction_id) {
+        const transaction = res.data.data.transaction
+        try {
+          await proxyTransfer({
+            transaction_id: transaction.transaction_id,
+            seller_address: transaction.seller_address,
+          })
+        } catch (error: any) {
+          ElMessage.warning(error?.response?.data?.message || '交易已确认，链上过户未完成，请重试')
+          await fetchOrders()
+          return
+        }
+      }
       ElMessage.success(res.data.message || '确认交易成功')
       fetchOrders()
       return
@@ -203,6 +225,23 @@ const handleSellerConfirm = async (order: OrderItem) => {
     ElMessage.error(res.data.message || '确认交易失败')
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || '确认交易失败')
+  } finally {
+    actionLoadingNo.value = ''
+  }
+}
+
+const transferProxyOrder = async (order: OrderItem) => {
+  const transactionId = order.transaction?.transaction_id
+  const address = order.transaction?.seller_address
+  if (!transactionId || !address) return
+  actionLoadingNo.value = order.order_no
+  try {
+    const response = await proxyTransfer({ transaction_id: transactionId, seller_address: address })
+    if (!response.data.success) throw new Error(response.data.message || '链上过户失败')
+    ElMessage.success('链上过户成功')
+    await fetchOrders()
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error.message || '链上过户失败')
   } finally {
     actionLoadingNo.value = ''
   }

@@ -178,7 +178,9 @@ async function ensureTransactionForOrder(conn, order, payload = {}) {
     await conn.query(
       `
         UPDATE transactions
-        SET buyer_certificate_name = ?,
+        SET owner_id = ?,
+            seller_id = ?,
+            buyer_certificate_name = ?,
             buyer_address = ?,
             seller_certificate_name = ?,
             seller_address = ?,
@@ -195,6 +197,8 @@ async function ensureTransactionForOrder(conn, order, payload = {}) {
         WHERE id = ?
       `,
       [
+        order.owner_id || order.publisher_id,
+        order.publisher_id,
         buyerCertificateName,
         buyerAddress,
         sellerCertificateName,
@@ -242,7 +246,7 @@ async function ensureTransactionForOrder(conn, order, payload = {}) {
       transactionId,
       order.order_no,
       order.asset_id,
-      order.publisher_id,
+      order.owner_id || order.publisher_id,
       order.buyer_id,
       buyerCertificateName,
       buyerAddress,

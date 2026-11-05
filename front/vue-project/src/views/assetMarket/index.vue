@@ -94,6 +94,7 @@
                 <div class="asset-title-row">
                   <h3 class="asset-title" @click="goDetail(item.id)">{{ item.asset_name }}</h3>
                   <div class="asset-tags">
+                    <el-tag v-if="item.seller_type === 'AGENT'" size="small" type="success">代理</el-tag>
                     <el-tag size="small" type="info">{{ item.category_name || '未分类' }}</el-tag>
                     <el-tag size="small">{{ item.sub_category_name || '未分类' }}</el-tag>
                     <el-tag size="small" type="danger">
@@ -350,6 +351,7 @@ interface AssetItem {
   auction_end_time?: string
   auction_bid_count?: number
   auction_status?: string
+  seller_type?: 'OWNER' | 'AGENT'
 }
 
 interface QueryParams {

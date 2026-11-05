@@ -126,6 +126,7 @@ app.use('/api/get-tps', businessJwt);
 app.use('/api/pam/entry-start', businessJwt);
 app.use('/api/pam', auditRouter);
 app.use('/api', originalCompatRouter);
+app.use('/api', businessJwt, require('./router/delegation'));
 app.use('/api/transaction-supervision', businessJwt, transactionSupervisionRouter);
 app.use('/userInfo', businessJwt, userInfoRouter);
 app.use('/asset', businessJwt, assetRouter);

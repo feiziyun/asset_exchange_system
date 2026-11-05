@@ -27,6 +27,7 @@
             <div class="main-left">
               <div class="title-row">
                 <h2>{{ detail.asset_name || '未命名资产' }}</h2>
+                <el-tag v-if="detail.delegation_id" type="success">代理</el-tag>
                 <el-tag type="primary" effect="plain">{{
                   detail.sub_category_name || '未分类'
                 }}</el-tag>
@@ -355,6 +356,7 @@ interface AssetDetail {
   auction_end_time?: string
   auction_bid_count?: number
   auction_status?: string
+  delegation_id?: number | null
 }
 
 const route = useRoute()

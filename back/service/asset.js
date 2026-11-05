@@ -1895,6 +1895,7 @@ exports.listAssets = async (query) => {
   const baseSql = `
     FROM digital_asset da
     LEFT JOIN asset_publish_record apr ON apr.asset_id = da.id
+    LEFT JOIN asset_delegations d ON d.id=apr.delegation_id
     LEFT JOIN asset_category ac ON da.category_id = ac.id
     LEFT JOIN asset_sub_category ascg ON da.sub_category_id = ascg.id
     LEFT JOIN region r ON da.region_id = r.id
@@ -1902,6 +1903,11 @@ exports.listAssets = async (query) => {
     WHERE ${where.join(' AND ')}
       AND apr.id IS NOT NULL
       AND apr.publish_status <> 0
+      AND (apr.delegation_id IS NULL OR d.status IN ('ACTIVE','SOLD_OUT'))
+      AND NOT (apr.delegation_id IS NULL AND EXISTS (
+        SELECT 1 FROM asset_delegations active_d
+        WHERE active_d.asset_id=da.id AND active_d.status IN ('ACTIVE','SOLD_OUT')
+      ))
   `;
 
   const [countRows] = await pool.query(
@@ -1922,11 +1928,13 @@ exports.listAssets = async (query) => {
         da.category_id,
         da.classification_category_name,
         da.classification_data_level,
-        da.can_sell_ownership,
-        da.can_sell_view_right,
-        da.can_sell_process_right,
+        CASE WHEN d.id IS NULL THEN da.can_sell_ownership ELSE IF(FIND_IN_SET('持有权',d.allowed_rights)>0,1,0) END AS can_sell_ownership,
+        CASE WHEN d.id IS NULL THEN da.can_sell_view_right ELSE IF(FIND_IN_SET('经营权',d.allowed_rights)>0,1,0) END AS can_sell_view_right,
+        CASE WHEN d.id IS NULL THEN da.can_sell_process_right ELSE IF(FIND_IN_SET('使用权',d.allowed_rights)>0,1,0) END AS can_sell_process_right,
+        apr.delegation_id,
+        CASE WHEN apr.delegation_id IS NULL THEN 'OWNER' ELSE 'AGENT' END AS seller_type,
         da.pc_type,
-        da.price,
+        COALESCE(apr.publish_price, da.price) AS price,
         da.price_unit,
         da.status,
         da.view_count,
@@ -2181,6 +2189,11 @@ exports.getAssetDetail = async (id) => {
     `
       SELECT
         da.*,
+        COALESCE(apr.publish_price, da.price) AS price,
+        CASE WHEN d.id IS NULL THEN da.can_sell_ownership ELSE IF(FIND_IN_SET('持有权',d.allowed_rights)>0,1,0) END AS can_sell_ownership,
+        CASE WHEN d.id IS NULL THEN da.can_sell_view_right ELSE IF(FIND_IN_SET('经营权',d.allowed_rights)>0,1,0) END AS can_sell_view_right,
+        CASE WHEN d.id IS NULL THEN da.can_sell_process_right ELSE IF(FIND_IN_SET('使用权',d.allowed_rights)>0,1,0) END AS can_sell_process_right,
+        apr.delegation_id,
         owner_user.account AS owner_account,
         seller_user.account AS seller_account,
         COALESCE(agent_user.account,
@@ -2211,11 +2224,13 @@ exports.getAssetDetail = async (id) => {
       LEFT JOIN region r ON da.region_id = r.id
       LEFT JOIN asset_chain_info aci ON da.id = aci.asset_id
       LEFT JOIN asset_publish_record apr ON apr.asset_id = da.id
+      LEFT JOIN asset_delegations d ON d.id=apr.delegation_id
       LEFT JOIN users seller_user ON seller_user.id = apr.publisher_id
       LEFT JOIN certificate_registry agent_cert ON agent_cert.address = da.proxy_agent_address
       LEFT JOIN users agent_user ON agent_user.id = agent_cert.user_id
       WHERE da.id = ?
-      ORDER BY (apr.publish_status = 1) DESC, apr.id DESC
+      ORDER BY (apr.delegation_id IS NOT NULL AND d.status IN ('ACTIVE','SOLD_OUT')) DESC,
+               (apr.publish_status = 1) DESC, apr.id DESC
       LIMIT 1
     `,
     [id],
@@ -2289,7 +2304,7 @@ exports.listMyAssets = async (query, userId, identity = '') => {
     LEFT JOIN asset_sub_category ascg ON da.sub_category_id = ascg.id
     LEFT JOIN region r ON da.region_id = r.id
     LEFT JOIN asset_chain_info aci ON da.id = aci.asset_id
-    LEFT JOIN asset_publish_record apr ON apr.asset_id = da.id
+    LEFT JOIN asset_publish_record apr ON apr.asset_id = da.id AND apr.delegation_id IS NULL
     LEFT JOIN users u ON da.user_id = u.id
     WHERE ${where.join(' AND ')}
   `;
@@ -2312,6 +2327,8 @@ exports.listMyAssets = async (query, userId, identity = '') => {
         da.pc_type,
         da.total_qty,
         da.available_qty,
+        IFNULL(apr.remaining_qty, 0) AS remaining_qty,
+        IFNULL(apr.publish_status, 0) AS publish_status,
         da.classification_category_name,
         da.classification_data_level,
         da.status,
@@ -2408,6 +2425,11 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
     if (!asset) throw new Error('资产不存在');
     const canManage = Number(asset.user_id) === Number(userId) || isAdminIdentity(identity);
     if (!canManage) throw new Error('无权限编辑该资产');
+    const [activeDelegations] = await conn.query(
+      "SELECT id FROM asset_delegations WHERE asset_id=? AND status IN ('PENDING','ACTIVE','SOLD_OUT') LIMIT 1",
+      [assetId],
+    );
+    if (activeDelegations.length) throw new Error('代理期间请先取消或退出代理，再编辑资产');
 
     const updateData = {};
     editableFields.forEach((field) => {
@@ -2503,11 +2525,11 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
         SELECT id, publish_price, publish_qty, remaining_qty, sold_qty_total, publish_status,
                pricing_mode, auction_start_price, auction_current_price, auction_end_time, auction_status
         FROM asset_publish_record
-        WHERE asset_id = ?
+        WHERE asset_id = ? AND publisher_id = ? AND delegation_id IS NULL
         LIMIT 1
         FOR UPDATE
       `,
-      [assetId],
+      [assetId, asset.user_id],
     );
 
     const publishRecord = publishRows[0] || null;
@@ -2645,13 +2667,18 @@ exports.updateAssetStatusByOwner = async (assetId, userId, status, identity = ''
     if (!asset) throw new Error('资产不存在');
     const canManage = Number(asset.user_id) === Number(userId) || isAdminIdentity(identity);
     if (!canManage) throw new Error('无权限操作该资产');
+    const [activeDelegations] = await conn.query(
+      "SELECT id FROM asset_delegations WHERE asset_id=? AND status IN ('PENDING','ACTIVE','SOLD_OUT') LIMIT 1",
+      [assetId],
+    );
+    if (activeDelegations.length) throw new Error('代理期间请先取消或退出代理，再修改资产状态');
 
     if (nextStatus === 0) {
       const [publishRows] = await conn.query(
         `
           SELECT id, remaining_qty
           FROM asset_publish_record
-          WHERE asset_id = ? AND publish_status = 1
+          WHERE asset_id = ? AND delegation_id IS NULL AND publish_status = 1
           FOR UPDATE
         `,
         [assetId],
@@ -2661,7 +2688,7 @@ exports.updateAssetStatusByOwner = async (assetId, userId, status, identity = ''
 
       if (publishRows.length) {
         await conn.query(
-          'UPDATE asset_publish_record SET publish_status = 0 WHERE asset_id = ? AND publish_status = 1',
+          'UPDATE asset_publish_record SET publish_status = 0 WHERE asset_id = ? AND delegation_id IS NULL AND publish_status = 1',
           [assetId],
         );
       }
@@ -2681,7 +2708,7 @@ exports.updateAssetStatusByOwner = async (assetId, userId, status, identity = ''
         `
           SELECT id, publish_qty, remaining_qty, sold_qty_total, pricing_mode, auction_status
           FROM asset_publish_record
-          WHERE asset_id = ?
+          WHERE asset_id = ? AND delegation_id IS NULL
           LIMIT 1
           FOR UPDATE
         `,
@@ -2748,70 +2775,25 @@ exports.proxyCustodyByOwner = async (assetId, userId, payload = {}, identity = '
   if (!isSellerIdentity(identity) && !isAdminIdentity(identity)) {
     throw new Error('仅卖家可执行代理托管');
   }
-
   const [assetRows] = await pool.query(
-    `
-      SELECT
-        da.id,
-        da.user_id,
-        da.asset_name,
-        da.file_hash,
-        da.is_proxied,
-        aci.token_id
-      FROM digital_asset da
-      LEFT JOIN asset_chain_info aci ON da.id = aci.asset_id
-      WHERE da.id = ?
-      LIMIT 1
-    `,
-    [assetId],
+    `SELECT file_hash,can_sell_ownership,can_sell_view_right,can_sell_process_right
+     FROM digital_asset WHERE id=? AND user_id=? LIMIT 1`,
+    [assetId,userId],
   );
-
   const asset = assetRows[0];
-  if (!asset) throw new Error('资产不存在');
-
-  const canManage = Number(asset.user_id) === Number(userId) || isAdminIdentity(identity);
-  if (!canManage) throw new Error('无权限操作该资产');
-  if (Number(asset.is_proxied || 0) !== 1) {
-    throw new Error('该资产未开启代理托管');
-  }
-
-  const targetAddress = String(payload.target_address || '').trim();
-  if (!targetAddress) throw new Error('托管码不能为空');
-
-  const tokenId = String(asset.token_id || asset.file_hash || '').trim();
-  if (!tokenId) throw new Error('资产缺少链上标识，无法执行代理托管');
-
-  const defaultCert =
-    (await getDefaultRegisterCertInfoByUserId(userId)) || (await getDefaultTradeCertInfoByUserId(userId));
-  if (!defaultCert?.certificate_name || !defaultCert?.org) {
-    throw new Error('请先在个人中心配置默认登记证书或交易证书');
-  }
-
-  await configureChainCertificate(defaultCert.certificate_name || defaultCert.cert, defaultCert.org);
-
-  const ownerRes = await chainClient.ownerOf(tokenId);
-  const ownerAddress = String(ownerRes?.result || ownerRes?.owner || '').trim();
-  if (!ownerAddress) {
-    throw new Error('获取资产拥有者失败');
-  }
-
-  const approvalRes = await chainClient.setApproval({
-    owner: ownerAddress,
-    to: targetAddress,
-    tokenId,
-    isApproval: 'true',
-  });
-
-  await pool.query('UPDATE digital_asset SET proxy_agent_address=? WHERE id=?', [targetAddress, asset.id]);
-
-  return {
-    asset_id: Number(asset.id),
-    asset_name: asset.asset_name,
-    token_id: tokenId,
-    owner_address: ownerAddress,
-    target_address: targetAddress,
-    chain_result: approvalRes,
-  };
+  if (!asset) throw new Error('资产不存在或无权限操作');
+  const rights = [
+    Number(asset.can_sell_ownership) === 1 ? '持有权' : '',
+    Number(asset.can_sell_view_right) === 1 ? '经营权' : '',
+    Number(asset.can_sell_process_right) === 1 ? '使用权' : '',
+  ].filter(Boolean).join(',');
+  return require('./delegation').delegate({
+    asset_id: asset.file_hash,
+    agent_address: payload.target_address,
+    quantity: Number(payload.quantity || 1),
+    allowed_rights: rights,
+    actor_user_id: userId,
+  }, userId);
 };
 
 exports.publishAsset = async (payload, userId, identity = '') => {
@@ -2839,6 +2821,11 @@ exports.publishAsset = async (payload, userId, identity = '') => {
     if (!asset) throw new Error('资产不存在');
     const canManage = Number(asset.user_id) === Number(userId) || isAdminIdentity(identity);
     if (!canManage) throw new Error('仅资产拥有者或管理员可上架');
+    const [activeDelegations] = await conn.query(
+      "SELECT id FROM asset_delegations WHERE asset_id=? AND status IN ('PENDING','ACTIVE','SOLD_OUT') LIMIT 1",
+      [asset_id],
+    );
+    if (activeDelegations.length) throw new Error('代理期间请先取消或退出代理，再重新上架');
     const defaultTradeCert = await getDefaultTradeCertInfoByUserId(userId);
     const sellerCertificateName = String(defaultTradeCert?.certificate_name || defaultTradeCert?.cert || '').trim();
     const sellerAddress = String(defaultTradeCert?.owner_address || defaultTradeCert?.address || '').trim();
@@ -2851,11 +2838,11 @@ exports.publishAsset = async (payload, userId, identity = '') => {
         SELECT id, publish_qty, remaining_qty, publish_status, sold_qty_total,
                pricing_mode, auction_start_price, auction_current_price, auction_end_time, auction_status
         FROM asset_publish_record
-        WHERE asset_id = ?
+        WHERE asset_id = ? AND publisher_id = ? AND delegation_id IS NULL
         LIMIT 1
         FOR UPDATE
       `,
-      [asset_id],
+      [asset_id, asset.user_id],
     );
     const existingPublish = publishRows[0] || null;
     const pricingMode = String(rawPricingMode || 'fixed').toLowerCase() === 'auction' ? 'auction' : 'fixed';
@@ -2976,8 +2963,8 @@ exports.publishAsset = async (payload, userId, identity = '') => {
 
     await conn.commit();
     const [finalRows] = await conn.query(
-      'SELECT id FROM asset_publish_record WHERE asset_id = ? LIMIT 1',
-      [asset_id],
+      'SELECT id FROM asset_publish_record WHERE asset_id = ? AND publisher_id = ? AND delegation_id IS NULL LIMIT 1',
+      [asset_id, asset.user_id],
     );
     return { publish_id: finalRows[0]?.id || null };
   } catch (error) {
@@ -3011,6 +2998,7 @@ exports.createOrder = async (
           apr.id,
           apr.asset_id,
           apr.publisher_id,
+          apr.delegation_id,
           apr.seller_certificate_name,
           apr.seller_address,
           apr.publish_price,
@@ -3032,6 +3020,18 @@ exports.createOrder = async (
     );
     const publish = publishRows[0];
     if (!publish) throw new Error('上架记录不存在');
+    if (publish.delegation_id) {
+      const [delegations] = await conn.query(
+        `SELECT * FROM asset_delegations WHERE id=? AND status='ACTIVE'
+         AND quantity_remaining>=1 LIMIT 1 FOR UPDATE`, [publish.delegation_id],
+      );
+      if (!delegations.length) throw new Error('代理库存已售罄或已撤销');
+      if (Number(delegations[0].owner_id) === Number(buyerId)) throw new Error('不能购买自己委托代理的资产');
+      const allowed = String(delegations[0].allowed_rights || '').split(',');
+      publish.can_sell_ownership = allowed.includes('持有权') ? 1 : 0;
+      publish.can_sell_view_right = allowed.includes('经营权') ? 1 : 0;
+      publish.can_sell_process_right = allowed.includes('使用权') ? 1 : 0;
+    }
     if (Number(publish.publisher_id) === Number(buyerId)) throw new Error('不能购买自己上架的资产');
     if (publish.pricing_mode === 'auction') throw new Error('拍卖资产请通过出价参与竞拍');
     if (Number(publish.publish_status) !== 1) throw new Error('该上架记录不可下单');
@@ -3096,6 +3096,7 @@ exports.createOrder = async (
           (
             order_no,
             publish_id,
+            delegation_id,
             asset_id,
             buyer_id,
             buy_qty,
@@ -3111,11 +3112,12 @@ exports.createOrder = async (
             order_status
           )
         VALUES
-          (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+          (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
       `,
       [
         orderNo,
         publish.id,
+        publish.delegation_id || null,
         publish.asset_id,
         buyerId,
         normalizedBuyQty,
@@ -3141,6 +3143,14 @@ exports.createOrder = async (
       `,
       [normalizedBuyQty, normalizedBuyQty, normalizedBuyQty, publish.id],
     );
+
+    if (publish.delegation_id) {
+      await conn.query(
+        `UPDATE asset_delegations SET status=IF(quantity_remaining=1,'SOLD_OUT',status),
+         quantity_remaining=quantity_remaining-1 WHERE id=?`,
+        [publish.delegation_id],
+      );
+    }
 
     await conn.commit();
     return {
@@ -3177,15 +3187,18 @@ exports.createOrderByAsset = async (
 
   const [publishRows] = await pool.query(
     `
-      SELECT id
-      FROM asset_publish_record
-      WHERE asset_id = ?
-        AND publish_status = 1
-        AND pricing_mode = 'fixed'
-        AND remaining_qty >= ?
+      SELECT apr.id
+      FROM asset_publish_record apr
+      LEFT JOIN asset_delegations d ON d.id = apr.delegation_id
+      WHERE apr.asset_id = ?
+        AND apr.publish_status = 1
+        AND apr.pricing_mode = 'fixed'
+        AND apr.remaining_qty >= ?
+        AND (apr.delegation_id IS NULL OR (d.status = 'ACTIVE' AND d.quantity_remaining >= ?))
+      ORDER BY (apr.delegation_id IS NOT NULL) DESC, apr.id DESC
       LIMIT 1
     `,
-    [asset_id, normalizedBuyQty],
+    [asset_id, normalizedBuyQty, normalizedBuyQty],
   );
 
   const publish = publishRows[0];
@@ -3212,6 +3225,8 @@ const getOrderDeliveryContext = async (conn, orderNo) => {
         ao.id,
         ao.order_no,
         ao.publish_id,
+        ao.delegation_id,
+        ao.chain_transfer_status,
         ao.asset_id,
         ao.buyer_id,
         ao.buy_qty,
@@ -3231,6 +3246,7 @@ const getOrderDeliveryContext = async (conn, orderNo) => {
         ao.seller_delivery_time,
         ao.buyer_confirm_time,
         apr.publisher_id,
+        COALESCE(d.owner_id, apr.publisher_id) AS owner_id,
         da.asset_name,
         da.classification_category_name,
         da.classification_data_level,
@@ -3240,6 +3256,7 @@ const getOrderDeliveryContext = async (conn, orderNo) => {
         aci.owner_address
       FROM asset_order ao
       LEFT JOIN asset_publish_record apr ON ao.publish_id = apr.id
+      LEFT JOIN asset_delegations d ON d.id = ao.delegation_id
       LEFT JOIN digital_asset da ON ao.asset_id = da.id
       LEFT JOIN asset_chain_info aci ON ao.asset_id = aci.asset_id
       WHERE ao.order_no = ?
@@ -3253,13 +3270,33 @@ const getOrderDeliveryContext = async (conn, orderNo) => {
 
 const transferOrderRightOnChain = async (order, sellerId) => {
   const tokenId = String(order.file_hash || '').trim();
-  const sellerAddress = String(order.seller_address || order.owner_address || '').trim();
+  let sellerAddress = String(order.seller_address || order.owner_address || '').trim();
+  if (Number(order.delegation_id) > 0) {
+    const [delegations] = await pool.query(
+      'SELECT owner_id,owner_address FROM asset_delegations WHERE id=? LIMIT 1',
+      [order.delegation_id],
+    );
+    if (!delegations.length) throw new Error('代理关系不存在');
+    sellerId = Number(delegations[0].owner_id);
+    sellerAddress = String(delegations[0].owner_address || '').trim();
+  }
   const buyerAddress = String(order.buyer_address || '').trim();
   if (!tokenId || !sellerAddress || !buyerAddress) {
     throw new Error('订单缺少资产标识或交易双方证书地址，无法执行链上权益转移');
   }
 
-  const defaultTradeCert = await certificateService.getDefaultTradeCertInfo(sellerId);
+  let defaultTradeCert;
+  if (Number(order.delegation_id) > 0) {
+    const [ownerCerts] = await pool.query(
+      `SELECT certificate_name,org,address FROM certificate_registry
+       WHERE user_id=? AND address=? ORDER BY id DESC LIMIT 1`,
+      [sellerId, sellerAddress],
+    );
+    defaultTradeCert = ownerCerts[0];
+    if (!defaultTradeCert) throw new Error('未找到代理资产所有者证书，无法完成链上过户');
+  } else {
+    defaultTradeCert = await certificateService.getDefaultTradeCertInfo(sellerId);
+  }
   const sellerCertificateName = String(defaultTradeCert?.certificate_name || '').trim();
   const sellerOrg = String(
     defaultTradeCert?.org || defaultTradeCert?.organization || 'wx-org1.chainmaker.org',
@@ -3470,7 +3507,7 @@ exports.cancelOrder = async (orderNo, buyerId, options = {}) => {
   try {
     await conn.beginTransaction();
     const [orders] = await conn.query(
-      'SELECT id, publish_id, asset_id, buyer_id, buy_qty, order_status FROM asset_order WHERE order_no=? FOR UPDATE',
+      'SELECT id, publish_id, delegation_id, asset_id, buyer_id, buy_qty, order_status FROM asset_order WHERE order_no=? FOR UPDATE',
       [orderNo],
     );
     const order = orders[0];
@@ -3508,6 +3545,14 @@ exports.cancelOrder = async (orderNo, buyerId, options = {}) => {
     if (!asset || !publish) throw new Error('资产或上架记录不存在，无法恢复库存');
     const quantity = Number(order.buy_qty);
     if (Number(publish.sold_qty_total) < quantity) throw new Error('上架库存数据异常，无法取消订单');
+
+    if (Number(order.delegation_id) > 0) {
+      const [restored] = await conn.query(
+        "UPDATE asset_delegations SET quantity_remaining=quantity_remaining+1,status='ACTIVE' WHERE id=? AND status='SOLD_OUT' AND quantity_remaining=0",
+        [order.delegation_id],
+      );
+      if (!restored.affectedRows) throw new Error('代理库存状态异常，无法取消订单');
+    }
 
     if (publish.pricing_mode === 'auction') {
       await conn.query(
@@ -3623,7 +3668,7 @@ exports.sellerConfirmOrder = async (orderNo, sellerId, identity = '') => {
 
     // 暂时跳过链上权益转移，避免 ChainMaker gRPC 不可达时阻塞本地订单确认。
     // 返回显式的 SKIPPED 状态，避免把本地确认误认为链上转移成功。
-    const chainTransfer = services.skipChainOnSellerConfirm
+    const chainTransfer = Number(refreshedOrder.delegation_id) > 0 || services.skipChainOnSellerConfirm
       ? {
         action: 'SKIPPED',
         status: 'pending',
@@ -3643,6 +3688,9 @@ exports.sellerConfirmOrder = async (orderNo, sellerId, identity = '') => {
         [chainTransfer.to, refreshedOrder.asset_id],
       );
     }
+    if (Number(refreshedOrder.delegation_id) > 0 && chainTransfer.action !== 'SKIPPED') {
+      await conn.query("UPDATE asset_order SET chain_transfer_status='SUCCESS' WHERE id=?", [refreshedOrder.id]);
+    }
 
     await conn.commit();
     return {
@@ -3657,6 +3705,57 @@ exports.sellerConfirmOrder = async (orderNo, sellerId, identity = '') => {
   } finally {
     conn.release();
   }
+};
+
+// 原型同名接口：代理订单确认后的链上过户补偿入口。
+exports.proxyTransfer = async (transactionId, sellerAddress, sellerId) => {
+  const [rows] = await pool.query(
+    `SELECT t.transaction_id,t.status AS transaction_status,ao.order_no,ao.asset_id,
+            ao.buyer_address,ao.delegation_id,ao.chain_transfer_status,
+            apr.publisher_id,apr.seller_address
+     FROM transactions t
+     JOIN asset_order ao ON ao.order_no=t.order_no
+     JOIN asset_publish_record apr ON apr.id=ao.publish_id
+     WHERE t.transaction_id=? LIMIT 1`, [transactionId],
+  );
+  const row = rows[0];
+  if (!row || Number(row.publisher_id) !== Number(sellerId) ||
+      String(row.seller_address || '') !== String(sellerAddress || '')) {
+    throw new Error('交易不存在或不属于当前代理人');
+  }
+  if (!row.delegation_id) throw new Error('该交易不是代理订单');
+  if (row.transaction_status !== '已确认' && row.transaction_status !== '已完成') {
+    throw new Error('交易尚未确认，不能过户');
+  }
+  if (row.chain_transfer_status === 'SUCCESS') {
+    return { alreadyTransferred: true };
+  }
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const order = await getOrderDeliveryContext(connection, row.order_no);
+    if (!order) throw new Error('代理订单不存在');
+    if (order.chain_transfer_status === 'SUCCESS') {
+      await connection.commit();
+      return { alreadyTransferred: true };
+    }
+    const chainOwner = await chainClient.ownerOf(order.file_hash);
+    const alreadyTransferred = String(chainOwner?.result || chainOwner?.owner || '').trim() ===
+      String(row.buyer_address || '').trim();
+    const transfer = alreadyTransferred ? null : await transferOrderRightOnChain(order, sellerId);
+    if (alreadyTransferred || transfer?.action === 'TransferFrom') {
+      await connection.query(
+        'UPDATE asset_chain_info SET owner_address=?,last_sync_time=NOW() WHERE asset_id=?',
+        [row.buyer_address,row.asset_id],
+      );
+    }
+    await connection.query("UPDATE asset_order SET chain_transfer_status='SUCCESS' WHERE order_no=?", [row.order_no]);
+    await connection.commit();
+    return { alreadyTransferred };
+  } catch (cause) {
+    await connection.rollback();
+    throw cause;
+  } finally { connection.release(); }
 };
 
 exports.saveOrderContract = async (orderNo, operatorId, payload = {}, identity = '') => {
@@ -4134,6 +4233,8 @@ exports.listOrders = async (query, userId, identity = '') => {
         ao.id,
         ao.order_no,
         ao.publish_id,
+        ao.delegation_id,
+        ao.chain_transfer_status,
         ao.asset_id,
         ao.buyer_id,
         ao.buy_qty,

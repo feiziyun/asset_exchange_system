@@ -247,6 +247,7 @@ CREATE TABLE `asset_publish_record` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `asset_id` BIGINT NOT NULL COMMENT '资产ID',
   `publisher_id` BIGINT NOT NULL COMMENT '发布者用户ID',
+  `delegation_id` BIGINT DEFAULT NULL COMMENT '代理关系ID，原所有者上架时为空',
   `seller_certificate_name` VARCHAR(120) DEFAULT NULL COMMENT '卖家默认交易证书名快照',
   `seller_address` VARCHAR(128) DEFAULT NULL COMMENT '卖家默认证书地址快照',
   `publish_price` DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '上架价格',
@@ -264,7 +265,8 @@ CREATE TABLE `asset_publish_record` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_publish_asset_id` (`asset_id`),
+  KEY `idx_publish_asset_id` (`asset_id`),
+  UNIQUE KEY `uk_publish_delegation` (`delegation_id`),
   KEY `idx_publish_publisher_id` (`publisher_id`),
   KEY `idx_publish_auction_status` (`pricing_mode`, `auction_status`, `auction_end_time`),
   CONSTRAINT `fk_publish_asset` FOREIGN KEY (`asset_id`) REFERENCES `digital_asset` (`id`) ON DELETE CASCADE,
@@ -310,6 +312,8 @@ CREATE TABLE `asset_order` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `order_no` VARCHAR(40) NOT NULL COMMENT '订单号',
   `publish_id` BIGINT NOT NULL COMMENT '上架记录ID',
+  `delegation_id` BIGINT DEFAULT NULL COMMENT '代理关系ID',
+  `chain_transfer_status` VARCHAR(16) NOT NULL DEFAULT 'PENDING' COMMENT '代理订单链上过户状态',
   `asset_id` BIGINT NOT NULL COMMENT '资产ID',
   `buyer_id` BIGINT NOT NULL COMMENT '买家ID',
   `buy_qty` INT NOT NULL DEFAULT 1 COMMENT '购买数量',
@@ -332,6 +336,7 @@ CREATE TABLE `asset_order` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_order_no` (`order_no`),
   KEY `idx_order_publish_id` (`publish_id`),
+  KEY `idx_order_delegation` (`delegation_id`),
   KEY `idx_order_asset_id` (`asset_id`),
   KEY `idx_order_buyer_id` (`buyer_id`),
   KEY `idx_order_status` (`order_status`),
@@ -595,6 +600,25 @@ CREATE TABLE `reconcile_log` (
   KEY `idx_biz_type_id` (`biz_type`, `biz_id`),
   KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='链上链下对账日志表';
+
+CREATE TABLE `asset_delegations` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `asset_id` BIGINT NOT NULL,
+  `owner_id` BIGINT NOT NULL,
+  `owner_address` VARCHAR(128) NOT NULL,
+  `agent_user_id` BIGINT NOT NULL,
+  `agent_address` VARCHAR(128) NOT NULL,
+  `quantity_total` INT NOT NULL DEFAULT 1,
+  `quantity_remaining` INT NOT NULL DEFAULT 1,
+  `allowed_rights` VARCHAR(255) NOT NULL,
+  `price` DECIMAL(18,2) DEFAULT NULL,
+  `status` VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `revoked_at` DATETIME DEFAULT NULL,
+  KEY `idx_asset_status` (`asset_id`, `status`),
+  KEY `idx_agent_status` (`agent_user_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `region` (`region_key`, `region_name`, `province`, `city`, `sort_order`) VALUES
 ('all', '全部', '全部', '全部', 0),

@@ -83,6 +83,12 @@ export const proxyCustodyAsset = (id, data) => {
   })
 }
 
+export const delegateAsset = (data) => instance.post('/api/delegate-asset', data, { timeout: 0 })
+export const revokeDelegation = (data) => instance.post('/api/revoke-delegation', data, { timeout: 0 })
+export const getAgentDelegations = (agentUserId) => instance.get('/api/agent-delegations', { params: { agentUserId } })
+export const getOwnerDelegations = () => instance.get('/api/owner-delegations')
+export const proxyTransfer = (data) => instance.post('/api/proxy-transfer', data, { timeout: 0 })
+
 // 资产上架
 export const publishAsset = (data) => {
   return instance.post('/asset/publish', data)

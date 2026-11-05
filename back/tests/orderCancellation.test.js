@@ -16,7 +16,7 @@ require.cache[alipayPath] = {
   exports: { closeUnpaidPaymentsForOrder: async () => {} },
 };
 
-const makeConnection = (orderStatus = 0, buyerId = 7) => {
+const makeConnection = (orderStatus = 0, buyerId = 7, delegationId = null) => {
   const state = {
     orderStatus,
     buyerId,
@@ -24,6 +24,7 @@ const makeConnection = (orderStatus = 0, buyerId = 7) => {
     sold: 1,
     publishStatus: 2,
     deleted: false,
+    delegationStatus: delegationId ? 'SOLD_OUT' : null,
     updates: [],
   };
   connection = {
@@ -32,8 +33,8 @@ const makeConnection = (orderStatus = 0, buyerId = 7) => {
     rollback: async () => {},
     release: () => {},
     query: async (sql, params) => {
-      if (sql.startsWith('SELECT id, publish_id, asset_id, buyer_id, buy_qty, order_status')) {
-        return [[{ id: 11, publish_id: 21, asset_id: 31, buyer_id: state.buyerId,
+      if (sql.startsWith('SELECT id, publish_id, delegation_id, asset_id, buyer_id, buy_qty, order_status')) {
+        return [[{ id: 11, publish_id: 21, delegation_id: delegationId, asset_id: 31, buyer_id: state.buyerId,
           buy_qty: 1, order_status: state.orderStatus }]];
       }
       if (sql.startsWith('SELECT id, buyer_id, order_status, buyer_deleted_at')) {
@@ -50,6 +51,9 @@ const makeConnection = (orderStatus = 0, buyerId = 7) => {
         state.remaining += params[0];
         state.sold -= params[1];
         state.publishStatus = 1;
+      }
+      if (sql.includes("UPDATE asset_delegations SET quantity_remaining=quantity_remaining+1,status='ACTIVE'")) {
+        state.delegationStatus = 'ACTIVE';
       }
       if (sql.includes('SET order_status=4')) state.orderStatus = 4;
       if (sql.includes('SET buyer_deleted_at=NOW()')) state.deleted = true;
@@ -74,6 +78,13 @@ test('only the buyer can cancel an unpaid order', async () => {
   const state = makeConnection();
   await assert.rejects(assetService.cancelOrder('OD1', 8), /无权取消/);
   assert.equal(state.remaining, 0);
+});
+
+test('cancelling a proxy order restores the agent inventory', async () => {
+  const state = makeConnection(0, 7, 19);
+  await assetService.cancelOrder('OD1', 7);
+  assert.equal(state.delegationStatus, 'ACTIVE');
+  assert.equal(state.remaining, 1);
 });
 
 test('a paid order without a refundable wallet payment cannot return stock', async () => {

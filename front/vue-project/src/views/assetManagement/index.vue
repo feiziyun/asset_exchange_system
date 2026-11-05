@@ -23,7 +23,7 @@
       <section class="table-section" v-loading="loading">
         <template v-if="!isAdmin">
           <template v-if="isSeller">
-            <div v-if="ownedList.length" class="table-wrap">
+            <div v-if="displayOwnedList.length" class="table-wrap">
               <table class="styled-table table-hover-row seller-table">
                 <thead>
                   <tr>
@@ -40,7 +40,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="item in ownedList" :key="item.id">
+                  <tr v-for="item in displayOwnedList" :key="item.delegation_id ? `proxy-${item.delegation_id}` : item.id">
                     <td class="asset-info-cell">
                       <div class="asset-info-card">
                         <div class="asset-cover-wrap">
@@ -48,6 +48,7 @@
                         </div>
                         <div class="asset-name-wrap">
                           <div class="cell-title">{{ item.asset_name || '-' }}</div>
+                          <el-tag v-if="item.is_proxy" size="small">代理</el-tag>
                         </div>
                       </div>
                     </td>
@@ -58,10 +59,12 @@
                         {{ item.brief || item.description || '暂无资产描述' }}
                       </div>
                     </td>
-                    <td>{{ item.total_qty || 0 }}</td>
+                    <td>{{ item.is_proxy ? item.quantity_remaining : item.active_delegation ? 0 : (item.remaining_qty || item.available_qty || 0) }}</td>
                     <td>不可分割</td>
                     <td>
-                      <el-tag :type="statusTag(item.status)">{{ statusText(item.status) }}</el-tag>
+                      <el-tag :type="item.active_delegation ? 'warning' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? 'info' : statusTag(item.status)">
+                        {{ item.active_delegation ? '代理托管中' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? '已售罄' : statusText(item.status) }}
+                      </el-tag>
                     </td>
                     <td>
                       <div class="permission-list">
@@ -81,21 +84,19 @@
                     </td>
                     <td>
                       <div class="single-action-cell">
-                        <el-button type="primary" link @click="openEdit(item)">编辑</el-button>
+                        <el-button v-if="!item.is_proxy" type="primary" link @click="openEdit(item)">编辑</el-button>
                       </div>
                     </td>
                     <td>
                       <div class="single-action-cell">
-                        <el-tooltip :content="Number(item.is_proxied || 0) === 1 ? '转交已托管资产' : '该资产尚未处于可代理托管状态'">
-                          <span>
-                            <el-button
-                              type="info"
-                              link
-                              :disabled="Number(item.is_proxied || 0) !== 1"
-                              @click="openProxyCustody(item)"
-                            >代理托管</el-button>
-                          </span>
-                        </el-tooltip>
+                        <template v-if="item.is_proxy">
+                          <el-button type="danger" link @click="revokeProxy(item)">退出代理</el-button>
+                        </template>
+                        <template v-else-if="item.active_delegation">
+                          <span>托管给用户 {{ item.active_delegation.agent_username || shortenHash(item.active_delegation.agent_address) }}</span>
+                          <el-button type="danger" link @click="revokeProxy(item)">取消授权</el-button>
+                        </template>
+                        <el-button v-else type="primary" link :disabled="!canDelegate(item)" @click="openProxyCustody(item)">代理托管</el-button>
                       </div>
                     </td>
                   </tr>
@@ -451,21 +452,34 @@
   </el-dialog>
 
   <el-dialog v-model="proxyCustodyVisible" title="代理托管" width="460px">
+    <p>请填写托管码并确认数量</p>
     <el-form label-width="90px">
       <el-form-item label="资产名称">
         <el-input :model-value="proxyCustodyAssetName" disabled />
       </el-form-item>
       <el-form-item label="托管码">
-        <el-input v-model.trim="proxyCustodyForm.target_address" placeholder="请输入托管码" />
+        <el-input v-model.trim="proxyCustodyForm.target_address" placeholder="请输入目标地址" />
       </el-form-item>
       <el-form-item label="托管数量">
         <el-input-number v-model="proxyCustodyForm.quantity" :min="1" :max="1" disabled style="width: 100%" />
+      </el-form-item>
+      <el-form-item label="允许代理的权益">
+        <div>
+          <el-checkbox-group v-model="proxyCustodyForm.rights">
+            <el-checkbox v-for="right in proxyAvailableRights" :key="right" :value="right">{{ right }}</el-checkbox>
+          </el-checkbox-group>
+          <div>至少选择一项；未选择的权益代理人不能出售。</div>
+        </div>
       </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="proxyCustodyVisible = false">取消</el-button>
       <el-button type="primary" :loading="proxyCustodyLoading" @click="submitProxyCustody">确认代理托管</el-button>
     </template>
+  </el-dialog>
+  <el-dialog v-model="proxySuccessVisible" title="授权成功" width="420px">
+    <p>您已成功授权资产</p>
+    <template #footer><el-button type="primary" @click="proxySuccessVisible = false">确认</el-button></template>
   </el-dialog>
   <AlipayPaymentDialog v-model="paymentVisible" :order-no="paymentOrderNo" @paid="fetchPurchasedAssets" />
 </template>
@@ -481,11 +495,14 @@ import {
   cancelOrder,
   confirmDelivery,
   deleteClosedOrder,
+  delegateAsset,
+  getAgentDelegations,
+  getOwnerDelegations,
   getAssetDetail,
   getMyAssetList,
   getOrderList,
   publishAsset,
-  proxyCustodyAsset,
+  revokeDelegation,
   updateAsset,
   updateAssetStatus,
 } from '@/api/asset'
@@ -527,6 +544,28 @@ interface AssetItem {
   auction_end_time?: string
   auction_bid_count?: number
   auction_status?: string
+  active_delegation?: DelegationItem
+  delegation_id?: number
+  is_proxy?: boolean
+  quantity_remaining?: number
+  remaining_qty?: number
+}
+
+interface DelegationItem {
+  delegation_id: number
+  asset_id: number
+  asset_name?: string
+  file_hash?: string
+  description?: string
+  classification_data_level?: string
+  agent_address: string
+  agent_username?: string
+  allowed_rights: string
+  quantity_remaining: number
+  status: string
+  owner_username?: string
+  picture?: string | null
+  picture_mime_type?: string
 }
 
 interface PurchasedItem {
@@ -548,6 +587,31 @@ const router = useRouter()
 const loading = ref(false)
 const keyword = ref('')
 const ownedList = ref<AssetItem[]>([])
+const agentDelegations = ref<DelegationItem[]>([])
+const ownerDelegations = ref<DelegationItem[]>([])
+const displayOwnedList = computed<AssetItem[]>(() => [
+  ...visibleAgentDelegations.value.map((item) => ({
+    id: item.asset_id,
+    asset_name: item.asset_name || '',
+    file_hash: item.file_hash,
+    description: item.description,
+    picture: item.picture,
+    picture_mime_type: item.picture_mime_type,
+    classification_data_level: item.classification_data_level,
+    total_qty: 1,
+    status: 1,
+    quantity_remaining: item.quantity_remaining,
+    is_proxy: true,
+    delegation_id: item.delegation_id,
+    can_sell_ownership: item.allowed_rights.includes('持有权') ? 1 : 0,
+    can_sell_view_right: item.allowed_rights.includes('经营权') ? 1 : 0,
+    can_sell_process_right: item.allowed_rights.includes('使用权') ? 1 : 0,
+  })),
+  ...ownedList.value.map((item) => ({
+    ...item,
+    active_delegation: ownerDelegations.value.find((d) => Number(d.asset_id) === Number(item.id)),
+  })),
+])
 const purchasedList = ref<PurchasedItem[]>([])
 const actionLoadingNo = ref('')
 const confirmDialogVisible = ref(false)
@@ -562,6 +626,17 @@ const roleKey = ref(getRoleKey(tokenPayload.identity || ''))
 const roleText = ref(getRoleLabel(tokenPayload.identity || ''))
 const isAdmin = computed(() => roleKey.value === 'admin')
 const isSeller = computed(() => roleKey.value === 'seller' || isAdmin.value)
+
+const filteredAgentDelegations = computed(() => {
+  const term = ownedQuery.keyword.trim().toLowerCase()
+  return term ? agentDelegations.value.filter((item) =>
+    `${item.asset_name || ''} ${item.description || ''}`.toLowerCase().includes(term))
+    : agentDelegations.value
+})
+const visibleAgentDelegations = computed(() => filteredAgentDelegations.value.slice(
+  (ownedQuery.page - 1) * ownedQuery.page_size,
+  ownedQuery.page * ownedQuery.page_size,
+))
 
 const pageTitle = computed(() => {
   if (isAdmin.value) return '资产管理'
@@ -646,13 +721,17 @@ const publishForm = reactive({
   auction_end_time: '',
 })
 const proxyCustodyVisible = ref(false)
+const proxySuccessVisible = ref(false)
 const proxyCustodyLoading = ref(false)
 const proxyCustodyAssetId = ref<number | null>(null)
 const proxyCustodyAssetName = ref('')
 const proxyCustodyForm = reactive({
   target_address: '',
   quantity: 1,
+  rights: [] as string[],
 })
+const proxySelectedAsset = ref<AssetItem | null>(null)
+const proxyAvailableRights = computed(() => proxySelectedAsset.value ? availableProxyRights(proxySelectedAsset.value) : [])
 
 const statusText = (status?: number) => {
   if (status === 0) return '未上架'
@@ -703,16 +782,42 @@ const shortenHash = (value?: string) => {
 const fetchOwnedAssets = async (silent = false) => {
   if (!silent) loading.value = true
   try {
+    if (!isAdmin.value) {
+      const userId = Number(tokenPayload.id)
+      const [agentRes, ownerRes] = await Promise.all([
+        getAgentDelegations(userId), getOwnerDelegations(),
+      ])
+      agentDelegations.value = agentRes.data.delegations || []
+      ownerDelegations.value = ownerRes.data.delegations || []
+    }
+    const pageOffset = (ownedQuery.page - 1) * ownedQuery.page_size
+    const agentCount = isAdmin.value ? 0 : filteredAgentDelegations.value.length
+    const agentOnPage = Math.max(0, Math.min(ownedQuery.page_size, agentCount - pageOffset))
+    const ownerStart = Math.max(0, pageOffset - agentCount)
+    const ownerNeeded = ownedQuery.page_size - agentOnPage
+    const requestSize = 100
+    const ownerPage = Math.floor(ownerStart / requestSize) + 1
     const res = await getMyAssetList({
       ...ownedQuery,
+      page: ownerPage,
+      page_size: requestSize,
       scope: isAdmin.value ? 'all' : 'my',
     })
     if (res.data.status === 0) {
-      ownedList.value = res.data.data?.list || []
+      const startInBatch = ownerStart % requestSize
+      let ownerRows = res.data.data?.list || []
+      if (ownerNeeded > 0 && startInBatch + ownerNeeded > requestSize) {
+        const next = await getMyAssetList({
+          ...ownedQuery,
+          page: ownerPage + 1,
+          page_size: requestSize,
+          scope: isAdmin.value ? 'all' : 'my',
+        })
+        if (next.data.status === 0) ownerRows = ownerRows.concat(next.data.data?.list || [])
+      }
+      ownedList.value = ownerRows.slice(startInBatch, startInBatch + ownerNeeded)
       const pagination = res.data.data?.pagination || {}
-      ownedQuery.page = pagination.page || 1
-      ownedQuery.page_size = pagination.page_size || ownedQuery.page_size
-      ownedPagination.total = pagination.total || 0
+      ownedPagination.total = Number(pagination.total || 0) + agentCount
     } else {
       ElMessage.error(res.data.message || '获取资产失败')
     }
@@ -954,16 +1059,24 @@ const openEdit = (row: AssetItem) => {
 }
 
 const openProxyCustody = (row: AssetItem) => {
-  if (Number(row.is_proxied || 0) !== 1) {
-    ElMessage.info('该资产未开启代理托管')
-    return
-  }
+  if (!canDelegate(row)) return
+  proxySelectedAsset.value = row
   proxyCustodyAssetId.value = Number(row.id)
   proxyCustodyAssetName.value = row.asset_name || '-'
   proxyCustodyForm.target_address = ''
   proxyCustodyForm.quantity = 1
+  proxyCustodyForm.rights = availableProxyRights(row)
   proxyCustodyVisible.value = true
 }
+
+const availableProxyRights = (row: AssetItem) => [
+  Number(row.can_sell_ownership) === 1 ? '持有权' : '',
+  Number(row.can_sell_view_right) === 1 ? '经营权' : '',
+  Number(row.can_sell_process_right) === 1 ? '使用权' : '',
+].filter(Boolean)
+
+const canDelegate = (row: AssetItem) => row.pricing_mode !== 'auction' && Number(row.status) === 1 &&
+  Number(row.remaining_qty) === 1 && !row.active_delegation && availableProxyRights(row).length > 0
 
 const submitProxyCustody = async () => {
   if (!proxyCustodyAssetId.value) return
@@ -971,16 +1084,25 @@ const submitProxyCustody = async () => {
     ElMessage.error('请输入托管码')
     return
   }
+  if (!proxyCustodyForm.rights.length) {
+    ElMessage.warning('请至少选择一项允许代理的权益')
+    return
+  }
 
   proxyCustodyLoading.value = true
   try {
-    const res = await proxyCustodyAsset(proxyCustodyAssetId.value, {
-      target_address: proxyCustodyForm.target_address,
+    const res = await delegateAsset({
+      asset_id: proxySelectedAsset.value?.file_hash,
+      agent_address: proxyCustodyForm.target_address,
       quantity: 1,
+      allowed_rights: proxyCustodyForm.rights.join(','),
+      actor_user_id: Number(tokenPayload.id),
     })
-    if (res.data.status === 0) {
-      ElMessage.success('代理托管成功')
+    if (res.data.success) {
+      ElMessage.success('代理托管已设置')
       proxyCustodyVisible.value = false
+      proxySuccessVisible.value = true
+      await fetchOwnedAssets(true)
     } else {
       ElMessage.error(res.data.message || '代理托管失败')
     }
@@ -988,6 +1110,28 @@ const submitProxyCustody = async () => {
     ElMessage.error(error?.response?.data?.message || '代理托管失败')
   } finally {
     proxyCustodyLoading.value = false
+  }
+}
+
+const revokeProxy = async (row: AssetItem) => {
+  const id = row.is_proxy ? row.delegation_id : row.active_delegation?.delegation_id
+  if (!id) return
+  try {
+    await ElMessageBox.confirm(
+      row.is_proxy
+        ? `确定退出资产“${row.asset_name}”的代理吗？剩余数量会退回所有者。`
+        : `确定取消资产“${row.asset_name}”的代理托管吗？`,
+      row.is_proxy ? '退出代理' : '取消授权',
+    )
+  } catch (_error) { return }
+  try {
+    const response = await revokeDelegation({ delegation_id: id, actor_user_id: Number(tokenPayload.id) })
+    if (!response.data.success) throw new Error(response.data.message || '撤销失败')
+    await fetchOwnedAssets(true)
+    if (response.data.chain_revoke_failed) ElMessage.warning(response.data.warning)
+    else ElMessage.success(row.is_proxy ? '已退出代理，剩余数量已退回所有者' : '已取消代理托管')
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error.message || '撤销失败')
   }
 }
 
