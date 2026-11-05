@@ -821,8 +821,8 @@ const fetchOwnedAssets = async (silent = false) => {
     } else {
       ElMessage.error(res.data.message || '获取资产失败')
     }
-  } catch (_error) {
-    ElMessage.error('获取资产失败')
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '获取资产失败')
   } finally {
     if (!silent) loading.value = false
   }
