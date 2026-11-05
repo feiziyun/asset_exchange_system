@@ -795,7 +795,7 @@ const fetchOwnedAssets = async (silent = false) => {
     const agentOnPage = Math.max(0, Math.min(ownedQuery.page_size, agentCount - pageOffset))
     const ownerStart = Math.max(0, pageOffset - agentCount)
     const ownerNeeded = ownedQuery.page_size - agentOnPage
-    const requestSize = 100
+    const requestSize = ownedQuery.page_size
     const ownerPage = Math.floor(ownerStart / requestSize) + 1
     const res = await getMyAssetList({
       ...ownedQuery,
@@ -814,14 +814,25 @@ const fetchOwnedAssets = async (silent = false) => {
           scope: isAdmin.value ? 'all' : 'my',
         })
         if (next.data.status === 0) ownerRows = ownerRows.concat(next.data.data?.list || [])
+        else throw new Error(next.data.message || '获取下一页资产失败')
       }
       ownedList.value = ownerRows.slice(startInBatch, startInBatch + ownerNeeded)
       const pagination = res.data.data?.pagination || {}
       ownedPagination.total = Number(pagination.total || 0) + agentCount
     } else {
+      console.error('[assetManagement] /asset/my/list failed', {
+        status: res.data.status,
+        message: res.data.message,
+      })
       ElMessage.error(res.data.message || '获取资产失败')
     }
   } catch (error: any) {
+    console.error('[assetManagement] asset load failed', {
+      url: error?.config?.url || '/asset/my/list',
+      httpStatus: error?.response?.status,
+      code: error?.code,
+      message: error?.response?.data?.message || error?.message,
+    })
     ElMessage.error(error?.response?.data?.message || error?.message || '获取资产失败')
   } finally {
     if (!silent) loading.value = false

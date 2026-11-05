@@ -218,6 +218,12 @@ exports.listMyAsset = async (req, res) => {
       data: result,
     });
   } catch (error) {
+    console.error('[asset/my/list] request failed', {
+      userId: req.auth?.id,
+      code: error.code,
+      message: error.message,
+      stack: error.stack,
+    });
     return res.cc(error);
   }
 };
