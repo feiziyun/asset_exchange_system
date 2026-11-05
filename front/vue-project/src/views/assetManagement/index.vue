@@ -63,7 +63,7 @@
                     <td>不可分割</td>
                     <td>
                       <el-tag :type="item.active_delegation ? 'warning' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? 'info' : statusTag(item.status)">
-                        {{ item.active_delegation ? '代理托管中' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? '已售罄' : statusText(item.status) }}
+                        {{ item.active_delegation ? '代理托管中' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? Number(item.available_qty) > 0 ? '待上架' : '已售罄' : statusText(item.status) }}
                       </el-tag>
                     </td>
                     <td>
@@ -84,7 +84,10 @@
                     </td>
                     <td>
                       <div class="single-action-cell">
-                        <el-button v-if="!item.is_proxy" type="primary" link @click="openEdit(item)">编辑</el-button>
+                        <template v-if="!item.is_proxy">
+                          <el-button type="primary" link @click="openEdit(item)">编辑</el-button>
+                          <el-button v-if="canPublish(item)" type="success" link @click="openPublish(item)">上架</el-button>
+                        </template>
                       </div>
                     </td>
                     <td>
@@ -96,7 +99,9 @@
                           <span>托管给用户 {{ item.active_delegation.agent_username || shortenHash(item.active_delegation.agent_address) }}</span>
                           <el-button type="danger" link @click="revokeProxy(item)">取消授权</el-button>
                         </template>
-                        <el-button v-else type="primary" link :disabled="!canDelegate(item)" @click="openProxyCustody(item)">代理托管</el-button>
+                        <span v-else :title="delegationUnavailableReason(item)">
+                          <el-button type="primary" link :disabled="!canDelegate(item)" @click="openProxyCustody(item)">代理托管</el-button>
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -549,6 +554,7 @@ interface AssetItem {
   is_proxy?: boolean
   quantity_remaining?: number
   remaining_qty?: number
+  publish_status?: number
 }
 
 interface DelegationItem {
@@ -1032,7 +1038,7 @@ const canPublish = (row: AssetItem) => {
   }
   const status = Number(row.status)
   const availableQty = Number(row.available_qty || 0)
-  return status !== 1 && availableQty > 0
+  return !row.active_delegation && availableQty > 0 && (status !== 1 || Number(row.remaining_qty) === 0)
 }
 
 const canDownShelf = (row: AssetItem) => {
@@ -1055,7 +1061,7 @@ const openEdit = (row: AssetItem) => {
     : roundPrice(row.price)
   editForm.price_unit = row.price_unit || '人民币'
   editForm.total_qty = Number(row.total_qty || 1)
-  editForm.available_qty = Number(row.available_qty || 1)
+  editForm.available_qty = Number(row.available_qty ?? 1)
   editForm.description = row.description || ''
   editForm.can_sell_ownership = Number(row.can_sell_ownership || 0)
   editForm.can_sell_view_right = Number(row.can_sell_view_right || 0)
@@ -1086,8 +1092,15 @@ const availableProxyRights = (row: AssetItem) => [
   Number(row.can_sell_process_right) === 1 ? '使用权' : '',
 ].filter(Boolean)
 
-const canDelegate = (row: AssetItem) => row.pricing_mode !== 'auction' && Number(row.status) === 1 &&
-  Number(row.remaining_qty) === 1 && !row.active_delegation && availableProxyRights(row).length > 0
+const delegationUnavailableReason = (row: AssetItem) => {
+  if (row.pricing_mode === 'auction') return '拍卖资产不能代理托管'
+  if (Number(row.status) !== 1 || Number(row.publish_status) !== 1) return '请先将资产上架'
+  if (Number(row.remaining_qty) !== 1) return '当前没有可代理的上架库存'
+  if (!availableProxyRights(row).length) return '请先在编辑中选择可出售权益'
+  return ''
+}
+
+const canDelegate = (row: AssetItem) => !row.active_delegation && !delegationUnavailableReason(row)
 
 const submitProxyCustody = async () => {
   if (!proxyCustodyAssetId.value) return

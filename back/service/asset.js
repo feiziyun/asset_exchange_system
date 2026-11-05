@@ -2535,7 +2535,12 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
     const publishRecord = publishRows[0] || null;
     if (publishRecord) {
       const soldQtyTotal = Number(publishRecord.sold_qty_total || 0);
-      const syncedRemainingQty = Math.max(0, finalAvailableQty);
+      const syncedRemainingQty = Number(asset.status) === 0
+        ? 0
+        : Number(publishRecord.remaining_qty || 0);
+      if (finalAvailableQty + syncedRemainingQty > finalTotalQty) {
+        throw new Error('可用库存与上架库存之和不能超过资产总数量');
+      }
       const syncedPublishQty = Math.max(soldQtyTotal + syncedRemainingQty, syncedRemainingQty);
       const syncedPublishPrice = Number(updateData.price ?? asset.price ?? publishRecord.publish_price ?? 0);
       const pricingMode = String(payload.pricing_mode || publishRecord.pricing_mode || 'fixed') === 'auction'
@@ -2560,11 +2565,9 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
       if (pricingMode === 'auction' && (!auctionEndTime || new Date(auctionEndTime).getTime() <= Date.now() + 60 * 1000)) {
         throw new Error('拍卖截止时间至少应晚于当前时间 1 分钟');
       }
-      const syncedPublishStatus = derivePublishStatusFromAsset(
-        asset.status,
-        syncedRemainingQty,
-        publishRecord.publish_status,
-      );
+      const syncedPublishStatus = Number(asset.status) === 0
+        ? 0
+        : derivePublishStatusFromAsset(asset.status, syncedRemainingQty, publishRecord.publish_status);
       const reopenUnsoldAuction =
         pricingMode === 'auction' &&
         syncedPublishStatus === 1 &&

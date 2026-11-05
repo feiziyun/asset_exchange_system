@@ -1,6 +1,5 @@
 const db = require('../db/index');
 const chain = require('./chainClient');
-const certificates = require('./certificate');
 
 const pool = db.promise();
 const RIGHTS = [
@@ -83,11 +82,14 @@ exports.delegate = async (payload, userId) => {
   if (Number(payload.actor_user_id) !== Number(userId)) throw error('操作人身份不一致', 403);
 
   const [agents] = await pool.query(
-    `SELECT cr.user_id, u.identity FROM certificate_registry cr
-     JOIN users u ON u.id=cr.user_id WHERE cr.address=? LIMIT 1`, [agentAddress],
+    `SELECT cr.user_id,cr.certificate_name,u.identity FROM certificate_registry cr
+     JOIN users u ON u.id=cr.user_id
+     WHERE cr.address=? AND cr.user_id IS NOT NULL ORDER BY cr.id DESC LIMIT 1`, [agentAddress],
   );
   const agentId = Number(agents[0]?.user_id || 0);
   if (!agentId) throw error('托管码未绑定系统用户，请填写本站证书地址');
+  const agentCertificateName = String(agents[0].certificate_name || '').trim();
+  if (!agentCertificateName) throw error('代理人证书信息不完整');
   if (agentId === Number(userId)) throw error('不能把资产代理给自己');
   if (!(/seller/i.test(String(agents[0].identity || '')) || String(agents[0].identity || '').includes('卖'))) {
     throw error('代理人必须是卖家用户');
@@ -149,11 +151,6 @@ exports.delegate = async (payload, userId) => {
     }
     await chain.setApproval({ owner: reserved.ownerAddress, to: agentAddress,
       tokenId: assetHash, isApproval: 'true' });
-    const cert = await certificates.getDefaultTradeCertInfo(agentId);
-    if (!cert?.certificate_name || String(cert.address || '').trim() !== agentAddress) {
-      throw error('代理人的默认交易证书地址与托管码不一致');
-    }
-
     const finish = await pool.getConnection();
     try {
       await finish.beginTransaction();
@@ -162,7 +159,7 @@ exports.delegate = async (payload, userId) => {
          (asset_id,publisher_id,delegation_id,seller_certificate_name,seller_address,
           publish_price,publish_qty,remaining_qty,sold_qty_total,publish_status,pricing_mode)
          VALUES (?,?,?,?,?,?,1,1,0,1,'fixed')`,
-        [reserved.asset.id,agentId,reserved.id,cert.certificate_name,agentAddress,reserved.publish.publish_price],
+        [reserved.asset.id,agentId,reserved.id,agentCertificateName,agentAddress,reserved.publish.publish_price],
       );
       await finish.query("UPDATE asset_delegations SET status='ACTIVE' WHERE id=? AND status='PENDING'", [reserved.id]);
       await finish.query('UPDATE digital_asset SET proxy_agent_address=? WHERE id=?', [agentAddress,reserved.asset.id]);
