@@ -3,11 +3,10 @@
     <el-alert v-if="loadError" :title="loadError" type="error" show-icon :closable="false" class="page-alert" />
     <el-alert v-if="!auditorTargetReady" title="审计入口数据库字段尚未创建，请先执行 back/sql/2026-11-11-auditor-entry.sql；用户列表仍可查看。" type="warning" show-icon :closable="false" class="page-alert" />
     <el-card class="users-panel">
-      <el-tabs v-model="selectedType" class="user-type-tabs" stretch @tab-change="selectType">
+      <el-tabs v-model="selectedType" class="user-type-tabs" @tab-change="selectType">
         <el-tab-pane v-for="type in userTypes" :key="type.value" :name="type.value" :label="`${type.label}（${type.count}）`" />
       </el-tabs>
       <div class="panel-heading">
-        <h3>{{ selectedTypeLabel }}</h3>
         <el-button type="primary" @click="openCreateDialog">新增用户</el-button>
       </div>
 
@@ -17,8 +16,8 @@
         <el-table-column label="身份" width="120">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
-        <el-table-column label="审计入口" min-width="160">
-          <template #default="{ row }">{{ row.identity === 'auditor' ? targetLabel(row.auditor_target) : '—' }}</template>
+        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" min-width="160">
+          <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
@@ -57,7 +56,7 @@
         <el-descriptions-item label="姓名">{{ currentDetail.name || '-' }}</el-descriptions-item>
         <el-descriptions-item label="身份">{{ identityLabel(currentDetail.identity) }}</el-descriptions-item>
         <el-descriptions-item label="部门">{{ currentDetail.department || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="审计入口">{{ targetLabel(currentDetail.auditor_target) }}</el-descriptions-item>
+        <el-descriptions-item v-if="currentDetail.identity === 'auditor'" label="审计入口">{{ targetLabel(currentDetail.auditor_target) }}</el-descriptions-item>
         <el-descriptions-item label="性别">
           {{ currentDetail.sex === 'M' ? '男' : currentDetail.sex === 'F' ? '女' : '-' }}
         </el-descriptions-item>
@@ -182,7 +181,6 @@ const userTypes = computed(() => [
   { value: 'regulator', label: '监管用户', count: Number(stats.value.regulator) },
   { value: 'auditor', label: '审计用户', count: Number(stats.value.auditor) },
 ])
-const selectedTypeLabel = computed(() => userTypes.value.find((type) => type.value === selectedType.value)?.label || '用户')
 const roleOptions = [
   { label: '管理员', value: 'admin' },
   { label: '卖家', value: 'seller' },
@@ -396,13 +394,30 @@ onMounted(() => {
 .user-management {
   .page-alert { margin-bottom: 16px; }
   .audit-node-hint { margin: -8px 0 14px; color: #667085; font-size: 13px; }
-  .user-type-tabs { margin-bottom: 12px; }
+  .user-type-tabs {
+    margin-bottom: 12px;
+    :deep(.el-tabs__nav) { float: none; }
+    :deep(.el-tabs__item) {
+      position: relative;
+      padding: 0 22px;
+      font-size: 17px;
+      font-weight: 500;
+    }
+    :deep(.el-tabs__item:first-child) { padding-left: 4px; }
+    :deep(.el-tabs__item + .el-tabs__item::before) {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      height: 16px;
+      border-left: 1px solid #d6deea;
+    }
+  }
   .panel-heading {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    h3 { margin: 0; color: #0f2744; }
+    justify-content: flex-end;
+    margin-bottom: 16px;
   }
 }
 </style>
