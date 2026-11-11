@@ -733,13 +733,14 @@ router.get('/get-transaction-history', async (_req, res) => {
     const [rows] = await pool.query(
       `
         SELECT
-          DATE(created_at) AS date,
+          DATE(t.created_at) AS date,
           COUNT(*) AS transaction_count,
-          AVG(CAST(price AS DECIMAL(18,2))) AS avg_price,
-          SUM(CAST(price AS DECIMAL(18,2))) AS sum_price
-        FROM transactions
-        WHERE created_at >= CURDATE() - INTERVAL 30 DAY
-        GROUP BY DATE(created_at)
+          AVG(ao.deal_price) AS avg_price,
+          SUM(ao.deal_price) AS sum_price
+        FROM transactions t
+        LEFT JOIN asset_order ao ON ao.order_no = t.order_no
+        WHERE t.created_at >= CURDATE() - INTERVAL 30 DAY
+        GROUP BY DATE(t.created_at)
         ORDER BY date ASC
       `
     );

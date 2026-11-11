@@ -75,6 +75,7 @@ app.use(
       '/api/get-transaction-history',
       '/api/industry-transaction-stats',
       /^\/api\/transaction-supervision(?:\/|$)/,
+      /^\/api\/regulator(?:\/|$)/,
       '/api/pam/entry-start',
       '/api/pam/node-ticket',
       '/api/pam/authorize',
@@ -145,9 +146,10 @@ app.use([
 app.use('/api/pam/entry-start', businessJwt);
 app.use('/api/pam/node-ticket', businessJwt);
 app.use('/api/pam', auditRouter);
+app.use('/api/regulator', businessJwt, require('./router/regulatorProxy'));
 app.use('/api', originalCompatRouter);
 app.use('/api', businessJwt, require('./router/delegation'));
-app.use('/api/transaction-supervision', businessJwt, transactionSupervisionRouter);
+app.use('/api/transaction-supervision', businessJwt, require('./router/regulatorProxy').forwardTransaction, transactionSupervisionRouter);
 app.use('/userInfo', businessJwt, userInfoRouter);
 app.use('/asset', businessJwt, assetRouter);
 // assetRouter owns the order list and delivery endpoints. Keep the

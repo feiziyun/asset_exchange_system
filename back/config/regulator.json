@@ -1,0 +1,7 @@
+{
+  "modelApiBaseUrl": "http://10.112.191.163:8000",
+  "serviceControlBaseUrl": "http://10.112.191.163:8001",
+  "catalogApiBaseUrl": "http://10.112.191.163:8008",
+  "chainBridgeBaseUrl": "http://10.112.191.163:8009",
+  "transactionSupervisionBaseUrl": ""
+}

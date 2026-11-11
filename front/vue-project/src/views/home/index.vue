@@ -82,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
+import axios from '@/http/index.js'
 import * as echarts from 'echarts'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import transactionIcon from '@/assets/img/transaction-icon.png'
@@ -102,7 +102,7 @@ interface TransactionHistoryItem {
   sum_price?: number
 }
 
-const MODEL_API_BASE = import.meta.env.VITE_MODEL_API_BASE || 'http://10.112.191.163:8000'
+const MODEL_API_BASE = '/api/regulator/model'
 const isRegulator = getRoleKey(parseTokenPayload()?.identity || '') === 'regulator'
 
 const loading = ref(false)

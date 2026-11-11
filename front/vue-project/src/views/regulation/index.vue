@@ -423,13 +423,13 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios'
+import axios from '@/http/index.js'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
-const MODEL_API_BASE = import.meta.env.VITE_MODEL_API_BASE || 'http://10.112.191.163:8000'
-const SERVICE_CONTROL_BASE = import.meta.env.VITE_SERVICE_CONTROL_BASE || MODEL_API_BASE.replace(/:8000$/, ':8001')
+const MODEL_API_BASE = '/api/regulator/model'
+const SERVICE_CONTROL_BASE = '/api/regulator/control'
 const REMOTE_AUDIT_URL = import.meta.env.VITE_REMOTE_AUDIT_URL || 'http://127.0.0.1:8081'
 const POLL_INTERVAL_MS = 5000
 const GET_TIMEOUT = 30000

@@ -377,7 +377,7 @@ import { getFirstAvailableTradeMode } from '@/utils/assetPermission'
 import { formatPrice } from '@/utils/price'
 import { formatDateTime } from '@/utils/dateTime'
 import { getRoleKey, parseTokenPayload } from '@/utils/auth'
-import axios from 'axios'
+import axios from '@/http/index.js'
 import defaultCover from '@/assets/logo.svg'
 
 interface AssetItem {
@@ -513,7 +513,7 @@ const crossSearchAssets = async () => {
     const seenTokens = new Set<string>()
     let pageToken = ''
     for (let page = 0; page < 20; page += 1) {
-      const response = await axios.get('/catalogapi/contract/datacatalog/list', {
+      const response = await axios.get('/api/regulator/catalogapi/contract/datacatalog/list', {
         params: { page_size: '50', ...(pageToken ? { page_token: pageToken } : {}) },
       })
       const result = response.data?.data?.result || {}
@@ -557,7 +557,7 @@ const submitBridge = async () => {
   }
   bridgeSubmitting.value = true
   try {
-    const response = await axios.post(`/chainbridge/pre/CB-${bridgeMode.value === 'in' ? 'In' : 'Out'}`, payload)
+    const response = await axios.post(`/api/regulator/chainbridge/pre/CB-${bridgeMode.value === 'in' ? 'In' : 'Out'}`, payload)
     bridgeLastResp.value = response.data
     const code = response.data?.code ?? response.data?.local?.code
     if (Number(code) !== 0) throw new Error(response.data?.message || response.data?.local?.message || '链服务返回失败')

@@ -46,9 +46,6 @@ export default defineConfig(({ mode }) => {
     proxyTimeout: 35 * 60 * 1000,
     timeout: 35 * 60 * 1000,
   }
-  const transactionSupervisionTarget = env.VITE_TRANSACTION_SUPERVISION_API_TARGET || ''
-  const catalogTarget = env.VITE_CATALOG_API_TARGET || 'http://10.112.191.163:8008'
-  const chainBridgeTarget = env.VITE_CHAIN_BRIDGE_TARGET || 'http://10.112.191.163:8009'
 
   return {
     plugins: [
@@ -71,23 +68,6 @@ export default defineConfig(({ mode }) => {
       cors: true,
       https: httpsOptions,
       proxy: {
-        '/catalogapi': {
-          target: catalogTarget,
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/catalogapi/, ''),
-        },
-        '/chainbridge': {
-          target: chainBridgeTarget,
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/chainbridge/, ''),
-        },
-        ...(transactionSupervisionTarget ? {
-          '/api/transaction-supervision': {
-            target: transactionSupervisionTarget,
-            changeOrigin: true,
-            secure: false,
-          },
-        } : {}),
         '/asset/certificate': certificateProxy,
         '/api': backendProxy,
         '/asset': backendProxy,

@@ -3,7 +3,7 @@
     <section class="transaction-page">
       <header class="page-header">
         <div>
-          <h2>交易监管</h2>
+          <h2>交易穿透监管</h2>
           <p>展示当前接入数据源中的链上交易及其监管状态。</p>
         </div>
         <el-button :loading="refreshing" @click="refreshAll()">刷新</el-button>
@@ -21,6 +21,7 @@
           <el-button size="small" @click="loadOverview()">重试统计</el-button>
         </template>
       </el-alert>
+      <el-alert v-if="overview.source_kind === 'business'" :title="overview.message" type="info" show-icon :closable="false" class="availability-alert" />
 
       <section class="overview-toolbar" aria-label="统计日期设置">
         <div>
@@ -197,7 +198,7 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="交易金额" width="138">
+          <el-table-column :label="overview.source_kind === 'business' ? '单份价格' : '交易金额'" width="138">
             <template #default="{ row }">{{ formatAmount(row) }}</template>
           </el-table-column>
           <el-table-column label="手续费" width="124">
@@ -284,7 +285,7 @@
               <el-descriptions-item label="From" :span="2">{{ displayValue(detail.from_address) }}</el-descriptions-item>
               <el-descriptions-item label="To" :span="2">{{ displayValue(detail.to_address) }}</el-descriptions-item>
               <el-descriptions-item label="原始金额">{{ displayValue(detail.value_raw) }}</el-descriptions-item>
-              <el-descriptions-item label="格式化金额">{{ formatAmount(detail) }}</el-descriptions-item>
+              <el-descriptions-item :label="detail.source_kind === 'business' ? '单份价格' : '格式化金额'">{{ formatAmount(detail) }}</el-descriptions-item>
               <el-descriptions-item v-if="hasValue(detail.fee) || hasValue(detail.fee_raw)" label="手续费">{{ formatFee(detail) }}</el-descriptions-item>
             </el-descriptions>
 
@@ -653,7 +654,7 @@ export default {
       return '—'
     },
     sourceKindText(value) {
-      return { chain: 'ChainMaker 链上数据' }[value] || this.displayValue(value)
+      return { chain: 'ChainMaker 链上数据', business: '本系统业务交易' }[value] || this.displayValue(value)
     },
     async copyText(value) {
       try {
