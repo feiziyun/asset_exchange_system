@@ -96,8 +96,8 @@
         <el-descriptions-item label="链上所有者地址">{{ currentAsset.owner_address || '—' }}</el-descriptions-item>
         <el-descriptions-item label="上链交易哈希">{{ currentAsset.chain_tx_hash || '—' }}</el-descriptions-item>
         <el-descriptions-item label="链上状态">{{ chainStatusText(currentAsset.chain_status) }}</el-descriptions-item>
-        <el-descriptions-item label="上链时间">{{ currentAsset.chain_time || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="同步时间">{{ currentAsset.last_sync_time || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="上链时间">{{ formatDateTime(currentAsset.chain_time) }}</el-descriptions-item>
+        <el-descriptions-item label="同步时间">{{ formatDateTime(currentAsset.last_sync_time) }}</el-descriptions-item>
         <el-descriptions-item label="失败原因">{{ currentAsset.fail_reason || '—' }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
@@ -110,6 +110,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { getAdminAssets, updateAssetStatus } from '@/api/admin'
 import { formatPrice } from '@/utils/price'
+import { formatDateTime } from '@/utils/dateTime'
 
 const detailVisible = ref(false)
 const currentAsset = ref(null)

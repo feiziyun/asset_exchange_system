@@ -58,14 +58,9 @@
         <el-table-column prop="asset_name" label="资产名称" min-width="200" />
         <el-table-column prop="buyer_account" label="买家账号" width="120" />
         <el-table-column prop="buy_qty" label="数量" width="80" />
-        <el-table-column prop="deal_price" label="单价" width="120">
+        <el-table-column prop="deal_price" label="价格" width="120">
           <template #default="{ row }">
             ¥{{ formatPrice(row.deal_price) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="总价" width="120">
-          <template #default="{ row }">
-            ¥{{ formatPrice(row.deal_price * row.buy_qty) }}
           </template>
         </el-table-column>
         <el-table-column prop="order_status" label="状态" width="100">
@@ -79,7 +74,9 @@
             <el-tag v-else type="info">已退款</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180" />
+        <el-table-column prop="created_at" label="创建时间" width="180">
+          <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
@@ -106,10 +103,7 @@
         <el-descriptions-item label="资产名称">{{ currentDetail.asset_name }}</el-descriptions-item>
         <el-descriptions-item label="买家账号">{{ currentDetail.buyer_account }}</el-descriptions-item>
         <el-descriptions-item label="购买数量">{{ currentDetail.buy_qty }}</el-descriptions-item>
-        <el-descriptions-item label="成交单价">¥{{ formatPrice(currentDetail.deal_price) }}</el-descriptions-item>
-        <el-descriptions-item label="订单总价">
-          ¥{{ formatPrice(currentDetail.deal_price * currentDetail.buy_qty) }}
-        </el-descriptions-item>
+        <el-descriptions-item label="价格">¥{{ formatPrice(currentDetail.deal_price) }}</el-descriptions-item>
         <el-descriptions-item label="订单状态">
           <el-tag v-if="currentDetail.order_status === 0" type="warning">待确认</el-tag>
           <el-tag v-else-if="currentDetail.order_status === 1" type="primary">待卖家交付</el-tag>
@@ -119,8 +113,8 @@
           <el-tag v-else-if="currentDetail.order_status === 5" type="danger">退款中</el-tag>
           <el-tag v-else type="info">已退款</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentDetail.created_at }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ currentDetail.updated_at }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDateTime(currentDetail.created_at) }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ formatDateTime(currentDetail.updated_at) }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
@@ -132,6 +126,7 @@ import { ElMessage } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { getAdminOrders } from '@/api/admin'
 import { formatPrice } from '@/utils/price'
+import { formatDateTime } from '@/utils/dateTime'
 
 const loading = ref(false)
 const loadError = ref('')

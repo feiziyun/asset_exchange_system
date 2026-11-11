@@ -66,7 +66,7 @@
         </el-table-column>
         <el-table-column prop="chain_time" label="上链时间" width="180">
           <template #default="{ row }">
-            {{ row.chain_time || '-' }}
+            {{ formatDateTime(row.chain_time) }}
           </template>
         </el-table-column>
         <el-table-column prop="retry_count" label="重试次数" width="100" />
@@ -102,8 +102,8 @@
           <el-tag v-else-if="currentDetail.chain_status === 0" type="warning">待上链</el-tag>
           <el-tag v-else type="danger">上链失败</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="上链时间">{{ currentDetail.chain_time || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="最后同步时间">{{ currentDetail.last_sync_time || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="上链时间">{{ formatDateTime(currentDetail.chain_time) }}</el-descriptions-item>
+        <el-descriptions-item label="最后同步时间">{{ formatDateTime(currentDetail.last_sync_time) }}</el-descriptions-item>
         <el-descriptions-item label="重试次数">{{ currentDetail.retry_count }}</el-descriptions-item>
         <el-descriptions-item label="失败原因" v-if="currentDetail.chain_status === 2">
           {{ currentDetail.fail_reason || '-' }}
@@ -118,6 +118,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { getChainInfo } from '@/api/admin'
+import { formatDateTime } from '@/utils/dateTime'
 
 const loading = ref(false)
 const chainInfoList = ref([])

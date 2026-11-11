@@ -110,7 +110,9 @@
             </el-select>
           </template>
         </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="180" />
+        <el-table-column prop="create_time" label="创建时间" width="180">
+          <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
@@ -163,8 +165,8 @@
           <el-tag v-if="currentDetail.status === 0" type="success">正常</el-tag>
           <el-tag v-else type="danger">冻结</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentDetail.create_time }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ currentDetail.update_time }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDateTime(currentDetail.create_time) }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ formatDateTime(currentDetail.update_time) }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
 
@@ -235,6 +237,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { createUser, getUserList, updateUserStatus, updateUserIdentity, getAuditNodes } from '@/api/admin'
 import AdminAuditNodes from '@/views/admin/auditNodes/index.vue'
+import { formatDateTime } from '@/utils/dateTime'
 
 const loading = ref(false)
 const loadError = ref('')
