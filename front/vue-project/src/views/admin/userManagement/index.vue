@@ -71,15 +71,12 @@
       <el-table :data="userList" style="width: 100%" v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="account" label="账号" width="150" />
-        <el-table-column prop="name" label="姓名" width="120" />
         <el-table-column prop="identity" label="身份" width="120">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
-        <el-table-column prop="department" label="部门" min-width="150" />
         <el-table-column label="审计入口" min-width="160">
           <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
         </el-table-column>
-        <el-table-column prop="email" label="邮箱" min-width="180" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag v-if="row.status === 0" type="success">正常</el-tag>
