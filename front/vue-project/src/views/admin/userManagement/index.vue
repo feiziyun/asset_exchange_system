@@ -2,53 +2,46 @@
   <div class="user-management">
     <el-alert v-if="loadError" :title="loadError" type="error" show-icon :closable="false" class="page-alert" />
     <el-alert v-if="!auditorTargetReady" title="审计入口数据库字段尚未创建，请先执行 back/sql/2026-11-11-auditor-entry.sql；用户列表仍可查看。" type="warning" show-icon :closable="false" class="page-alert" />
-    <nav class="type-nav" aria-label="用户类型">
-      <button
-        v-for="type in userTypes"
-        :key="type.value"
-        type="button"
-        class="type-card"
-        :class="{ active: selectedType === type.value }"
-        :aria-current="selectedType === type.value ? 'page' : undefined"
-        @click="selectType(type.value)"
-      >
-        <span>{{ type.label }}</span>
-        <strong>{{ type.count }}</strong>
-      </button>
-    </nav>
-
     <el-card class="users-panel">
+      <el-tabs v-model="selectedType" class="user-type-tabs" stretch @tab-change="selectType">
+        <el-tab-pane v-for="type in userTypes" :key="type.value" :name="type.value" :label="`${type.label}（${type.count}）`" />
+      </el-tabs>
       <div class="panel-heading">
         <h3>{{ selectedTypeLabel }}</h3>
         <el-button type="primary" @click="openCreateDialog">新增用户</el-button>
       </div>
 
-      <div v-loading="loading" class="user-grid">
-        <article v-for="user in userList" :key="user.id" class="user-card">
-          <div class="user-card-head">
-            <strong class="account">{{ user.account }}</strong>
-            <span class="status" :class="user.status === 0 ? 'normal' : 'frozen'">{{ user.status === 0 ? '正常' : '冻结' }}</span>
-          </div>
-          <dl class="user-info">
-            <div><dt>ID</dt><dd>{{ user.id }}</dd></div>
-            <div><dt>身份</dt><dd>{{ identityLabel(user.identity) }}</dd></div>
-            <div v-if="user.identity === 'auditor'"><dt>审计入口</dt><dd>{{ targetLabel(user.auditor_target) }}</dd></div>
-            <div><dt>创建时间</dt><dd>{{ formatDateTime(user.create_time) }}</dd></div>
-          </dl>
-          <div class="card-actions">
-            <el-button link type="primary" size="small" @click="handleViewDetail(user)">查看详情</el-button>
-            <el-button link type="primary" size="small" :disabled="user.identity === 'admin' || updatingRoleId === user.id" @click="openRoleEditor(user)">更改用户身份</el-button>
-            <el-button link :type="user.status === 0 ? 'danger' : 'success'" size="small" :disabled="user.identity === 'admin'" @click="handleToggleStatus(user)">{{ user.status === 0 ? '冻结' : '解冻' }}</el-button>
-          </div>
-        </article>
-        <el-empty v-if="!loading && userList.length === 0" description="暂无用户" class="empty-state" />
-      </div>
+      <el-table :data="userList" style="width: 100%" v-loading="loading" empty-text="暂无用户">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="account" label="账号" min-width="150" />
+        <el-table-column label="身份" width="120">
+          <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
+        </el-table-column>
+        <el-table-column label="审计入口" min-width="160">
+          <template #default="{ row }">{{ row.identity === 'auditor' ? targetLabel(row.auditor_target) : '—' }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '正常' : '冻结' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="180">
+          <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="260" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="handleViewDetail(row)">查看详情</el-button>
+            <el-button link type="primary" size="small" :disabled="row.identity === 'admin' || updatingRoleId === row.id" @click="openRoleEditor(row)">更改用户身份</el-button>
+            <el-button link :type="row.status === 0 ? 'danger' : 'success'" size="small" :disabled="row.identity === 'admin'" @click="handleToggleStatus(row)">{{ row.status === 0 ? '冻结' : '解冻' }}</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :total="total"
-        :page-sizes="[12, 24, 48]"
+        :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handlePageSizeChange"
         @current-change="fetchUserList"
@@ -159,7 +152,7 @@ const auditorTargetReady = ref(true)
 const userList = ref([])
 const selectedType = ref('ordinary')
 const currentPage = ref(1)
-const pageSize = ref(12)
+const pageSize = ref(20)
 const total = ref(0)
 const detailDialogVisible = ref(false)
 const currentDetail = ref(null)
@@ -316,9 +309,7 @@ const fetchUserList = async () => {
   }
 }
 
-const selectType = (type) => {
-  if (selectedType.value === type) return
-  selectedType.value = type
+const selectType = () => {
   currentPage.value = 1
   fetchUserList()
 }
@@ -405,71 +396,13 @@ onMounted(() => {
 .user-management {
   .page-alert { margin-bottom: 16px; }
   .audit-node-hint { margin: -8px 0 14px; color: #667085; font-size: 13px; }
-  .type-nav {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-  .type-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 20px;
-    border: 1px solid #e1e8f0;
-    border-radius: 10px;
-    background: #fff;
-    color: #334155;
-    cursor: pointer;
-    font: inherit;
-    text-align: left;
-    box-shadow: 0 2px 8px rgba(15, 39, 68, 0.05);
-    strong { font-size: 24px; color: #0f2744; }
-    &.active { border-color: #409eff; background: #edf5ff; color: #1660a5; }
-    &:focus-visible { outline: 2px solid #409eff; outline-offset: 2px; }
-  }
+  .user-type-tabs { margin-bottom: 12px; }
   .panel-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 20px;
     h3 { margin: 0; color: #0f2744; }
-  }
-  .user-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-    min-height: 160px;
-  }
-  .user-card {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    padding: 18px;
-    border: 1px solid #e5eaf0;
-    border-radius: 10px;
-    background: #fff;
-    box-shadow: 0 2px 8px rgba(15, 39, 68, 0.04);
-  }
-  .user-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .account { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #0f2744; font-size: 17px; }
-  .status { flex: none; font-size: 12px; &.normal { color: #219653; } &.frozen { color: #d64545; } }
-  .user-info {
-    margin: 16px 0;
-    display: grid;
-    gap: 9px;
-    div { display: flex; justify-content: space-between; gap: 8px; min-width: 0; }
-    dt { color: #667085; flex: none; }
-    dd { margin: 0; color: #334155; text-align: right; overflow-wrap: anywhere; }
-  }
-  .card-actions { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid #eef2f6; .el-button { margin: 0; } }
-  .empty-state { grid-column: 1 / -1; }
-  @media (max-width: 1200px) {
-    .user-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 700px) {
-    .type-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .user-grid { grid-template-columns: 1fr; }
   }
 }
 </style>
