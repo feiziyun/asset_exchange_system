@@ -70,6 +70,11 @@ app.use(
       '/api/verifyEmail',
       '/api/resetPassword',
       '/api/get-tps',
+      '/api/get-today-transaction-stats',
+      '/api/get-total-transaction-stats',
+      '/api/get-transaction-history',
+      '/api/industry-transaction-stats',
+      /^\/api\/transaction-supervision(?:\/|$)/,
       '/api/pam/entry-start',
       '/api/pam/authorize',
       '/api/alipay/notify',
@@ -129,6 +134,12 @@ app.post('/api/alipay/notify', async (req, res) => {
   }
 });
 app.use('/api/get-tps', businessJwt);
+app.use([
+  '/api/get-today-transaction-stats',
+  '/api/get-total-transaction-stats',
+  '/api/get-transaction-history',
+  '/api/industry-transaction-stats',
+], businessJwt);
 app.use('/api/pam/entry-start', businessJwt);
 app.use('/api/pam', auditRouter);
 app.use('/api', originalCompatRouter);

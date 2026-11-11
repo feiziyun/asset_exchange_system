@@ -582,8 +582,8 @@ router.post('/update-user-user', async (req, res) => {
 });
 
 router.get('/get-tps', async (req, res) => {
-  if (req.auth?.identity !== 'admin') {
-    return res.status(403).send({ success: false, message: '仅管理员可获取交易 TPS' });
+  if (!['admin', 'regulator'].includes(String(req.auth?.identity || '').toLowerCase())) {
+    return res.status(403).send({ success: false, message: '仅管理员或监管方可获取交易 TPS' });
   }
   try {
     const result = await runTpsScript();

@@ -63,7 +63,7 @@
               :ellipsis="false"
             >
               <el-menu-item v-if="currentRoleKey === 'regulator'" index="/home" class="nav-item">
-                <el-icon><DataBoard /></el-icon>主页数据面板
+                <el-icon><DataBoard /></el-icon>数据面板
               </el-menu-item>
               <el-menu-item v-if="currentRoleKey === 'regulator'" index="/assetMarket" class="nav-item">
                 <el-icon><TrendCharts /></el-icon>交易市场
