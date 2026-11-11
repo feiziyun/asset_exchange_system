@@ -1,5 +1,6 @@
 <template>
   <div class="order-management">
+    <el-alert v-if="loadError" :title="loadError" type="error" show-icon :closable="false" class="page-alert" />
     <el-card class="stats-card">
       <div class="stats-row">
         <div class="stat-item">
@@ -133,6 +134,7 @@ import { getAdminOrders } from '@/api/admin'
 import { formatPrice } from '@/utils/price'
 
 const loading = ref(false)
+const loadError = ref('')
 const orderList = ref([])
 const searchQuery = ref('')
 const statusFilter = ref(null)
@@ -151,6 +153,7 @@ const stats = ref({
 
 const fetchOrderList = async () => {
   loading.value = true
+  loadError.value = ''
   try {
     const params = {
       page: currentPage.value,
@@ -173,9 +176,12 @@ const fetchOrderList = async () => {
       stats.value.pending = res.data.data.stats?.pending || 0
       stats.value.completed = res.data.data.stats?.completed || 0
       stats.value.cancelled = res.data.data.stats?.cancelled || 0
+    } else {
+      throw new Error(res.data.message || '获取订单列表失败')
     }
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || '获取订单列表失败')
+    loadError.value = error?.response?.data?.message || error?.message || '获取订单列表失败'
+    ElMessage.error(loadError.value)
   } finally {
     loading.value = false
   }
@@ -205,6 +211,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .order-management {
+  .page-alert { margin-bottom: 16px; }
   .stats-card {
     margin-bottom: 20px;
 

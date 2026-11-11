@@ -2,7 +2,6 @@
 const db = require('../db/index.js');
 const bcrypt = require('bcryptjs');
 const pamNodes = require('../service/pamNodes');
-const assetService = require('../service/asset');
 const pool = db.promise();
 
 exports.listAdminAssets = async (req, res) => {
@@ -40,15 +39,38 @@ exports.listAdminAssets = async (req, res) => {
 
 exports.listAdminOrders = async (req, res) => {
   try {
-    const result = await assetService.listOrders({
-      page: req.query.page, page_size: req.query.page_size,
-      keyword: req.query.keyword, order_status: req.query.status,
-    }, req.auth?.id, 'admin');
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number.parseInt(req.query.page_size, 10) || 20));
+    const where = [];
+    const args = [];
+    const keyword = String(req.query.keyword || '').trim();
+    if (keyword) {
+      where.push('(ao.order_no LIKE ? OR da.asset_name LIKE ?)');
+      args.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    if (req.query.status !== undefined && req.query.status !== '') {
+      const status = Number(req.query.status);
+      if (!Number.isInteger(status) || status < 0 || status > 6) {
+        return res.status(400).send({ status: 1, message: '订单状态无效' });
+      }
+      where.push('ao.order_status = ?');
+      args.push(status);
+    }
+    const from = `FROM asset_order ao
+      LEFT JOIN digital_asset da ON da.id = ao.asset_id
+      LEFT JOIN users bu ON bu.id = ao.buyer_id`;
+    const filter = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const [[count]] = await pool.query(`SELECT COUNT(*) AS total ${from} ${filter}`, args);
+    const [list] = await pool.query(`SELECT ao.id, ao.order_no, ao.asset_id, ao.buyer_id,
+      ao.buy_qty, ao.deal_price, ao.order_status, ao.created_at, ao.updated_at,
+      da.asset_name, bu.account AS buyer_account
+      ${from} ${filter} ORDER BY ao.created_at DESC, ao.id DESC LIMIT ? OFFSET ?`,
+    [...args, pageSize, (page - 1) * pageSize]);
     const [[stats]] = await pool.query(`SELECT COUNT(*) AS total,
       COALESCE(SUM(order_status = 0), 0) AS pending,
       COALESCE(SUM(order_status = 3), 0) AS completed,
       COALESCE(SUM(order_status IN (4, 6)), 0) AS cancelled FROM asset_order`);
-    return res.send({ status: 0, data: { list: result.list, total: Number(result.pagination.total), stats } });
+    return res.send({ status: 0, data: { list, total: Number(count.total), stats } });
   } catch (error) {
     console.error('管理员订单列表失败:', error);
     return res.status(500).send({ status: 1, message: error.message });
@@ -195,73 +217,50 @@ exports.createUser = async (req, res) => {
 };
 
 // 获取所有用户列表
-exports.getUserList = (req, res) => {
-  const { page = 1, pageSize = 20, keyword, identity, status } = req.query;
-  const offset = (page - 1) * pageSize;
-
-  let sql = 'SELECT id, account, name, identity, auditor_target, department, sex, email, status, create_time, update_time FROM users WHERE 1=1';
-  const params = [];
-
-  // 搜索条件
-  if (keyword) {
-    sql += ' AND (account LIKE ? OR name LIKE ?)';
-    params.push(`%${keyword}%`, `%${keyword}%`);
+exports.getUserList = async (req, res) => {
+  try {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number.parseInt(req.query.pageSize, 10) || 20));
+    const where = [];
+    const args = [];
+    const keyword = String(req.query.keyword || '').trim();
+    if (keyword) {
+      where.push('(account LIKE ? OR name LIKE ?)');
+      args.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    if (req.query.identity) {
+      where.push('identity = ?');
+      args.push(String(req.query.identity));
+    }
+    if (req.query.status !== undefined && req.query.status !== '') {
+      const status = Number(req.query.status);
+      if (status !== 0 && status !== 1) return res.status(400).send({ status: 1, message: '用户状态无效' });
+      where.push('status = ?');
+      args.push(status);
+    }
+    const [[column]] = await pool.query(`SELECT COUNT(*) AS total FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'auditor_target'`);
+    const auditorTargetReady = Number(column.total) > 0;
+    const filter = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const [[count]] = await pool.query(`SELECT COUNT(*) AS total FROM users ${filter}`, args);
+    const [list] = await pool.query(`SELECT id, account, name, identity,
+      ${auditorTargetReady ? 'auditor_target' : 'NULL AS auditor_target'},
+      department, sex, email, status, create_time, update_time
+      FROM users ${filter} ORDER BY create_time DESC, id DESC LIMIT ? OFFSET ?`,
+    [...args, pageSize, (page - 1) * pageSize]);
+    const [[stats]] = await pool.query(`SELECT COUNT(*) AS total,
+      COALESCE(SUM(identity = 'admin'), 0) AS admin,
+      COALESCE(SUM(identity = 'seller'), 0) AS seller,
+      COALESCE(SUM(identity = 'buyer'), 0) AS buyer,
+      COALESCE(SUM(identity = 'regulator'), 0) AS regulator,
+      COALESCE(SUM(identity = 'auditor'), 0) AS auditor FROM users`);
+    return res.send({ status: 0, data: {
+      list, total: Number(count.total), stats, auditorTargetReady,
+    } });
+  } catch (error) {
+    console.error('管理员用户列表失败:', error);
+    return res.status(500).send({ status: 1, message: error.message });
   }
-
-  // 身份筛选
-  if (identity) {
-    sql += ' AND identity = ?';
-    params.push(identity);
-  }
-
-  // 状态筛选
-  if (status !== undefined && status !== null) {
-    sql += ' AND status = ?';
-    params.push(status);
-  }
-
-  // 获取总数
-  const countSql = sql.replace('SELECT id, account, name, identity, auditor_target, department, sex, email, status, create_time, update_time FROM users', 'SELECT COUNT(*) as total FROM users');
-
-  db.query(countSql, params, (err, countResults) => {
-    if (err) return res.cc(err);
-
-    const total = countResults[0].total;
-
-    // 分页查询
-    sql += ' ORDER BY create_time DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(pageSize), parseInt(offset));
-
-    db.query(sql, params, (err, results) => {
-      if (err) return res.cc(err);
-
-      // 统计各身份用户数
-      const statsSql = `
-        SELECT
-          COUNT(*) as total,
-          SUM(CASE WHEN identity = 'admin' THEN 1 ELSE 0 END) as admin,
-          SUM(CASE WHEN identity = 'seller' THEN 1 ELSE 0 END) as seller,
-          SUM(CASE WHEN identity = 'buyer' THEN 1 ELSE 0 END) as buyer,
-          SUM(CASE WHEN identity = 'regulator' THEN 1 ELSE 0 END) as regulator,
-          SUM(CASE WHEN identity = 'auditor' THEN 1 ELSE 0 END) as auditor
-        FROM users
-      `;
-
-      db.query(statsSql, (err, statsResults) => {
-        if (err) return res.cc(err);
-
-        res.send({
-          status: 0,
-          message: '获取用户列表成功',
-          data: {
-            list: results,
-            total: total,
-            stats: statsResults[0]
-          }
-        });
-      });
-    });
-  });
 };
 
 exports.updateUserIdentity = async (req, res) => {

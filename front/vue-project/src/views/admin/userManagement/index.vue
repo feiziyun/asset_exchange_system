@@ -1,5 +1,7 @@
 <template>
   <div class="user-management">
+    <el-alert v-if="loadError" :title="loadError" type="error" show-icon :closable="false" class="page-alert" />
+    <el-alert v-if="!auditorTargetReady" title="审计入口数据库字段尚未创建，请先执行 back/sql/2026-11-11-auditor-entry.sql；用户列表仍可查看。" type="warning" show-icon :closable="false" class="page-alert" />
     <el-card class="stats-card">
       <div class="stats-row">
         <div class="stat-item">
@@ -236,6 +238,8 @@ import { createUser, getUserList, updateUserStatus, updateUserIdentity, getAudit
 import AdminAuditNodes from '@/views/admin/auditNodes/index.vue'
 
 const loading = ref(false)
+const loadError = ref('')
+const auditorTargetReady = ref(true)
 const userList = ref([])
 const searchQuery = ref('')
 const identityFilter = ref(null)
@@ -347,6 +351,7 @@ const handleCreateUser = async () => {
 
 const fetchUserList = async () => {
   loading.value = true
+  loadError.value = ''
   try {
     const params = {
       page: currentPage.value,
@@ -364,6 +369,7 @@ const fetchUserList = async () => {
 
     const res = await getUserList(params)
     if (res.data.status === 0) {
+      auditorTargetReady.value = res.data.data.auditorTargetReady !== false
       userList.value = res.data.data.list || []
       total.value = res.data.data.total || 0
 
@@ -376,9 +382,12 @@ const fetchUserList = async () => {
         stats.value.regulator = res.data.data.stats.regulator || 0
         stats.value.auditor = res.data.data.stats.auditor || 0
       }
+    } else {
+      throw new Error(res.data.message || '获取用户列表失败')
     }
   } catch (error) {
-    ElMessage.error('获取用户列表失败')
+    loadError.value = error?.response?.data?.message || error?.message || '获取用户列表失败'
+    ElMessage.error(loadError.value)
   } finally {
     loading.value = false
   }
@@ -454,6 +463,7 @@ const handleIdentityChange = async (row, identity) => {
 }
 
 const openAuditorRole = (row) => {
+  if (!auditorTargetReady.value) return ElMessage.warning('请先执行审计入口数据库迁移')
   roleEdit.value = { id: row.id, account: row.account, auditor_target: row.auditor_target || '' }
   roleDialogVisible.value = true
 }
@@ -485,6 +495,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .user-management {
+  .page-alert { margin-bottom: 16px; }
   .stats-card {
     margin-bottom: 20px;
 
