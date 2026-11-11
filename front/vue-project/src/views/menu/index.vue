@@ -124,7 +124,11 @@
         </div>
       </el-header>
 
-      <el-main style="padding: 0"> <router-view></router-view> </el-main>
+      <el-main style="padding: 0">
+        <div :class="{ 'regulator-content-frame': isRegulatorContentPage }">
+          <router-view />
+        </div>
+      </el-main>
 
       <el-footer class="app-footer" height="48px">
         <span>© 2025 链资产平台 · 区块链数字资产管理系统</span>
@@ -239,6 +243,11 @@ const activeMenuPath = computed(() => {
   if (route.path.startsWith('/audit-entry')) return '/audit-entry'
   return route.path
 })
+
+const isRegulatorContentPage = computed(() =>
+  currentRoleKey.value === 'regulator' &&
+  ['/home', '/regulation', '/transaction-supervision'].includes(route.path),
+)
 
 const syncAvatar = async () => {
   const userId = tokenPayload.id
@@ -443,6 +452,19 @@ $radius: 8px;
 .el-main {
   min-height: calc(100vh - 48px - 108px);
   background: #f5f7fb;
+}
+
+.regulator-content-frame {
+  width: 85%;
+  min-width: 0;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .regulator-content-frame {
+    width: 100%;
+  }
 }
 
 .app-footer {
