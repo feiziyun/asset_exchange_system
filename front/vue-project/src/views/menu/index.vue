@@ -42,8 +42,8 @@
                 </div>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="profile" :icon="User">设置账号</el-dropdown-item>
-                    <el-dropdown-item command="avatar" :icon="Picture">更改头像</el-dropdown-item>
+                    <el-dropdown-item v-if="currentRoleKey !== 'regulator'" command="profile" :icon="User">设置账号</el-dropdown-item>
+                    <el-dropdown-item v-if="currentRoleKey !== 'regulator'" command="avatar" :icon="Picture">更改头像</el-dropdown-item>
                     <el-dropdown-item divided command="logout" :icon="SwitchButton">
                       退出登录
                     </el-dropdown-item>
@@ -62,6 +62,12 @@
               class="nav-menu"
               :ellipsis="false"
             >
+              <el-menu-item v-if="currentRoleKey === 'regulator'" index="/home" class="nav-item">
+                <el-icon><DataBoard /></el-icon>主页数据面板
+              </el-menu-item>
+              <el-menu-item v-if="currentRoleKey === 'regulator'" index="/assetMarket" class="nav-item">
+                <el-icon><TrendCharts /></el-icon>交易市场
+              </el-menu-item>
               <el-menu-item
                 v-if="currentRoleKey === 'buyer' || currentRoleKey === 'seller'"
                 index="/assetMarket"
@@ -70,13 +76,10 @@
                 <el-icon><TrendCharts /></el-icon>交易市场
               </el-menu-item>
               <el-menu-item v-if="currentRoleKey === 'regulator'" index="/regulation" class="nav-item">
-                <el-icon><TrendCharts /></el-icon>监管工作台
+                <el-icon><TrendCharts /></el-icon>监管平台
               </el-menu-item>
               <el-menu-item v-if="currentRoleKey === 'regulator'" index="/transaction-supervision" class="nav-item">
-                <el-icon><TrendCharts /></el-icon>交易监管
-              </el-menu-item>
-              <el-menu-item v-if="currentRoleKey === 'regulator'" index="/services" class="nav-item">
-                <el-icon><Wallet /></el-icon>服务管理
+                <el-icon><TrendCharts /></el-icon>交易穿透监管
               </el-menu-item>
               <el-menu-item v-if="currentRoleKey === 'auditor'" index="/audit-entry" class="nav-item">
                 <el-icon><Wallet /></el-icon>审计入口
@@ -109,7 +112,7 @@
               >
                 <el-icon><Van /></el-icon>交付工作台
               </el-menu-item>
-              <el-menu-item index="/profile" class="nav-item">
+              <el-menu-item v-if="currentRoleKey !== 'regulator'" index="/profile" class="nav-item">
                 <el-icon><UserFilled /></el-icon>个人中心
               </el-menu-item>
 
@@ -153,6 +156,7 @@ import {
   UserFilled,
   Van,
   TrendCharts,
+  DataBoard,
   Wallet,
 } from '@element-plus/icons-vue'
 

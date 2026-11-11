@@ -52,7 +52,7 @@
             </div>
 
             <div class="system-box">
-              <span>监管交易</span>
+              <span>审计交易</span>
               <strong>{{ auditedTransactions }}</strong>
             </div>
           </div>
@@ -88,6 +88,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import transactionIcon from '@/assets/img/transaction-icon.png'
 import auditedIcon from '@/assets/img/audited-icon.png'
 import { getChainTPS, getHomeStats } from '@/api/asset'
+import { getTodayTransactionStats, getTotalTransactionStats, getTransactionHistory, getIndustryTransactionStats } from '@/api/regulatorDashboard'
+import { getRoleKey, parseTokenPayload } from '@/utils/auth'
 
 interface IndustryStatItem {
   industryName: string
@@ -100,7 +102,8 @@ interface TransactionHistoryItem {
   sum_price?: number
 }
 
-const MODEL_API_BASE = import.meta.env.VITE_MODEL_API_BASE || 'http://127.0.0.1:8000'
+const MODEL_API_BASE = import.meta.env.VITE_MODEL_API_BASE || 'http://10.112.191.163:8000'
+const isRegulator = getRoleKey(parseTokenPayload()?.identity || '') === 'regulator'
 
 const loading = ref(false)
 const tpsLoading = ref(false)
@@ -203,7 +206,9 @@ const fetchSupervisionOverview = async () => {
   detectedAccounts.value = Number(overview.detected_accounts || 0)
   const ratio = Number(overview.anomaly_ratio)
   anomalyAccountRatio.value = Number.isFinite(ratio) ? `${(ratio * 100).toFixed(2)}%` : '0.00%'
-  auditedTransactions.value = Number(
+  // 原型此卡片使用静态演示值；不要把检测账户或风险交易数误称为审计交易。
+  if (isRegulator) auditedTransactions.value = 1
+  else auditedTransactions.value = Number(
     overview.completed_tasks || overview.detected_accounts || overview.high_risk_transactions || 0,
   )
 }
@@ -235,11 +240,35 @@ const fetchLocalDashboard = async () => {
   await renderHistoryChart()
 }
 
+const fetchRegulatorDashboard = async () => {
+  const results = await Promise.allSettled([
+    getTodayTransactionStats(),
+    getTotalTransactionStats(),
+    getTransactionHistory(),
+    getIndustryTransactionStats(),
+  ])
+  if (results[0].status === 'fulfilled') {
+    todayTransactionVolume.value = Number(results[0].value.data?.today_transaction_count || 0)
+  }
+  if (results[1].status === 'fulfilled') {
+    totalTransactionVolume.value = Number(results[1].value.data?.total_transaction_count || 0)
+  }
+  if (results[2].status === 'fulfilled') {
+    const data = results[2].value.data
+    transactionHistory.value = Array.isArray(data) ? data : data?.transaction_history || []
+    await renderHistoryChart()
+  }
+  if (results[3].status === 'fulfilled') {
+    industryStats.value = results[3].value.data?.data || []
+  }
+  maxDailyTransactionVolume.value = 70000
+}
+
 const loadDashboard = async () => {
   loading.value = true
   try {
     await Promise.all([
-      fetchLocalDashboard(),
+      isRegulator ? fetchRegulatorDashboard() : fetchLocalDashboard(),
       fetchSupervisionOverview(),
     ])
   } catch (_error) {
@@ -254,6 +283,7 @@ const handleResize = () => {
 
 onMounted(async () => {
   await loadDashboard()
+  if (isRegulator) await fetchTPS()
   window.addEventListener('resize', handleResize)
 })
 

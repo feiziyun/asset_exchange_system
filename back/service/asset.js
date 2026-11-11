@@ -1902,6 +1902,7 @@ exports.listAssets = async (query) => {
     FROM digital_asset da
     LEFT JOIN asset_publish_record apr ON apr.asset_id = da.id
     LEFT JOIN asset_delegations d ON d.id=apr.delegation_id
+    LEFT JOIN users market_seller ON market_seller.id = apr.publisher_id
     LEFT JOIN asset_category ac ON da.category_id = ac.id
     LEFT JOIN asset_sub_category ascg ON da.sub_category_id = ascg.id
     LEFT JOIN region r ON da.region_id = r.id
@@ -1936,6 +1937,7 @@ exports.listAssets = async (query) => {
         apr.delegation_id,
         apr.id AS publish_id,
         CASE WHEN apr.delegation_id IS NULL THEN 'OWNER' ELSE 'AGENT' END AS seller_type,
+        market_seller.account AS seller_account,
         da.pc_type,
         COALESCE(apr.publish_price, da.price) AS price,
         da.price_unit,

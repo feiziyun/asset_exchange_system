@@ -155,7 +155,7 @@ router.beforeEach((to, _from, next) => {
     } else if (role === 'auditor') {
       next('/audit-entry')
     } else if (role === 'regulator') {
-      next('/regulation')
+      next('/home')
     } else {
       next('/home')
     }
@@ -175,16 +175,14 @@ router.beforeEach((to, _from, next) => {
 
     if (role === 'regulator') {
       const allowed =
+        to.path === '/home' ||
         to.path === '/assetMarket' ||
         to.path === '/regulation' ||
-        to.path === '/services' ||
         to.path === '/transaction-supervision' ||
-        to.path.startsWith('/assetDetail/') ||
-        to.path.startsWith('/profile') ||
-        to.path === '/audit-entry'
+        to.path.startsWith('/assetDetail/')
 
       if (!allowed) {
-        next('/regulation')
+        next('/home')
         return
       }
     }
@@ -206,17 +204,15 @@ router.beforeEach((to, _from, next) => {
       if (role === 'auditor') {
         next('/audit-entry')
       } else if (role === 'regulator') {
-        next('/regulation')
+        next('/home')
       } else {
         next('/assetMarket')
       }
       return
     }
 
-    if (to.path === '/home' && role !== 'admin') {
-      if (role === 'regulator') {
-        next('/regulation')
-      } else if (role === 'auditor') {
+    if (to.path === '/home' && role !== 'admin' && role !== 'regulator') {
+      if (role === 'auditor') {
         next('/audit-entry')
       } else {
         next('/assetMarket')

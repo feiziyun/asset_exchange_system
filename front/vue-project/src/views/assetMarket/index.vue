@@ -4,7 +4,7 @@
       <!-- 顶部搜索 -->
       <section class="search-section">
         <div class="search-row">
-          <div class="search-title"><span>自动驾驶数字资产</span></div>
+          <div class="search-title"><span>{{ isRegulator ? '交易市场' : '自动驾驶数字资产' }}</span></div>
           <el-input
             v-model="query.keyword"
             class="search-input"
@@ -17,12 +17,21 @@
             </template>
           </el-input>
           <el-button type="primary" class="search-btn" @click="onSearch">搜索</el-button>
+          <el-button v-if="isRegulator" plain @click="crossSearchVisible = true">跨链/跨平台检索</el-button>
         </div>
       </section>
 
       <!-- 中部筛选 -->
       <section class="filter-section">
-        <div class="filter-row">
+        <div v-if="isRegulator" class="filter-row">
+          <div class="filter-label">行业领域：</div>
+          <div class="filter-options">
+            <span v-for="item in industryOptions" :key="item || 'all'" class="option-chip"
+              :class="{ active: (query.classification_category_name || '') === item }"
+              @click="selectIndustry(item)">{{ item || '全部' }}</span>
+          </div>
+        </div>
+        <div v-else class="filter-row">
           <div class="filter-label">地区：</div>
           <div class="filter-options">
             <span
@@ -53,7 +62,7 @@
         </div>
 
         <div class="filter-row">
-          <div class="filter-label">数据分级：</div>
+          <div class="filter-label">{{ isRegulator ? '数据来源评级：' : '数据分级：' }}</div>
           <div class="filter-options">
             <span
               v-for="item in assetGradeOptions"
@@ -106,6 +115,11 @@
                   </div>
                 </div>
                 <p class="asset-brief">{{ item.brief || '暂无摘要' }}</p>
+                <div v-if="isRegulator" class="regulator-market-details">
+                  <span>提供方：{{ item.seller_account || '暂无提供方信息' }}</span>
+                  <span>产品类型：{{ item.classification_category_name || item.category_name || '未分类' }}</span>
+                  <span>剩余：{{ item.remaining_qty ?? 0 }} 份</span>
+                </div>
                 <div class="permission-row">
                   <span class="permission-label">可交易权益：</span>
                   <div class="permission-tags">
@@ -304,6 +318,46 @@
   </el-dialog>
 
   <AlipayPaymentDialog v-model="paymentVisible" :order-no="paymentOrderNo" @paid="onPaymentPaid" />
+
+  <el-dialog v-if="isRegulator" v-model="crossSearchVisible" title="跨平台检索与资产跨链调配" width="min(1080px, 96vw)">
+    <div class="cross-platform-grid">
+      <section class="cross-panel">
+        <h3>跨平台检索</h3>
+        <div class="cross-search-row">
+          <el-input v-model.trim="crossSearchTerm" placeholder="资产名称、编码、目录 ID 或机构" @keyup.enter="crossSearchAssets" />
+          <el-button type="primary" :loading="crossSearching" @click="crossSearchAssets">检索</el-button>
+        </div>
+        <el-table :data="crossSearchResults" height="370" highlight-current-row empty-text="暂无匹配资产" @current-change="selectCrossAsset">
+          <el-table-column prop="asset_name" label="资产名称" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="chain_name" label="所在平台（链）" min-width="145" show-overflow-tooltip />
+          <el-table-column prop="file_hash" label="唯一标识" min-width="155" show-overflow-tooltip />
+        </el-table>
+      </section>
+      <section class="cross-panel">
+        <h3>资产跨链调配</h3>
+        <el-radio-group v-model="bridgeMode" class="bridge-mode">
+          <el-radio-button value="in">转入</el-radio-button>
+          <el-radio-button value="out">转出</el-radio-button>
+        </el-radio-group>
+        <el-form label-position="top">
+          <el-form-item label="TokenId（唯一标识）"><el-input :model-value="bridgeTokenId" disabled /></el-form-item>
+          <el-form-item label="Amount"><el-input v-model.trim="bridgeAmount" placeholder="例如 1" /></el-form-item>
+          <template v-if="bridgeMode === 'in'">
+            <el-form-item label="To（ChainMaker 地址）"><el-input v-model.trim="bridgeToChainmaker" /></el-form-item>
+            <el-form-item label="CategoryName"><el-input v-model.trim="bridgeCategoryName" /></el-form-item>
+            <el-form-item label="Metadata.source"><el-input v-model.trim="bridgeMetaSource" /></el-form-item>
+            <el-form-item label="Metadata.desc"><el-input v-model.trim="bridgeMetaDesc" /></el-form-item>
+          </template>
+          <template v-else>
+            <el-form-item label="OwnerAddress"><el-input v-model.trim="bridgeOwnerAddress" /></el-form-item>
+            <el-form-item label="To（EVM 地址）"><el-input v-model.trim="bridgeToEvm" /></el-form-item>
+          </template>
+        </el-form>
+        <el-button type="primary" :loading="bridgeSubmitting" @click="submitBridge">{{ bridgeMode === 'in' ? '执行转入' : '执行转出' }}</el-button>
+        <pre v-if="bridgeLastResp" class="bridge-response">{{ JSON.stringify(bridgeLastResp, null, 2) }}</pre>
+      </section>
+    </div>
+  </el-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -323,6 +377,7 @@ import { getFirstAvailableTradeMode } from '@/utils/assetPermission'
 import { formatPrice } from '@/utils/price'
 import { formatDateTime } from '@/utils/dateTime'
 import { getRoleKey, parseTokenPayload } from '@/utils/auth'
+import axios from 'axios'
 import defaultCover from '@/assets/logo.svg'
 
 interface AssetItem {
@@ -336,6 +391,7 @@ interface AssetItem {
   region_name?: string
   classification_category_name?: string
   classification_data_level?: string
+  classification_category_name?: string
   brief?: string
   created_at?: string
   view_count?: number
@@ -355,6 +411,7 @@ interface AssetItem {
   auction_bid_count?: number
   auction_status?: string
   seller_type?: 'OWNER' | 'AGENT'
+  seller_account?: string
   publish_id?: number
 }
 
@@ -427,9 +484,91 @@ const buyForm = reactive({
   expiration_time: '',
 })
 const roleKey = getRoleKey(parseTokenPayload()?.identity || '')
+const isRegulator = roleKey === 'regulator'
 const canBuyAsset = roleKey === 'buyer' || roleKey === 'admin'
+const crossSearchVisible = ref(false)
+const crossSearchTerm = ref('')
+const crossSearchResults = ref<any[]>([])
+const crossSearching = ref(false)
+const bridgeMode = ref<'in' | 'out'>('in')
+const bridgeTokenId = ref('')
+const bridgeAmount = ref('1')
+const bridgeToChainmaker = ref('')
+const bridgeCategoryName = ref('WH')
+const bridgeMetaSource = ref('peer-burn')
+const bridgeMetaDesc = ref('mint after peer burn')
+const bridgeOwnerAddress = ref('')
+const bridgeToEvm = ref('')
+const bridgeSubmitting = ref(false)
+const bridgeLastResp = ref<any>(null)
+const selectCrossAsset = (row: any) => { bridgeTokenId.value = String(row?.file_hash || '') }
+const crossSearchAssets = async () => {
+  const keyword = crossSearchTerm.value.trim().toLowerCase()
+  bridgeTokenId.value = ''
+  bridgeLastResp.value = null
+  if (!keyword) { crossSearchResults.value = []; return }
+  crossSearching.value = true
+  try {
+    const catalogs: any[] = []
+    const seenTokens = new Set<string>()
+    let pageToken = ''
+    for (let page = 0; page < 20; page += 1) {
+      const response = await axios.get('/catalogapi/contract/datacatalog/list', {
+        params: { page_size: '50', ...(pageToken ? { page_token: pageToken } : {}) },
+      })
+      const result = response.data?.data?.result || {}
+      catalogs.push(...(Array.isArray(result.list) ? result.list : []))
+      const next = String(result.next_page_token || '')
+      if (!next || seenTokens.has(next)) break
+      seenTokens.add(next)
+      pageToken = next
+    }
+    const latest = new Map<string, any>()
+    for (const item of catalogs) {
+      const text = [item.name, item.code, item.id, item.remark, item.orgId, item.orgDID, item.platform_name, item.PlatformName]
+        .map((value) => String(value || '').toLowerCase()).join(' ')
+      if (!text.includes(keyword) || Number(item.status) === -1) continue
+      const id = String(item.id || item.code || item.name || '')
+      if (!id) continue
+      if (!latest.has(id) || Number(item.version || 0) > Number(latest.get(id).version || 0)) latest.set(id, item)
+    }
+    crossSearchResults.value = [...latest.values()].map((item) => ({
+      asset_name: item.name || '', file_hash: item.id || item.code || '',
+      chain_name: item.platform_name || item.PlatformName || item.chain_type || 'ChainMaker (chain1)',
+    }))
+  } catch (error: any) {
+    crossSearchResults.value = []
+    ElMessage.error(error?.response?.data?.message || '跨平台检索失败')
+  } finally { crossSearching.value = false }
+}
+const submitBridge = async () => {
+  if (!bridgeTokenId.value || !bridgeAmount.value || Number(bridgeAmount.value) <= 0) {
+    ElMessage.warning('请选择资产并填写有效的 Amount')
+    return
+  }
+  const payload = bridgeMode.value === 'in'
+    ? { amount: String(bridgeAmount.value), to: bridgeToChainmaker.value, tokenId: bridgeTokenId.value,
+        categoryName: bridgeCategoryName.value, metadata: { source: bridgeMetaSource.value, desc: bridgeMetaDesc.value } }
+    : { amount: String(bridgeAmount.value), to: bridgeToEvm.value, tokenId: bridgeTokenId.value,
+        ownerAddress: bridgeOwnerAddress.value }
+  if (!payload.to || (bridgeMode.value === 'out' && !bridgeOwnerAddress.value)) {
+    ElMessage.warning('请填写转入或转出地址')
+    return
+  }
+  bridgeSubmitting.value = true
+  try {
+    const response = await axios.post(`/chainbridge/pre/CB-${bridgeMode.value === 'in' ? 'In' : 'Out'}`, payload)
+    bridgeLastResp.value = response.data
+    const code = response.data?.code ?? response.data?.local?.code
+    if (Number(code) !== 0) throw new Error(response.data?.message || response.data?.local?.message || '链服务返回失败')
+    ElMessage.success(bridgeMode.value === 'in' ? '转入成功' : '转出成功')
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '跨链调配失败')
+  } finally { bridgeSubmitting.value = false }
+}
 const categories = ref<CategoryOption[]>([])
 const regions = ref<RegionOption[]>([])
+const industries = ref<string[]>([])
 const classificationDataLevels = ref<string[]>([])
 const resolveCover = (item: AssetItem) => {
   if (item.file_hash && /^[A-Za-z0-9._~-]{1,255}$/.test(item.file_hash)) {
@@ -449,6 +588,7 @@ const regionOptions = computed(() => [
   { id: undefined, name: '全部' },
   ...regions.value.map((item) => ({ id: item.id, name: item.region_name })),
 ])
+const industryOptions = computed(() => ['', ...industries.value])
 
 const categoryOptions = computed(() => [
   { id: undefined, name: '全部' },
@@ -468,7 +608,9 @@ const defaultClassificationDataLevels = [
 
 const assetGradeOptions = computed(() => [
   { value: undefined, name: '全部' },
-  ...(classificationDataLevels.value.length ? classificationDataLevels.value : defaultClassificationDataLevels).map((item) => ({
+  ...(isRegulator
+    ? ['一般数据', '重要数据', '核心数据']
+    : (classificationDataLevels.value.length ? classificationDataLevels.value : defaultClassificationDataLevels)).map((item) => ({
     value: item,
     name: item,
   })),
@@ -529,6 +671,7 @@ const query = reactive<QueryParams>({
   category_id: undefined,
   region_id: undefined,
   classification_data_level: undefined,
+  classification_category_name: undefined,
 })
 
 const pagination = reactive({
@@ -555,11 +698,18 @@ const selectAssetGrade = (value?: string) => {
   fetchList()
 }
 
+const selectIndustry = (value?: string) => {
+  query.classification_category_name = value || undefined
+  query.page = 1
+  fetchList()
+}
+
 const fetchMeta = async () => {
   const res = await getAssetMeta()
   const data = res.data?.data || {}
   categories.value = mergePresetCategories(data.categories || [])
   regions.value = data.regions || []
+  industries.value = Array.isArray(data.classification_categories) ? data.classification_categories : []
   classificationDataLevels.value = Array.isArray(data.classification_data_levels)
     ? data.classification_data_levels.filter(Boolean)
     : []
@@ -608,6 +758,7 @@ const onReset = () => {
   query.category_id = undefined
   query.region_id = undefined
   query.classification_data_level = undefined
+  query.classification_category_name = undefined
   fetchList()
 }
 
@@ -1086,7 +1237,61 @@ onMounted(async () => {
   justify-content: flex-end;
 }
 
+.regulator-market-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 6px 0;
+  color: #51617f;
+  font-size: 12px;
+}
+
+.cross-platform-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.cross-panel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e5eaf3;
+  border-radius: 10px;
+  background: #f9fbff;
+
+  h3 {
+    margin: 0 0 14px;
+    color: #243d85;
+    font-size: 16px;
+  }
+}
+
+.cross-search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.bridge-mode {
+  margin-bottom: 14px;
+}
+
+.bridge-response {
+  max-height: 160px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 6px;
+  background: #edf2fa;
+  color: #304264;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 900px) {
+  .cross-platform-grid {
+    grid-template-columns: 1fr;
+  }
   .asset-content {
     grid-template-columns: 1fr;
   }
