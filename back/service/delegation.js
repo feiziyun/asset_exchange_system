@@ -78,7 +78,8 @@ exports.delegate = async (payload, userId) => {
   const assetHash = String(payload.asset_id || '').trim();
   const agentAddress = String(payload.agent_address || '').trim();
   if (!assetHash || !agentAddress) throw error('缺少 asset_id 或 agent_address');
-  if (Number(payload.quantity) !== 1) throw error('不可分割资产的托管数量必须为 1');
+  const quantity = Number(payload.quantity);
+  if (!Number.isSafeInteger(quantity) || quantity < 1) throw error('托管份数必须为正整数');
   if (Number(payload.actor_user_id) !== Number(userId)) throw error('操作人身份不一致', 403);
 
   const [agents] = await pool.query(
@@ -107,13 +108,14 @@ exports.delegate = async (payload, userId) => {
     const asset = assets[0];
     if (!asset) throw error('资产不存在', 404);
     if (Number(asset.user_id) !== Number(userId)) throw error('只有资产所有者可以发起代理托管', 403);
-    if (String(asset.token_id || asset.file_hash) !== assetHash) throw error('资产链上标识与文件哈希不一致');
+    if (Number(asset.is_divisible) === 0 && quantity !== 1) throw error('旧版不可分割资产只能托管 1 份');
+    if (Number(asset.is_divisible) === 0 && String(asset.token_id || asset.file_hash) !== assetHash) throw error('资产链上标识与文件哈希不一致');
     const rights = parseRights(payload.allowed_rights, asset);
     const [publishes] = await conn.query(
       `SELECT * FROM asset_publish_record
        WHERE asset_id=? AND publisher_id=? AND delegation_id IS NULL
-         AND publish_status=1 AND pricing_mode='fixed' AND remaining_qty=1
-       LIMIT 1 FOR UPDATE`, [asset.id, userId],
+         AND publish_status=1 AND pricing_mode='fixed' AND remaining_qty>=?
+       LIMIT 1 FOR UPDATE`, [asset.id, userId, quantity],
     );
     const publish = publishes[0];
     if (!publish) throw error('只有开放交易的固定价格资产可以代理托管');
@@ -128,15 +130,16 @@ exports.delegate = async (payload, userId) => {
       `INSERT INTO asset_delegations
        (asset_id,owner_id,owner_address,agent_user_id,agent_address,
         quantity_total,quantity_remaining,allowed_rights,price,status)
-       VALUES (?,?,?,?,?,1,1,?,?,'PENDING')`,
-      [asset.id,userId,ownerAddress,agentId,agentAddress,rights,publish.publish_price],
+       VALUES (?,?,?,?,?,?,?,?,?,'PENDING')`,
+      [asset.id,userId,ownerAddress,agentId,agentAddress,quantity,quantity,rights,publish.publish_price],
     );
     const [reservedStock] = await conn.query(
-      `UPDATE asset_publish_record SET remaining_qty=0,publish_status=2
-       WHERE id=? AND remaining_qty=1`, [publish.id],
+      `UPDATE asset_publish_record SET publish_status=IF(remaining_qty=?,2,1),
+       remaining_qty=remaining_qty-?
+       WHERE id=? AND remaining_qty>=?`, [quantity,quantity,publish.id,quantity],
     );
     if (!reservedStock.affectedRows) throw error('可售数量不足，无法预扣代理库存', 409);
-    reserved = { id: result.insertId, asset, publish, rights, ownerAddress, agentId, agentAddress };
+    reserved = { id: result.insertId, asset, publish, rights, ownerAddress, agentId, agentAddress, quantity };
     await conn.commit();
   } catch (cause) {
     await conn.rollback();
@@ -145,12 +148,16 @@ exports.delegate = async (payload, userId) => {
 
   try {
     await configureOwner(userId, reserved.ownerAddress);
-    const current = await chain.ownerOf(assetHash);
-    if (String(current?.result || current?.owner || '').trim() !== reserved.ownerAddress) {
-      throw error('链上所有者不是当前卖家，无法代理托管', 409);
+    if (Number(reserved.asset.is_divisible) === 1) {
+      await chain.enApprove({ to: agentAddress, amount: String(quantity) });
+    } else {
+      const current = await chain.ownerOf(assetHash);
+      if (String(current?.result || current?.owner || '').trim() !== reserved.ownerAddress) {
+        throw error('链上所有者不是当前卖家，无法代理托管', 409);
+      }
+      await chain.setApproval({ owner: reserved.ownerAddress, to: agentAddress,
+        tokenId: assetHash, isApproval: 'true' });
     }
-    await chain.setApproval({ owner: reserved.ownerAddress, to: agentAddress,
-      tokenId: assetHash, isApproval: 'true' });
     const finish = await pool.getConnection();
     try {
       await finish.beginTransaction();
@@ -158,8 +165,8 @@ exports.delegate = async (payload, userId) => {
         `INSERT INTO asset_publish_record
          (asset_id,publisher_id,delegation_id,seller_certificate_name,seller_address,
           publish_price,publish_qty,remaining_qty,sold_qty_total,publish_status,pricing_mode)
-         VALUES (?,?,?,?,?,?,1,1,0,1,'fixed')`,
-        [reserved.asset.id,agentId,reserved.id,agentCertificateName,agentAddress,reserved.publish.publish_price],
+         VALUES (?,?,?,?,?,?,?,?,0,1,'fixed')`,
+        [reserved.asset.id,agentId,reserved.id,agentCertificateName,agentAddress,reserved.publish.publish_price,quantity,quantity],
       );
       await finish.query("UPDATE asset_delegations SET status='ACTIVE' WHERE id=? AND status='PENDING'", [reserved.id]);
       await finish.query('UPDATE digital_asset SET proxy_agent_address=? WHERE id=?', [agentAddress,reserved.asset.id]);
@@ -168,17 +175,20 @@ exports.delegate = async (payload, userId) => {
     finally { finish.release(); }
     return { id: reserved.id, asset_id: assetHash, owner_id: userId,
       owner_address: reserved.ownerAddress, agent_user_id: agentId, agent_address: agentAddress,
-      quantity_total: 1, quantity_remaining: 1, allowed_rights: reserved.rights,
+      quantity_total: quantity, quantity_remaining: quantity, allowed_rights: reserved.rights,
       price: reserved.publish.publish_price, status: 'ACTIVE' };
   } catch (cause) {
     // 如果业务写入失败，尽力撤销链上授权，再返还上架库存。
-    try { await chain.setApproval({ owner: reserved.ownerAddress, to: agentAddress,
-      tokenId: assetHash, isApproval: 'false' }); } catch (_ignored) {}
+    try {
+      if (Number(reserved.asset.is_divisible) === 1) await chain.enApprove({ to: agentAddress, amount: '0' });
+      else await chain.setApproval({ owner: reserved.ownerAddress, to: agentAddress,
+        tokenId: assetHash, isApproval: 'false' });
+    } catch (_ignored) {}
     const undo = await pool.getConnection();
     try {
       await undo.beginTransaction();
       await undo.query("UPDATE asset_delegations SET status='REVOKED',quantity_remaining=0,revoked_at=NOW() WHERE id=? AND status='PENDING'", [reserved.id]);
-      await undo.query('UPDATE asset_publish_record SET remaining_qty=1,publish_status=1 WHERE id=?', [reserved.publish.id]);
+      await undo.query('UPDATE asset_publish_record SET remaining_qty=remaining_qty+?,publish_status=1 WHERE id=?', [quantity,reserved.publish.id]);
       await undo.commit();
     } catch (rollbackError) { await undo.rollback(); cause.message += `；库存回滚失败：${rollbackError.message}`; }
     finally { undo.release(); }
@@ -206,7 +216,7 @@ exports.revoke = async (payload, userId) => {
       [matched[0].id],
     );
     const [rows] = await conn.query(
-      `SELECT d.*, da.file_hash FROM asset_delegations d JOIN digital_asset da ON da.id=d.asset_id
+      `SELECT d.*, da.file_hash,da.is_divisible FROM asset_delegations d JOIN digital_asset da ON da.id=d.asset_id
        WHERE d.id=? LIMIT 1 FOR UPDATE`, [matched[0].id],
     );
     delegation = rows[0];
@@ -223,14 +233,14 @@ exports.revoke = async (payload, userId) => {
     const agentPublish = agentPublishes[0];
     if (!agentPublish) throw error('代理上架记录不存在', 409);
     const returned = Number(agentPublish.remaining_qty || 0);
-    if (returned > 1) throw error('代理库存数据异常', 409);
+    if (returned !== Number(delegation.quantity_remaining)) throw error('代理库存数据异常', 409);
     await conn.query("UPDATE asset_delegations SET status='REVOKED',quantity_remaining=0,revoked_at=NOW() WHERE id=?", [delegation.id]);
     await conn.query('UPDATE asset_publish_record SET remaining_qty=0,publish_status=0 WHERE id=?', [agentPublish.id]);
     if (returned) {
       const [ownerStock] = await conn.query(
-        `UPDATE asset_publish_record SET remaining_qty=1,publish_status=1
-         WHERE asset_id=? AND publisher_id=? AND delegation_id IS NULL AND remaining_qty=0`,
-        [delegation.asset_id,delegation.owner_id],
+        `UPDATE asset_publish_record SET remaining_qty=remaining_qty+?,publish_status=1
+         WHERE asset_id=? AND publisher_id=? AND delegation_id IS NULL`,
+        [returned,delegation.asset_id,delegation.owner_id],
       );
       if (!ownerStock.affectedRows) throw error('所有者库存状态异常，无法返还代理库存', 409);
     }
@@ -242,7 +252,8 @@ exports.revoke = async (payload, userId) => {
 
   try {
     await configureOwner(delegation.owner_id, delegation.owner_address);
-    await chain.setApproval({ owner: delegation.owner_address, to: delegation.agent_address,
+    if (Number(delegation.is_divisible) === 1) await chain.enApprove({ to: delegation.agent_address, amount: '0' });
+    else await chain.setApproval({ owner: delegation.owner_address, to: delegation.agent_address,
       tokenId: delegation.file_hash, isApproval: 'false' });
     return { alreadyRevoked: false, delegationId: delegation.id, returned: delegation.returned };
   } catch (cause) {

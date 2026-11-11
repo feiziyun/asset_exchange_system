@@ -193,7 +193,7 @@ exports.homeStats = async (_req, res) => {
 // 资产详情界面
 exports.getAssetDetail = async (req, res) => {
   try {
-    const result = await assetService.getAssetDetail(req.params.id);
+    const result = await assetService.getAssetDetail(req.params.id, req.query.publish_id);
     if (!result) return res.cc('资产不存在');
 
     return res.send({

@@ -221,6 +221,10 @@
                 />
               </el-form-item>
 
+              <el-form-item label="资产总份数" class="row-item trade-single-item">
+                <el-input-number v-model="form.total_qty" :min="1" :max="1000000" :precision="0" style="width: 220px" />
+              </el-form-item>
+
               <el-form-item label="交付方式" class="row-item trade-single-item">
                 <el-select v-model="form.pc_type" placeholder="请选择交付方式" style="width: 220px">
                   <el-option
@@ -430,7 +434,7 @@ const initForm = () => ({
   publish_on_register: false,
   total_qty: 1,
   available_qty: 1,
-  is_divisible: 0,
+  is_divisible: 1,
   can_sell_ownership: 0,
   can_sell_view_right: 0,
   can_sell_process_right: 0,
@@ -1122,6 +1126,10 @@ const submitForm = async () => {
     ElMessage.error('资产价格不能小于 0')
     return
   }
+  if (!Number.isSafeInteger(Number(form.total_qty)) || Number(form.total_qty) < 1) {
+    ElMessage.error('资产总份数必须为正整数')
+    return
+  }
   if (form.publish_on_register && Number(form.price) <= 0) {
     ElMessage.error('立即上架时请设置大于 0 的资产价格')
     return
@@ -1175,9 +1183,9 @@ const submitForm = async () => {
   payload.append('omniprint_fingerprint_bits', String(form.fingerprint_bits || ''))
   payload.append('omniprint_modality', form.omniprint_modality || '')
   payload.append('omniprint_source', 'file')
-  payload.append('total_qty', '1')
-  payload.append('available_qty', '1')
-  payload.append('is_divisible', '0')
+  payload.append('total_qty', String(form.total_qty))
+  payload.append('available_qty', String(form.total_qty))
+  payload.append('is_divisible', '1')
   payload.append('can_sell_ownership', String(form.isSellBody ? 1 : 0))
   payload.append('can_sell_view_right', String(form.isSellReadRight ? 1 : 0))
   payload.append('can_sell_process_right', String(form.isSellProcessRight ? 1 : 0))

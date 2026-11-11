@@ -88,11 +88,11 @@
                 :src="resolveCover(item)"
                 @error="onCoverError"
                 alt="asset"
-                @click="goDetail(item.id)"
+                @click="goDetail(item.id, item.publish_id)"
               />
               <div class="asset-main">
                 <div class="asset-title-row">
-                  <h3 class="asset-title" @click="goDetail(item.id)">{{ item.asset_name }}</h3>
+                  <h3 class="asset-title" @click="goDetail(item.id, item.publish_id)">{{ item.asset_name }}</h3>
                   <div class="asset-tags">
                     <el-tag v-if="item.seller_type === 'AGENT'" size="small" type="success">代理</el-tag>
                     <el-tag size="small" type="info">{{ item.category_name || '未分类' }}</el-tag>
@@ -182,7 +182,7 @@
                 >
                   立即购买
                 </el-button>
-                <el-button type="primary" link @click="goDetail(item.id)">查看详情</el-button>
+                <el-button type="primary" link @click="goDetail(item.id, item.publish_id)">查看详情</el-button>
               </div>
             </div>
           </el-card>
@@ -270,7 +270,7 @@
         />
       </el-form-item>
       <el-form-item label="购买数量">
-        <el-input-number v-model="buyForm.buy_qty" :min="1" :max="1" style="width: 100%" disabled />
+        <el-input-number v-model="buyForm.buy_qty" :min="1" :max="Number(selectedAsset?.remaining_qty || 1)" :precision="0" style="width: 100%" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -284,13 +284,16 @@
       <el-form-item label="资产">
         <el-input :model-value="selectedAuctionAsset?.asset_name || '-'" disabled />
       </el-form-item>
-      <el-form-item label="当前价格">
+      <el-form-item label="当前单价">
         <el-input :model-value="String(displayPrice(selectedAuctionAsset))" disabled />
+      </el-form-item>
+      <el-form-item label="竞拍份数">
+        <el-input :model-value="String(selectedAuctionAsset?.remaining_qty || 0)" disabled />
       </el-form-item>
       <el-form-item label="截止时间">
         <el-input :model-value="formatDateTime(selectedAuctionAsset?.auction_end_time)" disabled />
       </el-form-item>
-      <el-form-item label="我的出价">
+      <el-form-item label="我的单价">
         <el-input-number v-model="bidPrice" :min="minimumBid" :precision="0" :step="1" style="width: 100%" />
       </el-form-item>
     </el-form>
@@ -309,7 +312,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import {
-  createOrderByAsset,
+  createOrder,
   getAssetList,
   getAssetMeta,
   placeAuctionBid,
@@ -352,6 +355,7 @@ interface AssetItem {
   auction_bid_count?: number
   auction_status?: string
   seller_type?: 'OWNER' | 'AGENT'
+  publish_id?: number
 }
 
 interface QueryParams {
@@ -618,8 +622,8 @@ const onSizeChange = (size: number) => {
   fetchList()
 }
 
-const goDetail = (id: number) => {
-  router.push({ path: `/assetDetail/${id}`, query: { from: '/assetMarket' } })
+const goDetail = (id: number, publishId?: number) => {
+  router.push({ path: `/assetDetail/${id}`, query: { from: '/assetMarket', publish_id: publishId } })
 }
 
 const openBuyDialog = (item: AssetItem) => {
@@ -692,6 +696,11 @@ const submitBuy = async () => {
     ElMessage.error('缺少资产ID')
     return
   }
+  if (!Number.isSafeInteger(Number(buyForm.buy_qty)) || Number(buyForm.buy_qty) < 1 ||
+      Number(buyForm.buy_qty) > Number(selectedAsset.value?.remaining_qty || 0)) {
+    ElMessage.error('购买数量不能超过剩余份数')
+    return
+  }
 
   if (
     buyForm.trade_mode === 'ownership' &&
@@ -719,9 +728,9 @@ const submitBuy = async () => {
   buyLoading.value = true
   let createdOrderNo = ''
   try {
-    const orderRes = await createOrderByAsset({
-      asset_id: buyForm.asset_id,
-      buy_qty: 1,
+    const orderRes = await createOrder({
+      publish_id: selectedAsset.value?.publish_id,
+      buy_qty: buyForm.buy_qty,
       trade_mode: buyForm.trade_mode,
       expiration_time: showExpirationInput.value ? buyForm.expiration_time : null,
       processing_type:

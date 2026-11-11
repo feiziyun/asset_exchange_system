@@ -15,8 +15,6 @@ const buildLocalUrl = (port, path = '') => `http://${LOCAL_SERVICE_HOST}:${port}
 const buildOmniPrintUrl = (port) => `http://${OMNIPRINT_HOST}:${port}`;
 
 const services = {
-  // Set to true only when seller confirmation must proceed without a chain call.
-  skipChainOnSellerConfirm: false,
   digitalContractEnabled: process.env.DIGITAL_CONTRACT_ENABLED !== undefined
     ? process.env.DIGITAL_CONTRACT_ENABLED === '1' : digitalContractConfig.enabled === true,
   digitalContractBaseUrl: process.env.DIGITAL_CONTRACT_BASE_URL || digitalContractConfig.baseUrl || '',

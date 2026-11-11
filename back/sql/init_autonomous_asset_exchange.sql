@@ -154,9 +154,9 @@ CREATE TABLE `digital_asset` (
   `file_format` VARCHAR(50) DEFAULT NULL COMMENT '文件格式',
   `price` DECIMAL(18,2) NOT NULL DEFAULT 0.00 COMMENT '价格',
   `price_unit` VARCHAR(20) NOT NULL DEFAULT '人民币' COMMENT '价格单位',
-  `total_qty` INT NOT NULL DEFAULT 1 COMMENT '资产总数量，自动驾驶资产固定为1',
-  `available_qty` INT NOT NULL DEFAULT 1 COMMENT '未上架剩余库存，自动驾驶资产仅为0或1',
-  `is_divisible` TINYINT NOT NULL DEFAULT 0 COMMENT '自动驾驶资产统一不可分割，固定为0',
+  `total_qty` INT NOT NULL DEFAULT 1 COMMENT '登记铸造总份数',
+  `available_qty` INT NOT NULL DEFAULT 1 COMMENT '未上架剩余份数',
+  `is_divisible` TINYINT NOT NULL DEFAULT 0 COMMENT '0=旧版Mint单份资产，1=En-Mint多份资产',
   `pc_type` VARCHAR(32) NOT NULL DEFAULT 'HE' COMMENT '交付方式：HE/PRE/FL/MPC',
   `omniprint_fingerprint` TEXT DEFAULT NULL COMMENT 'OmniPrint 原始指纹，仅用于相似度比较',
   `omniprint_fingerprint_bits` INT DEFAULT NULL COMMENT 'OmniPrint 指纹位数',
@@ -344,6 +344,22 @@ CREATE TABLE `asset_order` (
   CONSTRAINT `fk_order_asset` FOREIGN KEY (`asset_id`) REFERENCES `digital_asset` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_order_buyer` FOREIGN KEY (`buyer_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
++CREATE TABLE IF NOT EXISTS `asset_chain_transfer_record` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `order_id` BIGINT NOT NULL COMMENT '对应订单',
+  `asset_id` BIGINT NOT NULL COMMENT '对应登记资产',
+  `chain_action` VARCHAR(32) NOT NULL COMMENT 'TransferFrom/En-Transfer/BuyPermission',
+  `quantity` INT NOT NULL COMMENT '订单购买份数；BuyPermission 链上接口不接收份数',
+  `from_address` VARCHAR(128) NOT NULL DEFAULT '',
+  `to_address` VARCHAR(128) NOT NULL DEFAULT '',
+  `chain_tx_hash` VARCHAR(128) NOT NULL DEFAULT '',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_chain_transfer_order` (`order_id`),
+  KEY `idx_chain_transfer_asset` (`asset_id`),
+  CONSTRAINT `fk_chain_transfer_order` FOREIGN KEY (`order_id`) REFERENCES `asset_order` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `fk_chain_transfer_asset` FOREIGN KEY (`asset_id`) REFERENCES `digital_asset` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单链上权益操作与登记资产份数对应记录';
 
 CREATE TABLE `wallet_ledger` (
   `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,

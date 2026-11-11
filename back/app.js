@@ -244,10 +244,6 @@ const HOST = process.env.HOST || '127.0.0.1';
 const server = app.listen(PORT, HOST, () => {
   console.log(`http://${HOST}:${PORT}`)
   console.log('[app] server started', { pid: process.pid, node: process.version });
-  console.log('[app] chain confirmation config', {
-    skipChainOnSellerConfirm: services.skipChainOnSellerConfirm,
-    source: 'config/services.js',
-  });
   // stopReconcileScheduler = startReconcileScheduler();
   stopPaymentTimeoutScheduler = startPaymentTimeoutScheduler();
 })

@@ -59,8 +59,8 @@
                         {{ item.brief || item.description || '暂无资产描述' }}
                       </div>
                     </td>
-                    <td>{{ item.is_proxy ? item.quantity_remaining : item.active_delegation ? 0 : (item.remaining_qty || item.available_qty || 0) }}</td>
-                    <td>不可分割</td>
+                    <td>{{ item.is_proxy ? item.quantity_remaining : Number(item.remaining_qty || 0) + Number(item.available_qty || 0) }}</td>
+                    <td>{{ Number(item.total_qty || 1) > 1 ? '多份资产' : '单份资产' }}</td>
                     <td>
                       <el-tag :type="item.active_delegation ? 'warning' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? 'info' : statusTag(item.status)">
                         {{ item.active_delegation ? '代理托管中' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? Number(item.available_qty) > 0 ? '待上架' : '已售罄' : statusText(item.status) }}
@@ -331,7 +331,7 @@
         </div>
         <div class="edit-grid-row">
           <el-form-item label="可用数量">
-            <el-input-number v-model="editForm.available_qty" :min="0" :max="1" style="width: 100%" />
+            <el-input-number v-model="editForm.available_qty" :min="0" :max="editForm.total_qty" :precision="0" style="width: 100%" />
           </el-form-item>
           <el-form-item label="价格单位">
             <el-input v-model="editForm.price_unit" />
@@ -367,7 +367,7 @@
           <div class="edit-valuation-actions">
             <el-button type="warning" plain @click="openValuationFromEdit">资产估值</el-button>
             <el-button
-              v-if="editAssetId && canPublish({ id: editAssetId, status: editForm.status, available_qty: editForm.available_qty, pricing_mode: editForm.pricing_mode, auction_status: editForm.auction_status } as any)"
+              v-if="editAssetId && canPublish({ id: editAssetId, status: editForm.status, available_qty: editForm.available_qty, remaining_qty: ownedList.find(item => item.id === editAssetId)?.remaining_qty, pricing_mode: editForm.pricing_mode, auction_status: editForm.auction_status } as any)"
               type="success"
               plain
               @click="openPublishFromEdit"
@@ -400,7 +400,7 @@
         />
       </el-form-item>
       <el-form-item label="上架数量">
-        <el-input-number v-model="publishForm.publish_qty" :min="1" style="width: 100%" />
+        <el-input-number v-model="publishForm.publish_qty" :min="1" :max="publishAvailableQty" :precision="0" style="width: 100%" />
       </el-form-item>
       <el-form-item label="交易模式">
         <el-radio-group v-model="publishForm.pricing_mode" @change="normalizePublishAuctionPrice">
@@ -466,7 +466,7 @@
         <el-input v-model.trim="proxyCustodyForm.target_address" placeholder="请输入目标地址" />
       </el-form-item>
       <el-form-item label="托管数量">
-        <el-input-number v-model="proxyCustodyForm.quantity" :min="1" :max="1" disabled style="width: 100%" />
+        <el-input-number v-model="proxyCustodyForm.quantity" :min="1" :max="Number(proxySelectedAsset?.remaining_qty || 1)" :precision="0" style="width: 100%" />
       </el-form-item>
       <el-form-item label="允许代理的权益">
         <div>
@@ -726,6 +726,7 @@ const publishForm = reactive({
   pricing_mode: 'fixed' as 'fixed' | 'auction',
   auction_end_time: '',
 })
+const publishAvailableQty = ref(1)
 const proxyCustodyVisible = ref(false)
 const proxySuccessVisible = ref(false)
 const proxyCustodyLoading = ref(false)
@@ -1038,7 +1039,8 @@ const canPublish = (row: AssetItem) => {
   }
   const status = Number(row.status)
   const availableQty = Number(row.available_qty || 0)
-  return !row.active_delegation && availableQty > 0 && (status !== 1 || Number(row.remaining_qty) === 0)
+  const listedQty = status === 1 && row.pricing_mode === 'fixed' ? Number(row.remaining_qty || 0) : 0
+  return !row.active_delegation && availableQty + listedQty > 0 && (status !== 1 || row.pricing_mode === 'fixed' || Number(row.remaining_qty) === 0)
 }
 
 const canDownShelf = (row: AssetItem) => {
@@ -1095,7 +1097,7 @@ const availableProxyRights = (row: AssetItem) => [
 const delegationUnavailableReason = (row: AssetItem) => {
   if (row.pricing_mode === 'auction') return '拍卖资产不能代理托管'
   if (Number(row.status) !== 1 || Number(row.publish_status) !== 1) return '请先将资产上架'
-  if (Number(row.remaining_qty) !== 1) return '当前没有可代理的上架库存'
+  if (Number(row.remaining_qty) < 1) return '当前没有可代理的上架库存'
   if (!availableProxyRights(row).length) return '请先在编辑中选择可出售权益'
   return ''
 }
@@ -1118,7 +1120,7 @@ const submitProxyCustody = async () => {
     const res = await delegateAsset({
       asset_id: proxySelectedAsset.value?.file_hash,
       agent_address: proxyCustodyForm.target_address,
-      quantity: 1,
+      quantity: proxyCustodyForm.quantity,
       allowed_rights: proxyCustodyForm.rights.join(','),
       actor_user_id: Number(tokenPayload.id),
     })
@@ -1173,11 +1175,15 @@ const openValuationFromEdit = () => {
 
 const openPublishFromEdit = () => {
   if (!editAssetId.value) return
+  const listedQty = editForm.pricing_mode === 'fixed' && Number(editForm.status) === 1
+    ? Number(ownedList.value.find(item => item.id === editAssetId.value)?.remaining_qty || 0)
+    : 0
+  publishAvailableQty.value = Math.max(1, Number(editForm.available_qty || 0) + listedQty)
   publishForm.asset_id = editAssetId.value
   publishForm.publish_price = editForm.pricing_mode === 'auction'
     ? normalizeAuctionStartPrice(editForm.price)
     : roundPrice(editForm.price)
-  publishForm.publish_qty = 1
+  publishForm.publish_qty = publishAvailableQty.value
   publishForm.pricing_mode = editForm.pricing_mode
   publishForm.auction_end_time = editForm.auction_end_time
   publishVisible.value = true
@@ -1240,10 +1246,11 @@ const openPublish = (row: AssetItem) => {
     return
   }
   publishForm.asset_id = row.id
+  publishAvailableQty.value = Math.max(1, Number(row.available_qty || 0) + (Number(row.status) === 1 ? Number(row.remaining_qty || 0) : 0))
   publishForm.publish_price = row.pricing_mode === 'auction'
     ? normalizeAuctionStartPrice(row.auction_start_price ?? row.price ?? 0)
     : roundPrice(row.price)
-  publishForm.publish_qty = 1
+  publishForm.publish_qty = publishAvailableQty.value
   publishForm.pricing_mode = row.pricing_mode === 'auction' ? 'auction' : 'fixed'
   publishForm.auction_end_time = row.auction_end_time || ''
   publishVisible.value = true

@@ -58,8 +58,8 @@ export const getChainTPS = () => {
 }
 
 // 资产详情
-export const getAssetDetail = (id) => {
-  return instance.get(`/asset/detail/${id}`)
+export const getAssetDetail = (id, publishId) => {
+  return instance.get(`/asset/detail/${id}`, { params: publishId ? { publish_id: publishId } : {} })
 }
 
 // 当前用户资产列表

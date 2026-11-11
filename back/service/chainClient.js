@@ -104,10 +104,13 @@ const postChain = async (path, payload, options = {}) => {
 const dynamicCertConfig = (clientName, orgName) =>
   postChain('/DynamicCertConfig', { clientName, orgName }, { requireCodeZero: false });
 const mint = (payload) => postChain('/Mint', payload, { baseUrl: MINT_CHAIN_BASE_URL });
+const enMint = (payload) => postChain('/En-Mint', payload, { baseUrl: MINT_CHAIN_BASE_URL });
 const ownerOf = (tokenId) => postChain('/OwnerOf', { tokenId });
 const setApproval = (payload) => postChain('/SetApproval', payload);
+const enApprove = (payload) => postChain('/En-Approve', payload);
 const buyPermission = (payload) => postChain('/BuyPermission', payload);
 const transferFrom = (payload) => postChain('/TransferFrom', payload);
+const enTransfer = (payload) => postChain('/En-Transfer', payload);
 const metadata = (tokenId) => postChain('/Metadata', { tokenId });
 const getTxInfo = (txid) => postChain('/gettxinfo', { txid });
 
@@ -116,10 +119,13 @@ module.exports = {
   MINT_CHAIN_BASE_URL,
   dynamicCertConfig,
   mint,
+  enMint,
   ownerOf,
   setApproval,
+  enApprove,
   buyPermission,
   transferFrom,
+  enTransfer,
   metadata,
   getTxInfo,
 };

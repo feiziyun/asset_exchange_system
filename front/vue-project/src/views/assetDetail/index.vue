@@ -256,12 +256,12 @@
               <el-input-number
                 v-model="buyForm.buy_qty"
                 :min="1"
-                :max="1"
+                :max="Number(detail.remaining_qty || 1)"
+                :precision="0"
                 style="width: 100%"
-                disabled
               />
               <span style="margin-left: 10px; color: #909399; font-size: 12px">
-                自动驾驶资产统一不可分割，仅支持购买 1 份
+                剩余可售 {{ detail.remaining_qty || 0 }} 份
               </span>
             </el-form-item>
           </el-form>
@@ -273,13 +273,16 @@
 
         <el-dialog v-model="bidVisible" title="参与竞拍" width="420px">
           <el-form label-width="90px">
-            <el-form-item label="当前价格">
+            <el-form-item label="当前单价">
               <el-input :model-value="String(displayPrice)" disabled />
+            </el-form-item>
+            <el-form-item label="竞拍份数">
+              <el-input :model-value="String(detail.remaining_qty || 0)" disabled />
             </el-form-item>
             <el-form-item label="截止时间">
               <el-input :model-value="formatDateTime(detail.auction_end_time)" disabled />
             </el-form-item>
-            <el-form-item label="我的出价">
+            <el-form-item label="我的单价">
               <el-input-number v-model="bidPrice" :min="minimumBid" :precision="0" :step="1" style="width: 100%" />
             </el-form-item>
           </el-form>
@@ -298,7 +301,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { createOrderByAsset, getAssetDetail, placeAuctionBid } from '@/api/asset'
+import { createOrder, getAssetDetail, placeAuctionBid } from '@/api/asset'
 import AlipayPaymentDialog from '@/components/AlipayPaymentDialog.vue'
 import { startOrderPayment } from '@/utils/orderPayment'
 import { getFirstAvailableTradeMode } from '@/utils/assetPermission'
@@ -309,6 +312,8 @@ import defaultCover from '@/assets/logo.svg'
 
 interface AssetDetail {
   id?: number
+  publish_id?: number
+  remaining_qty?: number
   asset_name?: string
   brief?: string
   description?: string
@@ -449,7 +454,7 @@ const fetchDetail = async () => {
   }
   loading.value = true
   try {
-    const res = await getAssetDetail(String(id))
+    const res = await getAssetDetail(String(id), route.query.publish_id)
     if (res.data.status === 0) {
       detail.value = res.data.data || {}
       if (detail.value.file_hash && /^[A-Za-z0-9._~-]{1,255}$/.test(detail.value.file_hash)) {
@@ -540,6 +545,11 @@ const submitBuy = async () => {
     ElMessage.error('不可分割资产仅支持购买 1 份')
     return
   }
+  if (!Number.isSafeInteger(Number(buyForm.value.buy_qty)) || Number(buyForm.value.buy_qty) < 1 ||
+      Number(buyForm.value.buy_qty) > Number(detail.value.remaining_qty || 0)) {
+    ElMessage.error('购买数量不能超过剩余份数')
+    return
+  }
 
   if (
     buyForm.value.trade_mode === 'ownership' &&
@@ -567,8 +577,8 @@ const submitBuy = async () => {
   buyLoading.value = true
   let createdOrderNo = ''
   try {
-    const orderRes = await createOrderByAsset({
-      asset_id: detail.value.id,
+    const orderRes = await createOrder({
+      publish_id: detail.value.publish_id,
       buy_qty: buyForm.value.buy_qty,
       trade_mode: buyForm.value.trade_mode,
       expiration_time: showExpirationInput.value ? buyForm.value.expiration_time : null,

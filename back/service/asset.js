@@ -381,7 +381,7 @@ const mintRegisterAssetOnChain = async (registerData, userId) => {
       // 原始前端把封面 File 放进 JSON，序列化后对应空对象；保持字段形状一致。
       picture: registerData.picture_file ? {} : (registerData.picture || ''),
       isProxied: Boolean(registerData.is_proxied),
-      number: 1,
+      number: Number(registerData.total_qty || 1),
       modelSelection: registerData.model_selection || registerData.modelSelection || '',
     };
     const allowedLocations = registerData.allowed_locations || registerData.allowedLocations;
@@ -389,14 +389,13 @@ const mintRegisterAssetOnChain = async (registerData, userId) => {
       metadata.allowedLocations = allowedLocations;
     }
 
-    const mintRes = await chainClient.mint({
-      to: ownerAddress,
-      tokenId,
-      categoryName,
-      metadata,
-    });
+    // 原单份资产仍使用 Mint；新登记的多份资产按原型用地址和份数 En-Mint。
+    const mintRes = Number(registerData.is_divisible) === 1
+      ? await chainClient.enMint({ from: ownerAddress, amount: String(registerData.total_qty) })
+      : await chainClient.mint({ to: ownerAddress, tokenId, categoryName, metadata });
 
     const txHash = mintRes.txid || mintRes?.data?.tx_id || mintRes.result || '';
+    // 可分割接口按地址与份数铸造；token_id 在业务库中沿用文件哈希用于关联资产。
     return {
       chain_status: 1,
       token_id: tokenId,
@@ -846,10 +845,10 @@ const normalizeRegisterPayload = (payload = {}) => {
     payload.picture_mime_type || payload.pictureMimeType || payload.picture_file?.mimetype || '';
   normalized.picture = payload.picture || '';
 
-  // 自动驾驶资产统一按不可分割处理
-  normalized.is_divisible = 0;
-  normalized.total_qty = 1;
-  normalized.available_qty = 1;
+  // 旧单份路径保留；新登记多份资产走原型的可分割资产链上接口。
+  normalized.is_divisible = Number(payload.is_divisible ?? 1);
+  normalized.total_qty = Number(payload.total_qty ?? 1);
+  normalized.available_qty = normalized.total_qty;
 
   return normalized;
 };
@@ -1159,6 +1158,11 @@ exports.createAsset = async (assetData, userId, identity = '') => {
 
   const registerData = normalizeRegisterPayload(assetData);
   registerData.status = 0;
+  if (![0, 1].includes(registerData.is_divisible) ||
+      !Number.isSafeInteger(registerData.total_qty) || registerData.total_qty < 1 ||
+      (registerData.is_divisible === 0 && registerData.total_qty !== 1)) {
+    throw new Error('资产总份数必须为正整数；旧版不可分割资产只能登记 1 份');
+  }
 
   const defaultRegisterCert = await certificateService.resolveDefaultRegisterCertInfo(userId);
   registerData.certificate_name = defaultRegisterCert.certificate_name;
@@ -1410,6 +1414,8 @@ exports.registerAssetOnChain = async (assetId, userId, assetData) => {
         da.file_hash,
         da.hash_algorithm,
         da.description,
+        da.is_divisible,
+        da.total_qty,
         da.category_key,
         da.sub_category_key,
         da.region_key,
@@ -1461,7 +1467,7 @@ exports.registerAssetOnChain = async (assetId, userId, assetData) => {
       customAlgorithm: registerData.customAlgorithm || registerData.custom_algorithm || '',
       picture: registerData.picture_file ? {} : (registerData.picture || ''),
       isProxied: Boolean(registerData.is_proxied),
-      number: 1,
+      number: Number(asset.total_qty || 1),
       modelSelection: registerData.model_selection || registerData.modelSelection || '',
     };
     const allowedLocations = registerData.allowed_locations || registerData.allowedLocations;
@@ -1469,12 +1475,9 @@ exports.registerAssetOnChain = async (assetId, userId, assetData) => {
       metadata.allowedLocations = allowedLocations;
     }
 
-    const mintRes = await chainClient.mint({
-      to: ownerAddress,
-      tokenId,
-      categoryName,
-      metadata,
-    });
+    const mintRes = Number(asset.is_divisible) === 1
+      ? await chainClient.enMint({ from: ownerAddress, amount: String(asset.total_qty) })
+      : await chainClient.mint({ to: ownerAddress, tokenId, categoryName, metadata });
 
     console.log('[asset][registerAssetOnChain] mint response', {
       assetId,
@@ -1578,6 +1581,8 @@ const settleAuctionByPublishId = async (publishId) => {
       await conn.commit();
       return settlements[0] || { status: auction.auction_status };
     }
+    const auctionQuantity = Number(auction.remaining_qty || 0);
+    if (!Number.isSafeInteger(auctionQuantity) || auctionQuantity < 1) throw new Error('拍卖库存数量异常');
     if (!auction.auction_end_time || new Date(auction.auction_end_time).getTime() > Date.now()) {
       throw new Error('拍卖尚未截止');
     }
@@ -1608,8 +1613,8 @@ const settleAuctionByPublishId = async (publishId) => {
         [publishId],
       );
       await conn.query(
-        'UPDATE digital_asset SET status = 0, available_qty = 1 WHERE id = ?',
-        [auction.asset_id],
+        'UPDATE digital_asset SET status = 0, available_qty = available_qty + ? WHERE id = ?',
+        [auctionQuantity, auction.asset_id],
       );
       await conn.query(
         `
@@ -1648,13 +1653,14 @@ const settleAuctionByPublishId = async (publishId) => {
             processing_type, pc_type, seller_certificate_name, seller_address,
             buyer_certificate_name, buyer_address, order_status
           )
-        VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
       `,
       [
         orderNo,
         auction.id,
         auction.asset_id,
         winner.bidder_user_id,
+        auctionQuantity,
         winner.bid_price,
         tradeMode,
         processingType,
@@ -1669,13 +1675,13 @@ const settleAuctionByPublishId = async (publishId) => {
       `
         UPDATE asset_publish_record
         SET auction_current_price = ?, auction_status = 'CLOSED', auction_settled_at = NOW(),
-            publish_status = 2, remaining_qty = 0, sold_qty_total = sold_qty_total + 1, updated_at = NOW()
+            publish_status = 2, remaining_qty = 0, sold_qty_total = sold_qty_total + ?, updated_at = NOW()
         WHERE id = ?
       `,
-      [winner.bid_price, publishId],
+      [winner.bid_price, auctionQuantity, publishId],
     );
     await conn.query(
-      'UPDATE digital_asset SET status = 2, available_qty = 0 WHERE id = ?',
+      'UPDATE digital_asset SET status = 2 WHERE id = ?',
       [auction.asset_id],
     );
     await conn.query(
@@ -1904,10 +1910,6 @@ exports.listAssets = async (query) => {
       AND apr.id IS NOT NULL
       AND apr.publish_status <> 0
       AND (apr.delegation_id IS NULL OR d.status IN ('ACTIVE','SOLD_OUT'))
-      AND NOT (apr.delegation_id IS NULL AND EXISTS (
-        SELECT 1 FROM asset_delegations active_d
-        WHERE active_d.asset_id=da.id AND active_d.status IN ('ACTIVE','SOLD_OUT')
-      ))
   `;
 
   const [countRows] = await pool.query(
@@ -1932,6 +1934,7 @@ exports.listAssets = async (query) => {
         CASE WHEN d.id IS NULL THEN da.can_sell_view_right ELSE IF(FIND_IN_SET('经营权',d.allowed_rights)>0,1,0) END AS can_sell_view_right,
         CASE WHEN d.id IS NULL THEN da.can_sell_process_right ELSE IF(FIND_IN_SET('使用权',d.allowed_rights)>0,1,0) END AS can_sell_process_right,
         apr.delegation_id,
+        apr.id AS publish_id,
         CASE WHEN apr.delegation_id IS NULL THEN 'OWNER' ELSE 'AGENT' END AS seller_type,
         da.pc_type,
         COALESCE(apr.publish_price, da.price) AS price,
@@ -2175,7 +2178,7 @@ exports.getHomeStats = async () => {
   };
 };
 
-exports.getAssetDetail = async (id) => {
+exports.getAssetDetail = async (id, publishId = null) => {
   try {
     await pool.query('UPDATE digital_asset SET view_count = IFNULL(view_count, 0) + 1 WHERE id = ?', [id]);
   } catch (error) {
@@ -2194,6 +2197,8 @@ exports.getAssetDetail = async (id) => {
         CASE WHEN d.id IS NULL THEN da.can_sell_view_right ELSE IF(FIND_IN_SET('经营权',d.allowed_rights)>0,1,0) END AS can_sell_view_right,
         CASE WHEN d.id IS NULL THEN da.can_sell_process_right ELSE IF(FIND_IN_SET('使用权',d.allowed_rights)>0,1,0) END AS can_sell_process_right,
         apr.delegation_id,
+        apr.id AS publish_id,
+        IFNULL(apr.remaining_qty, 0) AS remaining_qty,
         owner_user.account AS owner_account,
         seller_user.account AS seller_account,
         COALESCE(agent_user.account,
@@ -2228,12 +2233,13 @@ exports.getAssetDetail = async (id) => {
       LEFT JOIN users seller_user ON seller_user.id = apr.publisher_id
       LEFT JOIN certificate_registry agent_cert ON agent_cert.address = da.proxy_agent_address
       LEFT JOIN users agent_user ON agent_user.id = agent_cert.user_id
-      WHERE da.id = ?
-      ORDER BY (apr.delegation_id IS NOT NULL AND d.status IN ('ACTIVE','SOLD_OUT')) DESC,
+      WHERE da.id = ? AND (? = 0 OR apr.id = ?)
+      ORDER BY (apr.id = ?) DESC,
+               (apr.delegation_id IS NOT NULL AND d.status IN ('ACTIVE','SOLD_OUT')) DESC,
                (apr.publish_status = 1) DESC, apr.id DESC
       LIMIT 1
     `,
-    [id],
+    [id, Number(publishId || 0), Number(publishId || 0), Number(publishId || 0)],
   );
 
   if (!rows.length) return null;
@@ -2502,11 +2508,9 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
 
     const finalTotalQty = Number(updateData.total_qty ?? asset.total_qty);
     const finalAvailableQty = Number(updateData.available_qty ?? asset.available_qty);
-    if (finalTotalQty !== 1 || ![0, 1].includes(finalAvailableQty)) {
-      throw new Error('不可分割资产总数量固定为 1，可用数量只能为 0 或 1');
-    }
-    if (finalAvailableQty > finalTotalQty) {
-      throw new Error('available_qty 不能大于 total_qty');
+    if (finalTotalQty !== Number(asset.total_qty)) throw new Error('总份数已上链，编辑不能增发或销毁份数');
+    if (!Number.isSafeInteger(finalAvailableQty) || finalAvailableQty < 0 || finalAvailableQty > finalTotalQty) {
+      throw new Error('未上架份数必须为 0 到总份数之间的整数');
     }
 
     const hasPricingUpdate = [
@@ -2538,8 +2542,8 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
       const syncedRemainingQty = Number(asset.status) === 0
         ? 0
         : Number(publishRecord.remaining_qty || 0);
-      if (finalAvailableQty + syncedRemainingQty > finalTotalQty) {
-        throw new Error('可用库存与上架库存之和不能超过资产总数量');
+      if (finalAvailableQty + syncedRemainingQty + soldQtyTotal > finalTotalQty) {
+        throw new Error('未上架、上架及已售份数之和不能超过资产总份数');
       }
       const syncedPublishQty = Math.max(soldQtyTotal + syncedRemainingQty, syncedRemainingQty);
       const syncedPublishPrice = Number(updateData.price ?? asset.price ?? publishRecord.publish_price ?? 0);
@@ -2822,6 +2826,10 @@ exports.publishAsset = async (payload, userId, identity = '') => {
     );
     const asset = assetRows[0];
     if (!asset) throw new Error('资产不存在');
+    if (!Number.isSafeInteger(Number(publish_qty)) || Number(publish_qty) < 1 ||
+        (Number(asset.total_qty) === 1 && Number(publish_qty) !== 1)) {
+      throw new Error('上架份数必须为正整数且不能超过已登记份数');
+    }
     const canManage = Number(asset.user_id) === Number(userId) || isAdminIdentity(identity);
     if (!canManage) throw new Error('仅资产拥有者或管理员可上架');
     const [activeDelegations] = await conn.query(
@@ -3026,7 +3034,7 @@ exports.createOrder = async (
     if (publish.delegation_id) {
       const [delegations] = await conn.query(
         `SELECT * FROM asset_delegations WHERE id=? AND status='ACTIVE'
-         AND quantity_remaining>=1 LIMIT 1 FOR UPDATE`, [publish.delegation_id],
+         AND quantity_remaining>=? LIMIT 1 FOR UPDATE`, [publish.delegation_id,normalizedBuyQty],
       );
       if (!delegations.length) throw new Error('代理库存已售罄或已撤销');
       if (Number(delegations[0].owner_id) === Number(buyerId)) throw new Error('不能购买自己委托代理的资产');
@@ -3139,9 +3147,9 @@ exports.createOrder = async (
     await conn.query(
       `
         UPDATE asset_publish_record
-        SET remaining_qty = remaining_qty - ?,
-            sold_qty_total = sold_qty_total + ?,
-            publish_status = CASE WHEN remaining_qty - ? <= 0 THEN 2 ELSE 1 END
+        SET publish_status = CASE WHEN remaining_qty <= ? THEN 2 ELSE 1 END,
+            remaining_qty = remaining_qty - ?,
+            sold_qty_total = sold_qty_total + ?
         WHERE id = ?
       `,
       [normalizedBuyQty, normalizedBuyQty, normalizedBuyQty, publish.id],
@@ -3149,9 +3157,9 @@ exports.createOrder = async (
 
     if (publish.delegation_id) {
       await conn.query(
-        `UPDATE asset_delegations SET status=IF(quantity_remaining=1,'SOLD_OUT',status),
-         quantity_remaining=quantity_remaining-1 WHERE id=?`,
-        [publish.delegation_id],
+        `UPDATE asset_delegations SET status=IF(quantity_remaining=?,'SOLD_OUT',status),
+         quantity_remaining=quantity_remaining-? WHERE id=?`,
+        [normalizedBuyQty,normalizedBuyQty,publish.delegation_id],
       );
     }
 
@@ -3233,6 +3241,7 @@ const getOrderDeliveryContext = async (conn, orderNo) => {
         ao.asset_id,
         ao.buyer_id,
         ao.buy_qty,
+        da.is_divisible,
         ao.deal_price,
         ao.trade_mode,
         ao.processing_type,
@@ -3298,7 +3307,13 @@ const transferOrderRightOnChain = async (order, sellerId) => {
     defaultTradeCert = ownerCerts[0];
     if (!defaultTradeCert) throw new Error('未找到代理资产所有者证书，无法完成链上过户');
   } else {
-    defaultTradeCert = await certificateService.getDefaultTradeCertInfo(sellerId);
+    const [sellerCerts] = await pool.query(
+      `SELECT certificate_name,org,address FROM certificate_registry
+       WHERE user_id=? AND address=? AND certificate_name=? ORDER BY id DESC LIMIT 1`,
+      [sellerId, sellerAddress, order.seller_certificate_name],
+    );
+    defaultTradeCert = sellerCerts[0];
+    if (!defaultTradeCert) throw new Error('订单卖家证书已不可用，无法完成链上转移');
   }
   const sellerCertificateName = String(defaultTradeCert?.certificate_name || '').trim();
   const sellerOrg = String(
@@ -3331,13 +3346,12 @@ const transferOrderRightOnChain = async (order, sellerId) => {
   }
 
   if (normalizeTradeMode(order.trade_mode) === 'ownership') {
-    const chainResult = await chainClient.transferFrom({
-      from: sellerAddress,
-      to: buyerAddress,
-      tokenId,
-    });
+    const divisible = Number(order.is_divisible) === 1;
+    const chainResult = divisible
+      ? await chainClient.enTransfer({ to: buyerAddress, amount: String(order.buy_qty) })
+      : await chainClient.transferFrom({ from: sellerAddress, to: buyerAddress, tokenId });
     return {
-      action: 'TransferFrom',
+      action: divisible ? 'En-Transfer' : 'TransferFrom',
       token_id: tokenId,
       from: sellerAddress,
       to: buyerAddress,
@@ -3365,6 +3379,23 @@ const transferOrderRightOnChain = async (order, sellerId) => {
     right_type: rightType,
     chain_result: chainResult,
   };
+};
+
+// En-Mint/En-Transfer 没有文件哈希参数，按订单将链上操作与业务资产、份数关联。
+const saveOrderChainAction = async (conn, order, transfer) => {
+  const result = transfer.chain_result || {};
+  const rawTxHash = result.txid || result.tx_id || result?.data?.tx_id || result?.data?.txid || '';
+  await conn.query(
+    `INSERT INTO asset_chain_transfer_record
+       (order_id,asset_id,chain_action,quantity,from_address,to_address,chain_tx_hash)
+     VALUES (?,?,?,?,?,?,?)
+     ON DUPLICATE KEY UPDATE chain_action=VALUES(chain_action),quantity=VALUES(quantity),
+       from_address=VALUES(from_address),to_address=VALUES(to_address),chain_tx_hash=VALUES(chain_tx_hash)`,
+    [order.id,order.asset_id,transfer.action,Number(order.buy_qty),
+      String(transfer.from || order.seller_address || ''),
+      String(transfer.to || transfer.owner || order.buyer_address || ''),
+      String(rawTxHash)],
+  );
 };
 
 const getCurrentTransactionStatus = async (conn, orderNo) => {
@@ -3551,8 +3582,8 @@ exports.cancelOrder = async (orderNo, buyerId, options = {}) => {
 
     if (Number(order.delegation_id) > 0) {
       const [restored] = await conn.query(
-        "UPDATE asset_delegations SET quantity_remaining=quantity_remaining+1,status='ACTIVE' WHERE id=? AND status='SOLD_OUT' AND quantity_remaining=0",
-        [order.delegation_id],
+        "UPDATE asset_delegations SET quantity_remaining=quantity_remaining+?,status='ACTIVE' WHERE id=? AND status IN ('ACTIVE','SOLD_OUT')",
+        [quantity,order.delegation_id],
       );
       if (!restored.affectedRows) throw new Error('代理库存状态异常，无法取消订单');
     }
@@ -3669,9 +3700,8 @@ exports.sellerConfirmOrder = async (orderNo, sellerId, identity = '') => {
       pc_type: refreshedOrder.pc_type || '',
     });
 
-    // 暂时跳过链上权益转移，避免 ChainMaker gRPC 不可达时阻塞本地订单确认。
-    // 返回显式的 SKIPPED 状态，避免把本地确认误认为链上转移成功。
-    const chainTransfer = Number(refreshedOrder.delegation_id) > 0 || services.skipChainOnSellerConfirm
+    // 代理订单沿用原型的 proxy-transfer 补偿入口；普通订单确认时执行链上操作。
+    const chainTransfer = Number(refreshedOrder.delegation_id) > 0
       ? {
         action: 'SKIPPED',
         status: 'pending',
@@ -3691,7 +3721,8 @@ exports.sellerConfirmOrder = async (orderNo, sellerId, identity = '') => {
         [chainTransfer.to, refreshedOrder.asset_id],
       );
     }
-    if (Number(refreshedOrder.delegation_id) > 0 && chainTransfer.action !== 'SKIPPED') {
+    if (chainTransfer.action !== 'SKIPPED') {
+      await saveOrderChainAction(conn, refreshedOrder, chainTransfer);
       await conn.query("UPDATE asset_order SET chain_transfer_status='SUCCESS' WHERE id=?", [refreshedOrder.id]);
     }
 
@@ -3742,10 +3773,15 @@ exports.proxyTransfer = async (transactionId, sellerAddress, sellerId) => {
       await connection.commit();
       return { alreadyTransferred: true };
     }
-    const chainOwner = await chainClient.ownerOf(order.file_hash);
-    const alreadyTransferred = String(chainOwner?.result || chainOwner?.owner || '').trim() ===
+    // En-Transfer 没有 tokenId，OwnerOf 只能用于旧版 Mint 单份资产。
+    const indivisibleOwnership = Number(order.is_divisible) === 0 &&
+      normalizeTradeMode(order.trade_mode) === 'ownership';
+    const chainOwner = indivisibleOwnership ? await chainClient.ownerOf(order.file_hash) : null;
+    const alreadyTransferred = indivisibleOwnership &&
+      String(chainOwner?.result || chainOwner?.owner || '').trim() ===
       String(row.buyer_address || '').trim();
     const transfer = alreadyTransferred ? null : await transferOrderRightOnChain(order, sellerId);
+    if (transfer) await saveOrderChainAction(connection, order, transfer);
     if (alreadyTransferred || transfer?.action === 'TransferFrom') {
       await connection.query(
         'UPDATE asset_chain_info SET owner_address=?,last_sync_time=NOW() WHERE asset_id=?',

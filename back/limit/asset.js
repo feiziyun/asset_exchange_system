@@ -49,9 +49,9 @@ exports.registerAsset_limit = {
 
     price: joi.number().min(0).default(0),
     price_unit: joi.string().max(10).default('人民币'),
-    total_qty: joi.number().integer().valid(1).default(1),
-    available_qty: joi.number().integer().valid(1).default(1),
-    is_divisible: joi.number().integer().valid(0).default(0),
+    total_qty: joi.number().integer().min(1).default(1),
+    available_qty: joi.number().integer().min(0),
+    is_divisible: joi.number().integer().valid(0, 1).default(1),
     classification_category_name: joi.string().max(100).allow('').default(''),
     classification_data_level: joi.string().max(100).allow('').default(''),
     pc_type: joi.string().valid('HE', 'PRE', 'FL', 'MPC').default('HE'),
@@ -177,8 +177,8 @@ exports.updateAsset_limit = {
 
     price: joi.number().min(0),
     price_unit: joi.string().max(10),
-    total_qty: joi.number().integer().valid(1),
-    available_qty: joi.number().integer().valid(0, 1),
+    total_qty: joi.number().integer().min(1),
+    available_qty: joi.number().integer().min(0),
 
     can_sell_ownership: joi.number().integer().valid(0, 1),
     can_sell_view_right: joi.number().integer().valid(0, 1),
