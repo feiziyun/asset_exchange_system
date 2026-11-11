@@ -433,7 +433,8 @@ CREATE TABLE `transactions` (
   KEY `idx_transaction_asset_id` (`asset_id`),
   KEY `idx_transaction_buyer_id` (`buyer_id`),
   KEY `idx_transaction_seller_id` (`seller_id`),
-  KEY `idx_transaction_status` (`status`)
+  KEY `idx_transaction_status` (`status`),
+  KEY `idx_transaction_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='交易主表';
 
 CREATE TABLE `digital_contracts` (

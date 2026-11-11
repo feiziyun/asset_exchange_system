@@ -1,5 +1,5 @@
 <template>
-  <div class="home-page" v-loading="loading">
+  <div class="home-page">
     <h2 class="dashboard-title">数据面板</h2>
 
     <section class="dashboard dashboard-new">
@@ -106,7 +106,6 @@ const MODEL_API_BASE = '/api/regulator/model'
 const isRegulator = getRoleKey(parseTokenPayload()?.identity || '') === 'regulator'
 const isAdmin = getRoleKey(parseTokenPayload()?.identity || '') === 'admin'
 
-const loading = ref(false)
 const tpsLoading = ref(false)
 const todayTransactionVolume = ref(0)
 const totalTransactionVolume = ref(0)
@@ -242,49 +241,39 @@ const fetchLocalDashboard = async () => {
 }
 
 const fetchRegulatorDashboard = async () => {
-  const results = await Promise.allSettled([
-    getTodayTransactionStats(),
-    getTotalTransactionStats(),
-    getTransactionHistory(),
-    getIndustryTransactionStats(),
-  ])
-  if (results[0].status === 'fulfilled') {
-    todayTransactionVolume.value = Number(results[0].value.data?.today_transaction_count || 0)
-  }
-  if (results[1].status === 'fulfilled') {
-    totalTransactionVolume.value = Number(results[1].value.data?.total_transaction_count || 0)
-  }
-  if (results[2].status === 'fulfilled') {
-    const data = results[2].value.data
-    transactionHistory.value = Array.isArray(data) ? data : data?.transaction_history || []
-    await renderHistoryChart()
-  }
-  if (results[3].status === 'fulfilled') {
-    industryStats.value = results[3].value.data?.data || []
-  }
   maxDailyTransactionVolume.value = 70000
-}
-
-const loadDashboard = async () => {
-  loading.value = true
-  try {
-    await Promise.all([
-      isRegulator || isAdmin ? fetchRegulatorDashboard() : fetchLocalDashboard(),
-      fetchSupervisionOverview(),
-    ])
-  } catch (_error) {
-  } finally {
-    loading.value = false
-  }
+  await Promise.allSettled([
+    getTodayTransactionStats().then((response) => {
+      todayTransactionVolume.value = Number(response.data?.today_transaction_count || 0)
+    }),
+    getTotalTransactionStats().then((response) => {
+      totalTransactionVolume.value = Number(response.data?.total_transaction_count || 0)
+    }),
+    getTransactionHistory().then(async (response) => {
+      const data = response.data
+      transactionHistory.value = Array.isArray(data) ? data : data?.transaction_history || []
+      await renderHistoryChart()
+    }),
+    getIndustryTransactionStats().then((response) => {
+      industryStats.value = response.data?.data || []
+    }),
+  ])
 }
 
 const handleResize = () => {
   historyChart?.resize()
 }
 
-onMounted(async () => {
-  await loadDashboard()
-  if (isRegulator || isAdmin) await fetchTPS()
+onMounted(() => {
+  // 统计、模型服务分别更新；TPS 脚本仅在用户点击刷新时执行。
+  void (isRegulator || isAdmin ? fetchRegulatorDashboard() : fetchLocalDashboard()).catch((error) => {
+    console.warn('获取数据面板统计失败:', error)
+  })
+  if (isRegulator || isAdmin) {
+    void fetchSupervisionOverview().catch((error) => {
+      console.warn('获取监管概览失败:', error)
+    })
+  }
   window.addEventListener('resize', handleResize)
 })
 

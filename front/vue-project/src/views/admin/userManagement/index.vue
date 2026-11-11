@@ -324,6 +324,10 @@ const openCreateDialog = () => {
 }
 
 const handleCreateUser = async () => {
+  if (createForm.value.identity === 'auditor' && !auditorTargetReady.value) {
+    ElMessage.warning('请先执行审计入口数据库迁移')
+    return
+  }
   if (!createForm.value.account || !createForm.value.password) {
     ElMessage.warning('请填写账号和密码')
     return

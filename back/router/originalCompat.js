@@ -705,9 +705,11 @@ router.get('/get-today-transaction-stats', async (_req, res) => {
     const [[stats]] = await pool.query(
       `
         SELECT
-          SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS today_count,
-          SUM(CASE WHEN DATE(created_at) = CURDATE() - INTERVAL 1 DAY THEN 1 ELSE 0 END) AS yesterday_count
+          SUM(created_at >= CURDATE()) AS today_count,
+          SUM(created_at < CURDATE()) AS yesterday_count
         FROM transactions
+        WHERE created_at >= CURDATE() - INTERVAL 1 DAY
+          AND created_at < CURDATE() + INTERVAL 1 DAY
       `
     );
     const today = Number(stats?.today_count || 0);

@@ -435,7 +435,7 @@ exports.getChainInfo = (req, res) => {
     ${chain_status !== undefined && chain_status !== null ? ' AND aci.chain_status = ?' : ''}
   `;
 
-  db.query(countSql, params.slice(0, params.length - 2), (err, countResults) => {
+  db.query(countSql, params, (err, countResults) => {
     if (err) return res.cc(err);
 
     const total = countResults[0].total;
