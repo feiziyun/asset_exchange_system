@@ -2,114 +2,55 @@
   <div class="user-management">
     <el-alert v-if="loadError" :title="loadError" type="error" show-icon :closable="false" class="page-alert" />
     <el-alert v-if="!auditorTargetReady" title="审计入口数据库字段尚未创建，请先执行 back/sql/2026-11-11-auditor-entry.sql；用户列表仍可查看。" type="warning" show-icon :closable="false" class="page-alert" />
-    <el-card class="stats-card">
-      <div class="stats-row">
-        <div class="stat-item">
-          <div class="stat-label">总用户数</div>
-          <div class="stat-value">{{ stats.total }}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">管理员</div>
-          <div class="stat-value">{{ stats.admin }}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">卖家</div>
-          <div class="stat-value">{{ stats.seller }}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">买家</div>
-          <div class="stat-value">{{ stats.buyer }}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">监管</div>
-          <div class="stat-value">{{ stats.regulator }}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">审计</div>
-          <div class="stat-value">{{ stats.auditor }}</div>
-        </div>
-      </div>
-    </el-card>
+    <nav class="type-nav" aria-label="用户类型">
+      <button
+        v-for="type in userTypes"
+        :key="type.value"
+        type="button"
+        class="type-card"
+        :class="{ active: selectedType === type.value }"
+        :aria-current="selectedType === type.value ? 'page' : undefined"
+        @click="selectType(type.value)"
+      >
+        <span>{{ type.label }}</span>
+        <strong>{{ type.count }}</strong>
+      </button>
+    </nav>
 
-    <el-card class="table-card">
-      <div class="toolbar">
-        <el-input
-          v-model="searchQuery"
-          placeholder="搜索账号或姓名"
-          style="width: 300px"
-          clearable
-          @clear="handleSearch"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-        <el-select v-model="identityFilter" placeholder="身份筛选" style="width: 150px" @change="handleSearch">
-          <el-option label="全部" :value="null" />
-          <el-option label="管理员" value="admin" />
-          <el-option label="卖家" value="seller" />
-          <el-option label="买家" value="buyer" />
-          <el-option label="监管" value="regulator" />
-          <el-option label="审计" value="auditor" />
-        </el-select>
-        <el-select v-model="statusFilter" placeholder="状态筛选" style="width: 150px" @change="handleSearch">
-          <el-option label="全部" :value="null" />
-          <el-option label="正常" :value="0" />
-          <el-option label="冻结" :value="1" />
-        </el-select>
-        <el-button type="primary" @click="handleSearch">
-          <el-icon><Search /></el-icon>查询
-        </el-button>
-        <el-button @click="handleReset">
-          <el-icon><RefreshLeft /></el-icon>重置
-        </el-button>
-        <el-button type="primary" @click="openCreateDialog">
-          新增用户
-        </el-button>
+    <el-card class="users-panel">
+      <div class="panel-heading">
+        <h3>{{ selectedTypeLabel }}</h3>
+        <el-button type="primary" @click="openCreateDialog">新增用户</el-button>
       </div>
 
-      <el-table :data="userList" style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="account" label="账号" width="150" />
-        <el-table-column prop="identity" label="身份" width="120">
-          <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
-        </el-table-column>
-        <el-table-column label="审计入口" min-width="160">
-          <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.status === 0" type="success">正常</el-tag>
-            <el-tag v-else type="danger">冻结</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="create_time" label="创建时间" width="180">
-          <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="260" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleViewDetail(row)">查看详情</el-button>
-            <el-button link type="primary" size="small" :disabled="row.identity === 'admin' || updatingRoleId === row.id" @click="openRoleEditor(row)">更改用户身份</el-button>
-            <el-button
-              link
-              :type="row.status === 0 ? 'danger' : 'success'"
-              size="small"
-              @click="handleToggleStatus(row)"
-              :disabled="row.identity === 'admin'"
-            >
-              {{ row.status === 0 ? '冻结' : '解冻' }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div v-loading="loading" class="user-grid">
+        <article v-for="user in userList" :key="user.id" class="user-card">
+          <div class="user-card-head">
+            <strong class="account">{{ user.account }}</strong>
+            <span class="status" :class="user.status === 0 ? 'normal' : 'frozen'">{{ user.status === 0 ? '正常' : '冻结' }}</span>
+          </div>
+          <dl class="user-info">
+            <div><dt>ID</dt><dd>{{ user.id }}</dd></div>
+            <div><dt>身份</dt><dd>{{ identityLabel(user.identity) }}</dd></div>
+            <div v-if="user.identity === 'auditor'"><dt>审计入口</dt><dd>{{ targetLabel(user.auditor_target) }}</dd></div>
+            <div><dt>创建时间</dt><dd>{{ formatDateTime(user.create_time) }}</dd></div>
+          </dl>
+          <div class="card-actions">
+            <el-button link type="primary" size="small" @click="handleViewDetail(user)">查看详情</el-button>
+            <el-button link type="primary" size="small" :disabled="user.identity === 'admin' || updatingRoleId === user.id" @click="openRoleEditor(user)">更改用户身份</el-button>
+            <el-button link :type="user.status === 0 ? 'danger' : 'success'" size="small" :disabled="user.identity === 'admin'" @click="handleToggleStatus(user)">{{ user.status === 0 ? '冻结' : '解冻' }}</el-button>
+          </div>
+        </article>
+        <el-empty v-if="!loading && userList.length === 0" description="暂无用户" class="empty-state" />
+      </div>
 
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :total="total"
-        :page-sizes="[10, 20, 50, 100]"
+        :page-sizes="[12, 24, 48]"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSearch"
+        @size-change="handlePageSizeChange"
         @current-change="fetchUserList"
         style="margin-top: 20px; justify-content: flex-end"
       />
@@ -206,9 +147,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { createUser, getUserList, updateUserStatus, updateUserIdentity, getAuditNodes } from '@/api/admin'
 import AdminAuditNodes from '@/views/admin/auditNodes/index.vue'
 import { formatDateTime } from '@/utils/dateTime'
@@ -217,11 +157,9 @@ const loading = ref(false)
 const loadError = ref('')
 const auditorTargetReady = ref(true)
 const userList = ref([])
-const searchQuery = ref('')
-const identityFilter = ref(null)
-const statusFilter = ref(null)
+const selectedType = ref('ordinary')
 const currentPage = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(12)
 const total = ref(0)
 const detailDialogVisible = ref(false)
 const currentDetail = ref(null)
@@ -245,6 +183,13 @@ const stats = ref({
   regulator: 0,
   auditor: 0,
 })
+const userTypes = computed(() => [
+  { value: 'ordinary', label: '普通用户', count: Number(stats.value.buyer) + Number(stats.value.seller) },
+  { value: 'admin', label: '管理员', count: Number(stats.value.admin) },
+  { value: 'regulator', label: '监管用户', count: Number(stats.value.regulator) },
+  { value: 'auditor', label: '审计用户', count: Number(stats.value.auditor) },
+])
+const selectedTypeLabel = computed(() => userTypes.value.find((type) => type.value === selectedType.value)?.label || '用户')
 const roleOptions = [
   { label: '管理员', value: 'admin' },
   { label: '卖家', value: 'seller' },
@@ -264,6 +209,7 @@ const updatingRoleId = ref('')
 const auditNodes = ref([])
 const roleDialogVisible = ref(false)
 const roleEdit = ref({ id: 0, account: '', identity: '', auditor_target: '' })
+let userListRequestId = 0
 const nodeLabel = (node) => `${node.node_name || node.node_id}${node.online ? '' : '（离线）'}`
 const targetLabel = (target) => {
   if (target === 'HUB') return '全局审计总览（Hub）'
@@ -330,24 +276,20 @@ const handleCreateUser = async () => {
 }
 
 const fetchUserList = async () => {
+  const requestId = ++userListRequestId
   loading.value = true
   loadError.value = ''
+  userList.value = []
+  total.value = 0
   try {
     const params = {
       page: currentPage.value,
       pageSize: pageSize.value
     }
-    if (searchQuery.value) {
-      params.keyword = searchQuery.value
-    }
-    if (identityFilter.value) {
-      params.identity = identityFilter.value
-    }
-    if (statusFilter.value !== null) {
-      params.status = statusFilter.value
-    }
+    params.identity = selectedType.value
 
     const res = await getUserList(params)
+    if (requestId !== userListRequestId) return
     if (res.data.status === 0) {
       auditorTargetReady.value = res.data.data.auditorTargetReady !== false
       userList.value = res.data.data.list || []
@@ -366,22 +308,22 @@ const fetchUserList = async () => {
       throw new Error(res.data.message || '获取用户列表失败')
     }
   } catch (error) {
+    if (requestId !== userListRequestId) return
     loadError.value = error?.response?.data?.message || error?.message || '获取用户列表失败'
     ElMessage.error(loadError.value)
   } finally {
-    loading.value = false
+    if (requestId === userListRequestId) loading.value = false
   }
 }
 
-const handleSearch = () => {
+const selectType = (type) => {
+  if (selectedType.value === type) return
+  selectedType.value = type
   currentPage.value = 1
   fetchUserList()
 }
 
-const handleReset = () => {
-  searchQuery.value = ''
-  identityFilter.value = null
-  statusFilter.value = null
+const handlePageSizeChange = () => {
   currentPage.value = 1
   fetchUserList()
 }
@@ -463,37 +405,71 @@ onMounted(() => {
 .user-management {
   .page-alert { margin-bottom: 16px; }
   .audit-node-hint { margin: -8px 0 14px; color: #667085; font-size: 13px; }
-  .stats-card {
+  .type-nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
     margin-bottom: 20px;
-
-    .stats-row {
-      display: flex;
-      justify-content: space-around;
-
-      .stat-item {
-        text-align: center;
-
-        .stat-label {
-          font-size: 14px;
-          color: #666;
-          margin-bottom: 8px;
-        }
-
-        .stat-value {
-          font-size: 28px;
-          font-weight: 600;
-          color: #1890ff;
-        }
-      }
-    }
   }
-
-  .table-card {
-    .toolbar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
+  .type-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border: 1px solid #e1e8f0;
+    border-radius: 10px;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    box-shadow: 0 2px 8px rgba(15, 39, 68, 0.05);
+    strong { font-size: 24px; color: #0f2744; }
+    &.active { border-color: #409eff; background: #edf5ff; color: #1660a5; }
+    &:focus-visible { outline: 2px solid #409eff; outline-offset: 2px; }
+  }
+  .panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    h3 { margin: 0; color: #0f2744; }
+  }
+  .user-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    min-height: 160px;
+  }
+  .user-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid #e5eaf0;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 39, 68, 0.04);
+  }
+  .user-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .account { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #0f2744; font-size: 17px; }
+  .status { flex: none; font-size: 12px; &.normal { color: #219653; } &.frozen { color: #d64545; } }
+  .user-info {
+    margin: 16px 0;
+    display: grid;
+    gap: 9px;
+    div { display: flex; justify-content: space-between; gap: 8px; min-width: 0; }
+    dt { color: #667085; flex: none; }
+    dd { margin: 0; color: #334155; text-align: right; overflow-wrap: anywhere; }
+  }
+  .card-actions { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: auto; padding-top: 12px; border-top: 1px solid #eef2f6; .el-button { margin: 0; } }
+  .empty-state { grid-column: 1 / -1; }
+  @media (max-width: 1200px) {
+    .user-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 700px) {
+    .type-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .user-grid { grid-template-columns: 1fr; }
   }
 }
 </style>

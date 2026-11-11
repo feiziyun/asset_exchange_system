@@ -228,7 +228,9 @@ exports.getUserList = async (req, res) => {
       where.push('(account LIKE ? OR name LIKE ?)');
       args.push(`%${keyword}%`, `%${keyword}%`);
     }
-    if (req.query.identity) {
+    if (req.query.identity === 'ordinary') {
+      where.push("identity IN ('buyer', 'seller')");
+    } else if (req.query.identity) {
       where.push('identity = ?');
       args.push(String(req.query.identity));
     }
