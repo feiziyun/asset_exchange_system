@@ -11,23 +11,23 @@
       </div>
 
       <el-table :data="userList" style="width: 100%" v-loading="loading" empty-text="暂无用户">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="account" label="账号" min-width="150" />
-        <el-table-column label="身份" width="120">
+        <el-table-column prop="id" label="ID" width="100" />
+        <el-table-column prop="account" label="账号" min-width="220" />
+        <el-table-column label="身份" width="180">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
-        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" min-width="160">
+        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" min-width="220">
           <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="150">
           <template #default="{ row }">
             <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '正常' : '冻结' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="180">
+        <el-table-column label="创建时间" width="240">
           <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="260" fixed="right">
+        <el-table-column label="操作" width="390" fixed="right" class-name="actions-column">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleViewDetail(row)">查看详情</el-button>
             <el-button link type="primary" size="small" :disabled="row.identity === 'admin' || updatingRoleId === row.id" @click="openRoleEditor(row)">更改用户身份</el-button>
@@ -418,6 +418,9 @@ onMounted(() => {
     align-items: center;
     justify-content: flex-end;
     margin-bottom: 16px;
+  }
+  :deep(.actions-column .cell) {
+    white-space: nowrap;
   }
 }
 </style>
