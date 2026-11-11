@@ -64,6 +64,7 @@
         <el-button type="primary" @click="openCreateDialog">
           新增用户
         </el-button>
+        <el-button @click="auditNodesVisible = true">审计节点配置</el-button>
       </div>
 
       <el-table :data="userList" style="width: 100%" v-loading="loading">
@@ -133,7 +134,7 @@
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSearch"
-        @current-change="handleSearch"
+        @current-change="fetchUserList"
         style="margin-top: 20px; justify-content: flex-end"
       />
     </el-card>
@@ -221,6 +222,9 @@
         <el-button type="primary" :loading="Boolean(updatingRoleId)" @click="saveAuditorRole">保存</el-button>
       </template>
     </el-dialog>
+    <el-dialog v-model="auditNodesVisible" title="审计节点配置" width="min(1100px, 95vw)" destroy-on-close>
+      <AdminAuditNodes />
+    </el-dialog>
   </div>
 </template>
 
@@ -229,6 +233,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { createUser, getUserList, updateUserStatus, updateUserIdentity, getAuditNodes } from '@/api/admin'
+import AdminAuditNodes from '@/views/admin/auditNodes/index.vue'
 
 const loading = ref(false)
 const userList = ref([])
@@ -277,6 +282,7 @@ const createRoleOptions = [
 const updatingRoleId = ref('')
 const auditNodes = ref([])
 const roleDialogVisible = ref(false)
+const auditNodesVisible = ref(false)
 const roleEdit = ref({ id: 0, account: '', auditor_target: '' })
 const nodeLabel = (node) => `${node.node_name || node.node_id}${node.online ? '' : '（离线）'}`
 const targetLabel = (target) => {

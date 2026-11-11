@@ -108,7 +108,7 @@ const routes = [
       {
         name: 'adminChainInfo',
         path: 'chain-info',
-        component: () => import('@/views/admin/chainInfo/index.vue'),
+        redirect: '/admin/assets',
       },
       {
         name: 'adminOrders',
@@ -123,7 +123,12 @@ const routes = [
       {
         name: 'adminAuditNodes',
         path: 'audit-nodes',
-        component: () => import('@/views/admin/auditNodes/index.vue'),
+        redirect: '/admin/users',
+      },
+      {
+        name: 'adminCrossPlatform',
+        path: 'cross-platform',
+        component: () => import('@/views/admin/crossPlatform/index.vue'),
       },
     ],
   },

@@ -69,7 +69,7 @@
         <el-table-column prop="trade_count" label="成交量" width="100" />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleView(row)">查看</el-button>
+            <el-button link type="primary" size="small" @click="handleView(row)">详情</el-button>
             <el-button link type="warning" size="small" @click="handleChangeStatus(row)">
               {{ row.status === 0 ? '上架' : '下架' }}
             </el-button>
@@ -84,10 +84,23 @@
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSearch"
-        @current-change="handleSearch"
+        @current-change="fetchAssetList"
         style="margin-top: 20px; justify-content: flex-end"
       />
     </el-card>
+    <el-dialog v-model="detailVisible" title="资产及区块链信息" width="680px">
+      <el-descriptions v-if="currentAsset" :column="1" border>
+        <el-descriptions-item label="资产名称">{{ currentAsset.asset_name }}</el-descriptions-item>
+        <el-descriptions-item label="资产哈希">{{ currentAsset.file_hash || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="Token ID">{{ currentAsset.token_id || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="链上所有者地址">{{ currentAsset.owner_address || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="上链交易哈希">{{ currentAsset.chain_tx_hash || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="链上状态">{{ chainStatusText(currentAsset.chain_status) }}</el-descriptions-item>
+        <el-descriptions-item label="上链时间">{{ currentAsset.chain_time || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="同步时间">{{ currentAsset.last_sync_time || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="失败原因">{{ currentAsset.fail_reason || '—' }}</el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
   </div>
 </template>
 
@@ -95,12 +108,12 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
-import { getAssetList } from '@/api/asset'
-import { updateAssetStatus } from '@/api/admin'
-import { useRouter } from 'vue-router'
+import { getAdminAssets, updateAssetStatus } from '@/api/admin'
 import { formatPrice } from '@/utils/price'
 
-const router = useRouter()
+const detailVisible = ref(false)
+const currentAsset = ref(null)
+const chainStatusText = (value) => ({ 0: '待上链', 1: '已上链', 2: '失败' })[value] || '暂无链上记录'
 const loading = ref(false)
 const assetList = ref([])
 const searchQuery = ref('')
@@ -121,8 +134,7 @@ const fetchAssetList = async () => {
   try {
     const params = {
       page: currentPage.value,
-      pageSize: pageSize.value,
-      scope: 'all'  // 管理员查看所有资产
+      page_size: pageSize.value,
     }
     if (searchQuery.value) {
       params.keyword = searchQuery.value
@@ -131,19 +143,19 @@ const fetchAssetList = async () => {
       params.status = statusFilter.value
     }
 
-    const res = await getAssetList(params)
+    const res = await getAdminAssets(params)
     if (res.data.status === 0) {
       assetList.value = res.data.data.list || []
       total.value = res.data.data.total || 0
 
       // 更新统计数据
-      stats.value.total = res.data.data.total || 0
+      stats.value.total = res.data.data.stats?.total || 0
       stats.value.active = res.data.data.stats?.active || 0
       stats.value.soldOut = res.data.data.stats?.soldOut || 0
       stats.value.offline = res.data.data.stats?.offline || 0
     }
   } catch (error) {
-    ElMessage.error('获取资产列表失败')
+    ElMessage.error(error?.response?.data?.message || '获取资产列表失败')
   } finally {
     loading.value = false
   }
@@ -162,7 +174,8 @@ const handleReset = () => {
 }
 
 const handleView = (row) => {
-  router.push(`/assetDetail/${row.id}`)
+  currentAsset.value = row
+  detailVisible.value = true
 }
 
 const handleChangeStatus = async (row) => {

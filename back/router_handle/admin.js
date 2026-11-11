@@ -2,6 +2,58 @@
 const db = require('../db/index.js');
 const bcrypt = require('bcryptjs');
 const pamNodes = require('../service/pamNodes');
+const assetService = require('../service/asset');
+const pool = db.promise();
+
+exports.listAdminAssets = async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.page_size) || 20));
+    const where = [];
+    const args = [];
+    if (req.query.keyword) { where.push('da.asset_name LIKE ?'); args.push(`%${String(req.query.keyword).trim()}%`); }
+    if (req.query.status !== undefined && req.query.status !== '') {
+      where.push('da.status = ?'); args.push(Number(req.query.status));
+    }
+    const filter = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const [[count]] = await pool.query(`SELECT COUNT(*) AS total FROM digital_asset da ${filter}`, args);
+    const [list] = await pool.query(`SELECT da.id, da.asset_name, da.price, da.price_unit, da.status,
+      da.view_count, da.trade_count, da.created_at, da.file_hash,
+      ac.category_name, r.region_name, aci.token_id, aci.owner_address,
+      aci.chain_tx_hash, aci.chain_status, aci.chain_time, aci.fail_reason,
+      aci.last_sync_time, aci.retry_count
+      FROM digital_asset da
+      LEFT JOIN asset_category ac ON ac.id = da.category_id
+      LEFT JOIN region r ON r.id = da.region_id
+      LEFT JOIN asset_chain_info aci ON aci.asset_id = da.id
+      ${filter} ORDER BY da.created_at DESC, da.id DESC LIMIT ? OFFSET ?`,
+    [...args, pageSize, (page - 1) * pageSize]);
+    const [[stats]] = await pool.query(`SELECT COUNT(*) AS total,
+      COALESCE(SUM(status = 1), 0) AS active, COALESCE(SUM(status = 2), 0) AS soldOut,
+      COALESCE(SUM(status = 0), 0) AS offline FROM digital_asset`);
+    return res.send({ status: 0, data: { list, total: Number(count.total), stats } });
+  } catch (error) {
+    console.error('管理员资产列表失败:', error);
+    return res.status(500).send({ status: 1, message: error.message });
+  }
+};
+
+exports.listAdminOrders = async (req, res) => {
+  try {
+    const result = await assetService.listOrders({
+      page: req.query.page, page_size: req.query.page_size,
+      keyword: req.query.keyword, order_status: req.query.status,
+    }, req.auth?.id, 'admin');
+    const [[stats]] = await pool.query(`SELECT COUNT(*) AS total,
+      COALESCE(SUM(order_status = 0), 0) AS pending,
+      COALESCE(SUM(order_status = 3), 0) AS completed,
+      COALESCE(SUM(order_status IN (4, 6)), 0) AS cancelled FROM asset_order`);
+    return res.send({ status: 0, data: { list: result.list, total: Number(result.pagination.total), stats } });
+  } catch (error) {
+    console.error('管理员订单列表失败:', error);
+    return res.status(500).send({ status: 1, message: error.message });
+  }
+};
 
 const validateAuditorTarget = async (identity, rawTarget) => {
   if (identity !== 'auditor') return '';

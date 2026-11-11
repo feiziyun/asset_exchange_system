@@ -10,6 +10,8 @@ router.get('/users', adminHandler.getUserList);
 router.post('/users', adminHandler.createUser);
 router.patch('/users/:id/status', adminHandler.updateUserStatus);
 router.patch('/users/:id/identity', adminHandler.updateUserIdentity);
+router.get('/assets', adminHandler.listAdminAssets);
+router.get('/orders', adminHandler.listAdminOrders);
 router.get('/audit-nodes', adminHandler.getAuditNodes);
 router.get('/audit-nodes/credentials', adminHandler.getAuditNodeCredentials);
 router.post('/audit-nodes/:nodeId/credentials', adminHandler.saveAuditNodeCredentials);

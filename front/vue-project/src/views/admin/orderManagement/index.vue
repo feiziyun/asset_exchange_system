@@ -93,7 +93,7 @@
         :page-sizes="[10, 20, 50, 100]"
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSearch"
-        @current-change="handleSearch"
+        @current-change="fetchOrderList"
         style="margin-top: 20px; justify-content: flex-end"
       />
     </el-card>
@@ -129,7 +129,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
-import { getOrderList } from '@/api/asset'
+import { getAdminOrders } from '@/api/admin'
 import { formatPrice } from '@/utils/price'
 
 const loading = ref(false)
@@ -154,8 +154,7 @@ const fetchOrderList = async () => {
   try {
     const params = {
       page: currentPage.value,
-      pageSize: pageSize.value,
-      scope: 'all'  // 管理员查看所有订单
+      page_size: pageSize.value,
     }
     if (searchQuery.value) {
       params.keyword = searchQuery.value
@@ -164,19 +163,19 @@ const fetchOrderList = async () => {
       params.status = statusFilter.value
     }
 
-    const res = await getOrderList(params)
+    const res = await getAdminOrders(params)
     if (res.data.status === 0) {
       orderList.value = res.data.data.list || []
       total.value = res.data.data.total || 0
 
       // 更新统计数据
-      stats.value.total = res.data.data.total || 0
+      stats.value.total = res.data.data.stats?.total || 0
       stats.value.pending = res.data.data.stats?.pending || 0
       stats.value.completed = res.data.data.stats?.completed || 0
       stats.value.cancelled = res.data.data.stats?.cancelled || 0
     }
   } catch (error) {
-    ElMessage.error('获取订单列表失败')
+    ElMessage.error(error?.response?.data?.message || '获取订单列表失败')
   } finally {
     loading.value = false
   }

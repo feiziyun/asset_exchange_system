@@ -15,27 +15,23 @@
         >
           <el-menu-item index="/admin/dashboard">
             <el-icon><DataBoard /></el-icon>
-            <span>控制面板</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/assets">
-            <el-icon><Box /></el-icon>
-            <span>管理资产</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/chain-info">
-            <el-icon><Link /></el-icon>
-            <span>链上信息</span>
-          </el-menu-item>
-          <el-menu-item index="/admin/orders">
-            <el-icon><Document /></el-icon>
-            <span>管理订单</span>
+            <span>数据面板</span>
           </el-menu-item>
           <el-menu-item index="/admin/users">
             <el-icon><User /></el-icon>
-            <span>管理用户</span>
+            <span>用户管理</span>
           </el-menu-item>
-          <el-menu-item index="/admin/audit-nodes">
+          <el-menu-item index="/admin/assets">
+            <el-icon><Box /></el-icon>
+            <span>资产管理</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/orders">
             <el-icon><Document /></el-icon>
-            <span>审计节点配置</span>
+            <span>订单管理</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/cross-platform">
+            <el-icon><Link /></el-icon>
+            <span>跨链跨平台</span>
           </el-menu-item>
           <el-menu-item @click="logout">
             <el-icon><SwitchButton /></el-icon>

@@ -4,6 +4,8 @@ import request from '@/http/index.js'
 export const getUserList = (params) => {
   return request.get('/admin/users', { params })
 }
+export const getAdminAssets = (params) => request.get('/admin/assets', { params })
+export const getAdminOrders = (params) => request.get('/admin/orders', { params })
 
 // 管理员创建用户
 export const createUser = (data) => {

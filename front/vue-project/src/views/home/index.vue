@@ -104,6 +104,7 @@ interface TransactionHistoryItem {
 
 const MODEL_API_BASE = '/api/regulator/model'
 const isRegulator = getRoleKey(parseTokenPayload()?.identity || '') === 'regulator'
+const isAdmin = getRoleKey(parseTokenPayload()?.identity || '') === 'admin'
 
 const loading = ref(false)
 const tpsLoading = ref(false)
@@ -207,7 +208,7 @@ const fetchSupervisionOverview = async () => {
   const ratio = Number(overview.anomaly_ratio)
   anomalyAccountRatio.value = Number.isFinite(ratio) ? `${(ratio * 100).toFixed(2)}%` : '0.00%'
   // 原型此卡片使用静态演示值；不要把检测账户或风险交易数误称为审计交易。
-  if (isRegulator) auditedTransactions.value = 1
+  if (isRegulator || isAdmin) auditedTransactions.value = 1
   else auditedTransactions.value = Number(
     overview.completed_tasks || overview.detected_accounts || overview.high_risk_transactions || 0,
   )
@@ -268,7 +269,7 @@ const loadDashboard = async () => {
   loading.value = true
   try {
     await Promise.all([
-      isRegulator ? fetchRegulatorDashboard() : fetchLocalDashboard(),
+      isRegulator || isAdmin ? fetchRegulatorDashboard() : fetchLocalDashboard(),
       fetchSupervisionOverview(),
     ])
   } catch (_error) {
@@ -283,7 +284,7 @@ const handleResize = () => {
 
 onMounted(async () => {
   await loadDashboard()
-  if (isRegulator) await fetchTPS()
+  if (isRegulator || isAdmin) await fetchTPS()
   window.addEventListener('resize', handleResize)
 })
 
