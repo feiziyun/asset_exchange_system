@@ -6,3 +6,5 @@ export const startPamEntry = (pccContractId = '') => {
     { withCredentials: true },
   )
 }
+
+export const createPamNodeTicket = (nodeId = '') => request.post('/api/pam/node-ticket', nodeId ? { node_id: nodeId } : {})

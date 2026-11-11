@@ -45,6 +45,7 @@ CREATE TABLE `users` (
   `account` VARCHAR(50) NOT NULL COMMENT '账号',
   `password` VARCHAR(255) NOT NULL COMMENT '密码（加密存储）',
   `identity` VARCHAR(20) DEFAULT NULL COMMENT '身份/角色',
+  `auditor_target` VARCHAR(64) DEFAULT NULL COMMENT '审计入口：HUB 或 NODE:<node_id>',
   `department` VARCHAR(100) DEFAULT NULL COMMENT '所属部门',
   `name` VARCHAR(50) DEFAULT NULL COMMENT '姓名',
   `sex` CHAR(1) DEFAULT NULL COMMENT '性别（M-男/F-女）',

@@ -80,6 +80,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="department" label="部门" min-width="150" />
+        <el-table-column label="审计入口" min-width="160">
+          <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
+        </el-table-column>
         <el-table-column prop="email" label="邮箱" min-width="180" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
@@ -106,9 +109,10 @@
           </template>
         </el-table-column>
         <el-table-column prop="create_time" label="创建时间" width="180" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
+            <el-button v-if="row.identity === 'auditor'" link type="primary" size="small" @click="openAuditorRole(row)">审计入口</el-button>
             <el-button
               link
               :type="row.status === 0 ? 'danger' : 'success'"
@@ -148,6 +152,7 @@
           <el-tag v-else type="success">买家</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="部门">{{ currentDetail.department || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="审计入口">{{ targetLabel(currentDetail.auditor_target) }}</el-descriptions-item>
         <el-descriptions-item label="性别">
           {{ currentDetail.sex === 'M' ? '男' : currentDetail.sex === 'F' ? '女' : '-' }}
         </el-descriptions-item>
@@ -173,6 +178,12 @@
             />
           </el-select>
         </el-form-item>
+        <el-form-item v-if="createForm.identity === 'auditor'" label="审计入口">
+          <el-select v-model="createForm.auditor_target" placeholder="请选择审计入口" style="width: 100%">
+            <el-option label="全局审计总览（Hub）" value="HUB" />
+            <el-option v-for="node in auditNodes" :key="node.node_id" :label="nodeLabel(node)" :value="`NODE:${node.node_id}`" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="账号">
           <el-input v-model.trim="createForm.account" placeholder="6-12位字母或数字" />
         </el-form-item>
@@ -194,6 +205,22 @@
         <el-button type="primary" :loading="creating" @click="handleCreateUser">创建</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="roleDialogVisible" title="分配审计入口" width="460px">
+      <el-form label-width="90px">
+        <el-form-item label="账号"><el-input :model-value="roleEdit.account" disabled /></el-form-item>
+        <el-form-item label="审计入口">
+          <el-select v-model="roleEdit.auditor_target" placeholder="请选择审计入口" style="width: 100%">
+            <el-option label="全局审计总览（Hub）" value="HUB" />
+            <el-option v-for="node in auditNodes" :key="node.node_id" :label="nodeLabel(node)" :value="`NODE:${node.node_id}`" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="roleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="Boolean(updatingRoleId)" @click="saveAuditorRole">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -201,7 +228,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
-import { createUser, getUserList, updateUserStatus, updateUserIdentity } from '@/api/admin'
+import { createUser, getUserList, updateUserStatus, updateUserIdentity, getAuditNodes } from '@/api/admin'
 
 const loading = ref(false)
 const userList = ref([])
@@ -219,6 +246,7 @@ const createForm = ref({
   account: '',
   password: '',
   identity: 'regulator',
+  auditor_target: '',
   name: '',
   department: '',
   email: '',
@@ -247,12 +275,34 @@ const createRoleOptions = [
   { label: '买家', value: 'buyer' },
 ]
 const updatingRoleId = ref('')
+const auditNodes = ref([])
+const roleDialogVisible = ref(false)
+const roleEdit = ref({ id: 0, account: '', auditor_target: '' })
+const nodeLabel = (node) => `${node.node_name || node.node_id}${node.online ? '' : '（离线）'}`
+const targetLabel = (target) => {
+  if (target === 'HUB') return '全局审计总览（Hub）'
+  if (String(target || '').startsWith('NODE:')) {
+    const id = String(target).slice(5)
+    const node = auditNodes.value.find((item) => item.node_id === id)
+    return node ? nodeLabel(node) : id
+  }
+  return '未分配'
+}
+const fetchAuditNodes = async () => {
+  try {
+    const res = await getAuditNodes()
+    auditNodes.value = res.data?.data?.nodes || []
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || '获取审计节点失败')
+  }
+}
 
 const resetCreateForm = () => {
   createForm.value = {
     account: '',
     password: '',
     identity: 'regulator',
+    auditor_target: '',
     name: '',
     department: '',
     email: '',
@@ -266,6 +316,10 @@ const openCreateDialog = () => {
 const handleCreateUser = async () => {
   if (!createForm.value.account || !createForm.value.password) {
     ElMessage.warning('请填写账号和密码')
+    return
+  }
+  if (createForm.value.identity === 'auditor' && !createForm.value.auditor_target) {
+    ElMessage.warning('审计方必须选择审计入口')
     return
   }
   creating.value = true
@@ -373,6 +427,10 @@ const handleToggleStatus = async (row) => {
 
 const handleIdentityChange = async (row, identity) => {
   if (!identity || row.identity === identity) return
+  if (identity === 'auditor') {
+    openAuditorRole(row)
+    return
+  }
   updatingRoleId.value = row.id
   try {
     const res = await updateUserIdentity(row.id, identity)
@@ -389,8 +447,33 @@ const handleIdentityChange = async (row, identity) => {
   }
 }
 
+const openAuditorRole = (row) => {
+  roleEdit.value = { id: row.id, account: row.account, auditor_target: row.auditor_target || '' }
+  roleDialogVisible.value = true
+}
+
+const saveAuditorRole = async () => {
+  if (!roleEdit.value.auditor_target) {
+    ElMessage.warning('请选择审计入口')
+    return
+  }
+  updatingRoleId.value = roleEdit.value.id
+  try {
+    const res = await updateUserIdentity(roleEdit.value.id, 'auditor', roleEdit.value.auditor_target)
+    if (res.data.status !== 0) throw new Error(res.data.message || '角色更新失败')
+    ElMessage.success('审计入口已分配')
+    roleDialogVisible.value = false
+    await fetchUserList()
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '审计入口分配失败')
+  } finally {
+    updatingRoleId.value = ''
+  }
+}
+
 onMounted(() => {
   fetchUserList()
+  fetchAuditNodes()
 })
 </script>
 

@@ -33,6 +33,10 @@
             <el-icon><User /></el-icon>
             <span>管理用户</span>
           </el-menu-item>
+          <el-menu-item index="/admin/audit-nodes">
+            <el-icon><Document /></el-icon>
+            <span>审计节点配置</span>
+          </el-menu-item>
           <el-menu-item @click="logout">
             <el-icon><SwitchButton /></el-icon>
             <span>退出登录</span>

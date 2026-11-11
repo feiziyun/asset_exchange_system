@@ -18,7 +18,8 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { startPamEntry } from '@/api/audit'
+import { startPamEntry, createPamNodeTicket } from '@/api/audit'
+import { parseTokenPayload } from '@/utils/auth'
 
 const router = useRouter()
 const loading = ref(false)
@@ -28,10 +29,24 @@ const openAuditPlatform = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const res = await startPamEntry()
-    const url = res.data?.entry_url || ''
+    const target = String(parseTokenPayload()?.auditor_target || '')
+    if (!target) throw new Error('管理员尚未分配审计入口，请联系管理员')
+    let url = ''
+    if (target === 'HUB') {
+      const res = await startPamEntry()
+      url = res.data?.entry_url || ''
+      if (!url) throw new Error(res.data?.error || res.data?.message || '审计平台未返回跳转地址')
+    } else if (target.startsWith('NODE:')) {
+      const res = await createPamNodeTicket(target.slice(5))
+      const path = res.data?.url || ''
+      if (!path) throw new Error(res.data?.message || '生成审计节点入口失败')
+      const launchOrigin = import.meta.env.VITE_AUDIT_LAUNCH_ORIGIN || window.location.origin
+      url = new URL(path, launchOrigin).toString()
+    } else {
+      throw new Error('管理员分配的审计入口无效，请联系管理员')
+    }
     if (!url) {
-      throw new Error(res.data?.error || res.data?.message || '未获取到审计平台地址')
+      throw new Error('未获取到审计平台地址')
     }
     window.location.href = url
   } catch (error) {

@@ -78,6 +78,7 @@ exports.login = (req, res) => {
       id: results[0].id,
       account: results[0].account,
       identity: normalizedIdentity,
+      auditor_target: results[0].auditor_target || null,
       name: results[0].name || '',
       email: results[0].email || '',
       department: results[0].department || '',

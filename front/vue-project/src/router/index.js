@@ -120,6 +120,11 @@ const routes = [
         path: 'users',
         component: () => import('@/views/admin/userManagement/index.vue'),
       },
+      {
+        name: 'adminAuditNodes',
+        path: 'audit-nodes',
+        component: () => import('@/views/admin/auditNodes/index.vue'),
+      },
     ],
   },
 ]

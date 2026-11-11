@@ -76,7 +76,9 @@ app.use(
       '/api/industry-transaction-stats',
       /^\/api\/transaction-supervision(?:\/|$)/,
       '/api/pam/entry-start',
+      '/api/pam/node-ticket',
       '/api/pam/authorize',
+      '/api/pam/node-launch',
       '/api/alipay/notify',
       '/api/delegate-asset',
       '/api/revoke-delegation',
@@ -141,6 +143,7 @@ app.use([
   '/api/industry-transaction-stats',
 ], businessJwt);
 app.use('/api/pam/entry-start', businessJwt);
+app.use('/api/pam/node-ticket', businessJwt);
 app.use('/api/pam', auditRouter);
 app.use('/api', originalCompatRouter);
 app.use('/api', businessJwt, require('./router/delegation'));

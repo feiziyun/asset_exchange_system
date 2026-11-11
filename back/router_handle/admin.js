@@ -1,8 +1,75 @@
 // 导入数据库
 const db = require('../db/index.js');
 const bcrypt = require('bcryptjs');
+const pamNodes = require('../service/pamNodes');
 
-exports.createUser = (req, res) => {
+const validateAuditorTarget = async (identity, rawTarget) => {
+  if (identity !== 'auditor') return '';
+  const target = String(rawTarget || '').trim();
+  if (!target) throw new Error('审计方必须选择审计入口');
+  if (target === 'HUB') return target;
+  if (!target.startsWith('NODE:') || !target.slice(5)) throw new Error('审计入口必须是 HUB 或 NODE:<node_id>');
+  const nodes = await pamNodes.fetchNodes(true);
+  if (!nodes.some((node) => node.node_id === target.slice(5))) throw new Error('审计节点不存在或未启用');
+  return target;
+};
+
+exports.getAuditNodes = async (_req, res) => {
+  try {
+    const nodes = await pamNodes.fetchNodes(true);
+    return res.send({ status: 0, data: { nodes } });
+  } catch (error) {
+    console.error('获取审计节点目录失败:', error);
+    return res.status(502).send({ status: 1, message: error.message || '获取审计节点目录失败' });
+  }
+};
+
+exports.getAuditNodeCredentials = async (_req, res) => {
+  try {
+    const nodes = await pamNodes.fetchNodes(true);
+    const [rows] = await pamNodes.pool.query('SELECT node_id, node_name, username, updated_at FROM pam_node_credentials');
+    const byId = new Map(rows.map((row) => [row.node_id, row]));
+    return res.send({ status: 0, data: { nodes: nodes.map((node) => ({
+      ...node,
+      has_credentials: byId.has(node.node_id),
+      username: byId.get(node.node_id)?.username || '',
+      credentials_updated_at: byId.get(node.node_id)?.updated_at || null,
+    })) } });
+  } catch (error) {
+    console.error('获取审计节点凭据状态失败:', error);
+    return res.status(502).send({ status: 1, message: error.message || '获取审计节点失败' });
+  }
+};
+
+exports.saveAuditNodeCredentials = async (req, res) => {
+  const nodeId = String(req.params.nodeId || '').trim();
+  const username = String(req.body?.username || '').trim();
+  const password = String(req.body?.password || '');
+  if (!nodeId || !username) return res.status(400).send({ status: 1, message: '缺少节点 ID 或节点账号' });
+  try {
+    const nodes = await pamNodes.fetchNodes(true);
+    const node = nodes.find((item) => item.node_id === nodeId);
+    if (!node) return res.status(404).send({ status: 1, message: '节点不存在或未启用' });
+    const [rows] = await pamNodes.pool.query('SELECT node_id FROM pam_node_credentials WHERE node_id = ? LIMIT 1', [nodeId]);
+    if (!rows.length && !password) return res.status(400).send({ status: 1, message: '首次配置节点凭据时必须填写密码' });
+    if (!rows.length) {
+      await pamNodes.pool.query('INSERT INTO pam_node_credentials (node_id, node_name, username, password_enc) VALUES (?, ?, ?, ?)',
+        [nodeId, node.node_name || nodeId, username, pamNodes.encryptSecret(password)]);
+    } else if (password) {
+      await pamNodes.pool.query('UPDATE pam_node_credentials SET node_name = ?, username = ?, password_enc = ? WHERE node_id = ?',
+        [node.node_name || nodeId, username, pamNodes.encryptSecret(password), nodeId]);
+    } else {
+      await pamNodes.pool.query('UPDATE pam_node_credentials SET node_name = ?, username = ? WHERE node_id = ?',
+        [node.node_name || nodeId, username, nodeId]);
+    }
+    return res.send({ status: 0, message: '节点凭据已保存' });
+  } catch (error) {
+    console.error('保存审计节点凭据失败:', error);
+    return res.status(500).send({ status: 1, message: error.message || '保存节点凭据失败' });
+  }
+};
+
+exports.createUser = async (req, res) => {
   const { account, password, identity = 'buyer', name = '', department = '', email = '' } = req.body || {};
   const allowedIdentities = ['admin', 'seller', 'buyer', 'regulator', 'auditor'];
   const normalizedAccount = String(account || '').trim();
@@ -29,6 +96,13 @@ exports.createUser = (req, res) => {
     });
   }
 
+  let auditorTarget;
+  try {
+    auditorTarget = await validateAuditorTarget(normalizedIdentity, req.body?.auditor_target);
+  } catch (error) {
+    return res.status(400).send({ status: 1, message: error.message });
+  }
+
   const checkSql = 'SELECT id FROM users WHERE account = ? LIMIT 1';
   db.query(checkSql, [normalizedAccount], (err, results) => {
     if (err) return res.cc(err);
@@ -44,6 +118,7 @@ exports.createUser = (req, res) => {
       account: normalizedAccount,
       password: bcrypt.hashSync(password, 10),
       identity: normalizedIdentity,
+      auditor_target: auditorTarget || null,
       name: String(name || '').trim(),
       department: String(department || '').trim(),
       email: String(email || '').trim(),
@@ -72,7 +147,7 @@ exports.getUserList = (req, res) => {
   const { page = 1, pageSize = 20, keyword, identity, status } = req.query;
   const offset = (page - 1) * pageSize;
 
-  let sql = 'SELECT id, account, name, identity, department, sex, email, status, create_time, update_time FROM users WHERE 1=1';
+  let sql = 'SELECT id, account, name, identity, auditor_target, department, sex, email, status, create_time, update_time FROM users WHERE 1=1';
   const params = [];
 
   // 搜索条件
@@ -94,7 +169,7 @@ exports.getUserList = (req, res) => {
   }
 
   // 获取总数
-  const countSql = sql.replace('SELECT id, account, name, identity, department, sex, email, status, create_time, update_time FROM users', 'SELECT COUNT(*) as total FROM users');
+  const countSql = sql.replace('SELECT id, account, name, identity, auditor_target, department, sex, email, status, create_time, update_time FROM users', 'SELECT COUNT(*) as total FROM users');
 
   db.query(countSql, params, (err, countResults) => {
     if (err) return res.cc(err);
@@ -137,7 +212,7 @@ exports.getUserList = (req, res) => {
   });
 };
 
-exports.updateUserIdentity = (req, res) => {
+exports.updateUserIdentity = async (req, res) => {
   const { id } = req.params;
   const { identity } = req.body;
   const allowedIdentities = ['admin', 'seller', 'buyer', 'regulator', 'auditor'];
@@ -147,6 +222,13 @@ exports.updateUserIdentity = (req, res) => {
       status: 1,
       message: '角色值无效'
     });
+  }
+
+  let auditorTarget;
+  try {
+    auditorTarget = await validateAuditorTarget(String(identity || '').trim(), req.body?.auditor_target);
+  } catch (error) {
+    return res.status(400).send({ status: 1, message: error.message });
   }
 
   const operatorId = req.auth?.id;
@@ -168,8 +250,8 @@ exports.updateUserIdentity = (req, res) => {
       });
     }
 
-    const updateSql = 'UPDATE users SET identity = ?, update_time = NOW() WHERE id = ?';
-    db.query(updateSql, [identity, id], (updateErr, updateResults) => {
+    const updateSql = 'UPDATE users SET identity = ?, auditor_target = ?, update_time = NOW() WHERE id = ?';
+    db.query(updateSql, [identity, auditorTarget || null, id], (updateErr, updateResults) => {
       if (updateErr) return res.cc(updateErr);
       if (updateResults.affectedRows !== 1) {
         return res.send({

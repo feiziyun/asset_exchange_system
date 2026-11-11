@@ -10,6 +10,9 @@ router.get('/users', adminHandler.getUserList);
 router.post('/users', adminHandler.createUser);
 router.patch('/users/:id/status', adminHandler.updateUserStatus);
 router.patch('/users/:id/identity', adminHandler.updateUserIdentity);
+router.get('/audit-nodes', adminHandler.getAuditNodes);
+router.get('/audit-nodes/credentials', adminHandler.getAuditNodeCredentials);
+router.post('/audit-nodes/:nodeId/credentials', adminHandler.saveAuditNodeCredentials);
 
 // 链上信息
 router.get('/chain-info', adminHandler.getChainInfo);
