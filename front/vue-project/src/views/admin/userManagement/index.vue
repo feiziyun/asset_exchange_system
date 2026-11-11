@@ -66,7 +66,6 @@
         <el-button type="primary" @click="openCreateDialog">
           新增用户
         </el-button>
-        <el-button @click="auditNodesVisible = true">审计节点配置</el-button>
       </div>
 
       <el-table :data="userList" style="width: 100%" v-loading="loading">
@@ -209,7 +208,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="roleDialogVisible" title="分配审计入口" width="460px">
+    <el-dialog v-model="roleDialogVisible" title="设置审计用户" width="min(1100px, 95vw)" destroy-on-close>
       <el-form label-width="90px">
         <el-form-item label="账号"><el-input :model-value="roleEdit.account" disabled /></el-form-item>
         <el-form-item label="审计入口">
@@ -219,13 +218,13 @@
           </el-select>
         </el-form-item>
       </el-form>
+      <el-divider content-position="left">审计节点配置</el-divider>
+      <p class="audit-node-hint">按原型流程，先在这里配置节点查看凭据，再将该用户分配到指定节点；选择 Hub 时无需节点凭据。</p>
+      <AdminAuditNodes />
       <template #footer>
         <el-button @click="roleDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="Boolean(updatingRoleId)" @click="saveAuditorRole">保存</el-button>
       </template>
-    </el-dialog>
-    <el-dialog v-model="auditNodesVisible" title="审计节点配置" width="min(1100px, 95vw)" destroy-on-close>
-      <AdminAuditNodes />
     </el-dialog>
   </div>
 </template>
@@ -286,7 +285,6 @@ const createRoleOptions = [
 const updatingRoleId = ref('')
 const auditNodes = ref([])
 const roleDialogVisible = ref(false)
-const auditNodesVisible = ref(false)
 const roleEdit = ref({ id: 0, account: '', auditor_target: '' })
 const nodeLabel = (node) => `${node.node_name || node.node_id}${node.online ? '' : '（离线）'}`
 const targetLabel = (target) => {
@@ -500,6 +498,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .user-management {
   .page-alert { margin-bottom: 16px; }
+  .audit-node-hint { margin: -8px 0 14px; color: #667085; font-size: 13px; }
   .stats-card {
     margin-bottom: 20px;
 
