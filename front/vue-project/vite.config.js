@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
     proxyTimeout: 35 * 60 * 1000,
     timeout: 35 * 60 * 1000,
   }
+  const transactionSupervisionTarget = env.VITE_TRANSACTION_SUPERVISION_API_TARGET || ''
 
   return {
     plugins: [
@@ -68,6 +69,13 @@ export default defineConfig(({ mode }) => {
       cors: true,
       https: httpsOptions,
       proxy: {
+        ...(transactionSupervisionTarget ? {
+          '/api/transaction-supervision': {
+            target: transactionSupervisionTarget,
+            changeOrigin: true,
+            secure: false,
+          },
+        } : {}),
         '/asset/certificate': certificateProxy,
         '/api': backendProxy,
         '/asset': backendProxy,

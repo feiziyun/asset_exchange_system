@@ -103,6 +103,41 @@
     <section class="panel">
       <div class="section-heading">
         <div>
+          <p class="section-kicker">异常检测记录</p>
+          <h3>异常账户检测快照</h3>
+        </div>
+        <span>{{ anomalyRecords.length }} 条</span>
+      </div>
+      <el-table
+        :data="anomalyRecords"
+        stripe
+        height="280"
+        empty-text="暂无异常账户检测记录"
+        row-class-name="clickable-row"
+        @row-click="openAccountDetail"
+      >
+        <el-table-column prop="address" label="账户地址" min-width="280" show-overflow-tooltip />
+        <el-table-column label="异常类别" width="130">
+          <template #default="{ row }">{{ labelText(row.display_label) }}</template>
+        </el-table-column>
+        <el-table-column label="异常概率" width="120">
+          <template #default="{ row }">{{ formatPercent(row.anomaly_probability) }}</template>
+        </el-table-column>
+        <el-table-column label="风险等级" width="110">
+          <template #default="{ row }">{{ riskLevelText(row.risk_level) }}</template>
+        </el-table-column>
+        <el-table-column prop="num_nodes" label="节点" width="80" />
+        <el-table-column prop="num_edges" label="边" width="80" />
+        <el-table-column label="检测时间" width="180">
+          <template #default="{ row }">{{ formatTime(row.detected_at) }}</template>
+        </el-table-column>
+        <el-table-column prop="model_version" label="模型版本" min-width="220" show-overflow-tooltip />
+      </el-table>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
           <p class="section-kicker">任务队列</p>
           <h3>正在检测与最近任务</h3>
         </div>
@@ -393,8 +428,8 @@ import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
-const MODEL_API_BASE = import.meta.env.VITE_MODEL_API_BASE || 'http://127.0.0.1:8000'
-const SERVICE_CONTROL_BASE = import.meta.env.VITE_SERVICE_CONTROL_BASE || 'http://127.0.0.1:8001'
+const MODEL_API_BASE = import.meta.env.VITE_MODEL_API_BASE || 'http://10.112.191.163:8000'
+const SERVICE_CONTROL_BASE = import.meta.env.VITE_SERVICE_CONTROL_BASE || MODEL_API_BASE.replace(/:8000$/, ':8001')
 const REMOTE_AUDIT_URL = import.meta.env.VITE_REMOTE_AUDIT_URL || 'http://127.0.0.1:8081'
 const POLL_INTERVAL_MS = 5000
 const GET_TIMEOUT = 30000
@@ -404,6 +439,7 @@ const INFERENCE_DURATION_MS = 5500
 
 const overview = ref<Record<string, any>>({})
 const tasks = ref<any[]>([])
+const anomalyRecords = ref<any[]>([])
 const accounts = ref<any[]>([])
 const riskTransactions = ref<any[]>([])
 const autoStatus = ref<Record<string, any>>({ status: 'stopped' })
@@ -554,17 +590,19 @@ const refreshDashboard = async () => {
   const requests = [
     axios.get(`${MODEL_API_BASE}/api/supervision/overview`, { timeout: GET_TIMEOUT }),
     axios.get(`${MODEL_API_BASE}/api/supervision/tasks`, { params: { page: 1, page_size: 50 }, timeout: GET_TIMEOUT }),
+    axios.get(`${MODEL_API_BASE}/api/supervision/anomaly-records`, { params: { page: 1, page_size: 100 }, timeout: GET_TIMEOUT }),
     axios.get(`${MODEL_API_BASE}/api/supervision/accounts`, { params: { page: 1, page_size: 100 }, timeout: GET_TIMEOUT }),
     axios.get(`${MODEL_API_BASE}/api/supervision/risk-transactions`, { params: { page: 1, page_size: 50 }, timeout: GET_TIMEOUT }),
     axios.get(`${MODEL_API_BASE}/api/supervision/auto/status`, { timeout: GET_TIMEOUT }),
     axios.get(`${SERVICE_CONTROL_BASE}/api/service/model/status`, { timeout: GET_TIMEOUT }),
   ]
-  const [overviewRes, tasksRes, accountsRes, risksRes, autoRes, serviceRes] = await Promise.allSettled(requests)
+  const [overviewRes, tasksRes, anomalyRes, accountsRes, risksRes, autoRes, serviceRes] = await Promise.allSettled(requests)
   if (overviewRes.status === 'fulfilled') overview.value = overviewRes.value.data
   if (tasksRes.status === 'fulfilled') {
     tasks.value = tasksRes.value.data.items || []
     syncProcessTask()
   }
+  if (anomalyRes.status === 'fulfilled') anomalyRecords.value = anomalyRes.value.data.items || []
   if (accountsRes.status === 'fulfilled') accounts.value = accountsRes.value.data.items || []
   if (risksRes.status === 'fulfilled') riskTransactions.value = risksRes.value.data.items || []
   if (autoRes.status === 'fulfilled') {
@@ -1069,6 +1107,10 @@ p {
 
 .service-warning {
   margin-bottom: 16px;
+}
+
+:deep(.clickable-row) {
+  cursor: pointer;
 }
 
 .kpi-grid {
