@@ -3,7 +3,7 @@
     <el-container>
       <el-aside width="200px" class="admin-aside">
         <div class="admin-logo">
-          <h2>管理后台</h2>
+          <h2>系统管理</h2>
         </div>
         <el-menu
           router
