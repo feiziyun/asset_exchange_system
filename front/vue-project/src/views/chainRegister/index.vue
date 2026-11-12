@@ -1626,6 +1626,45 @@ onMounted(async () => {
   gap: 10px;
 }
 
+/* 资产登记的单选、多选和二态选择统一使用黑白灰。 */
+.register-form :deep(.el-radio),
+.register-form :deep(.el-checkbox) {
+  color: #303030;
+}
+
+.register-form :deep(.el-radio__inner),
+.register-form :deep(.el-checkbox__inner) {
+  background: #fff;
+  border-color: #8b8b8b;
+}
+
+.register-form :deep(.el-radio:not(.is-disabled):hover .el-radio__inner),
+.register-form :deep(.el-checkbox:not(.is-disabled):hover .el-checkbox__inner) {
+  border-color: #111;
+}
+
+.register-form :deep(.el-radio__input.is-checked .el-radio__inner),
+.register-form :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background: #111;
+  border-color: #111;
+}
+
+.register-form :deep(.el-radio__input.is-checked + .el-radio__label),
+.register-form :deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: #111;
+}
+
+.register-form :deep(.el-radio__input.is-disabled .el-radio__inner),
+.register-form :deep(.el-checkbox__input.is-disabled .el-checkbox__inner) {
+  background: #f3f3f3;
+  border-color: #d1d1d1;
+}
+
+.register-form :deep(.el-switch) {
+  --el-switch-on-color: #111;
+  --el-switch-off-color: #b8b8b8;
+}
+
 .field-inline-tip {
   margin-top: 6px;
   font-size: 12px;
