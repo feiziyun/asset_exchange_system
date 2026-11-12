@@ -1,0 +1,150 @@
+/* GitHub-style button colors. Kept separate from form controls and status tags. */
+body .el-button {
+  --el-button-bg-color: #f6f8fa;
+  --el-button-border-color: #d0d7de;
+  --el-button-text-color: #24292f;
+  --el-button-hover-bg-color: #eef1f4;
+  --el-button-hover-border-color: #b7c1ca;
+  --el-button-hover-text-color: #24292f;
+  --el-button-active-bg-color: #e7ebef;
+  --el-button-active-border-color: #aeb8c2;
+  --el-button-active-text-color: #24292f;
+  border-radius: 6px;
+  font-weight: 500;
+  box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+}
+
+body .el-button.el-button--primary,
+body .el-button.el-button--primary.is-plain,
+body .el-button.el-button--info,
+body .el-button.el-button--info.is-plain {
+  --el-button-bg-color: #f6f8fa;
+  --el-button-border-color: #d0d7de;
+  --el-button-text-color: #24292f;
+  --el-button-hover-bg-color: #eef1f4;
+  --el-button-hover-border-color: #b7c1ca;
+  --el-button-hover-text-color: #24292f;
+  --el-button-active-bg-color: #e7ebef;
+  --el-button-active-border-color: #aeb8c2;
+  --el-button-active-text-color: #24292f;
+}
+
+body .el-button.el-button--success:not(.is-link):not(.is-text):not(.is-plain) {
+  --el-button-bg-color: #1f883d;
+  --el-button-border-color: #1a7f37;
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: #1a7f37;
+  --el-button-hover-border-color: #176f30;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-bg-color: #176f30;
+  --el-button-active-border-color: #176f30;
+  --el-button-active-text-color: #fff;
+}
+
+body .el-button.el-button--success.is-plain,
+body .el-button.el-button--danger,
+body .el-button.el-button--danger.is-plain,
+body .el-button.el-button--warning,
+body .el-button.el-button--warning.is-plain {
+  --el-button-bg-color: #f6f8fa;
+  --el-button-border-color: #d0d7de;
+  --el-button-hover-bg-color: #eef1f4;
+  --el-button-hover-border-color: #b7c1ca;
+  --el-button-active-bg-color: #e7ebef;
+  --el-button-active-border-color: #aeb8c2;
+}
+
+body .el-button.el-button--success.is-plain {
+  --el-button-text-color: #1a7f37;
+  --el-button-hover-text-color: #1a7f37;
+  --el-button-active-text-color: #176f30;
+}
+
+body .el-button.el-button--danger {
+  --el-button-text-color: #cf222e;
+  --el-button-hover-text-color: #b91c28;
+  --el-button-active-text-color: #b91c28;
+}
+
+body .el-button.el-button--warning {
+  --el-button-text-color: #8a5900;
+  --el-button-hover-text-color: #704900;
+  --el-button-active-text-color: #704900;
+}
+
+body .el-button.is-link,
+body .el-button.is-text {
+  --el-button-bg-color: transparent;
+  --el-button-border-color: transparent;
+  --el-button-hover-bg-color: #f0f2f4;
+  --el-button-hover-border-color: transparent;
+  --el-button-active-bg-color: #e7ebef;
+  --el-button-active-border-color: transparent;
+  box-shadow: none;
+}
+
+body .el-button.is-link:not(.is-disabled):hover,
+body .el-button.is-text:not(.is-disabled):hover {
+  background-color: #f0f2f4;
+}
+
+body .el-button--primary.is-link,
+body .el-button--primary.is-text {
+  --el-button-text-color: #0969da;
+  --el-button-hover-link-text-color: #0550ae;
+  --el-button-hover-text-color: #0550ae;
+  --el-button-active-color: #0550ae;
+  --el-button-active-text-color: #0550ae;
+}
+
+body .el-button--success.is-link,
+body .el-button--success.is-text {
+  --el-button-text-color: #1a7f37;
+  --el-button-hover-link-text-color: #116329;
+  --el-button-hover-text-color: #116329;
+  --el-button-active-color: #116329;
+  --el-button-active-text-color: #116329;
+}
+
+body .el-button--danger.is-link,
+body .el-button--danger.is-text {
+  --el-button-text-color: #cf222e;
+  --el-button-hover-link-text-color: #b91c28;
+  --el-button-hover-text-color: #b91c28;
+  --el-button-active-color: #b91c28;
+  --el-button-active-text-color: #b91c28;
+}
+
+body .el-button.is-disabled,
+body .el-button.is-disabled:hover {
+  --el-button-disabled-bg-color: #f6f8fa;
+  --el-button-disabled-border-color: #d8dee4;
+  --el-button-disabled-text-color: #8c959f;
+  box-shadow: none;
+}
+
+body button.upload-btn,
+body button.delivery-status-btn,
+body button.refresh-btn,
+body button.payment-method {
+  background: #f6f8fa !important;
+  border: 1px solid #d0d7de !important;
+  border-radius: 6px;
+  color: #24292f !important;
+  box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+}
+
+body button.upload-btn:hover:not(:disabled),
+body button.delivery-status-btn:hover:not(:disabled),
+body button.refresh-btn:hover:not(:disabled),
+body button.payment-method:hover:not(:disabled) {
+  background: #eef1f4 !important;
+  border-color: #b7c1ca !important;
+}
+
+body button.payment-method.active,
+body button.payment-method.active:hover:not(:disabled) {
+  border-color: #1a7f37 !important;
+  color: #1a7f37 !important;
+  box-shadow: 0 0 0 1px #1a7f37 inset;
+}
