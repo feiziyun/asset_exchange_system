@@ -12,19 +12,19 @@
 
       <el-table :data="userList" style="width: 100%" v-loading="loading" empty-text="暂无用户">
         <el-table-column prop="id" label="ID" width="100" />
-        <el-table-column prop="account" label="账号" min-width="220" />
-        <el-table-column label="身份" width="180">
+        <el-table-column prop="account" label="账号" width="180" show-overflow-tooltip />
+        <el-table-column label="身份" min-width="160">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
         <el-table-column v-if="selectedType === 'auditor'" label="审计入口" min-width="220">
           <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="150">
+        <el-table-column label="状态" min-width="120">
           <template #default="{ row }">
             <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '正常' : '冻结' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="240">
+        <el-table-column label="创建时间" min-width="200">
           <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
         </el-table-column>
         <el-table-column label="操作" width="390" fixed="right" class-name="actions-column">
