@@ -16,6 +16,9 @@
         <el-table-column label="身份" width="100">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
+        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" width="210" show-overflow-tooltip>
+          <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '正常' : '冻结' }}</el-tag>
@@ -53,6 +56,7 @@
         <el-descriptions-item label="姓名">{{ currentDetail.name || '-' }}</el-descriptions-item>
         <el-descriptions-item label="身份">{{ identityLabel(currentDetail.identity) }}</el-descriptions-item>
         <el-descriptions-item label="部门">{{ currentDetail.department || '-' }}</el-descriptions-item>
+        <el-descriptions-item v-if="selectedType === 'auditor' && currentDetail.identity === 'auditor'" label="审计入口">{{ targetLabel(currentDetail.auditor_target) }}</el-descriptions-item>
         <el-descriptions-item label="性别">
           {{ currentDetail.sex === 'M' ? '男' : currentDetail.sex === 'F' ? '女' : '-' }}
         </el-descriptions-item>
@@ -199,6 +203,15 @@ const roleDialogVisible = ref(false)
 const roleEdit = ref({ id: 0, account: '', identity: '', auditor_target: '' })
 let userListRequestId = 0
 const nodeLabel = (node) => `${node.node_name || node.node_id}${node.online ? '' : '（离线）'}`
+const targetLabel = (target) => {
+  if (target === 'HUB') return '全局审计总览（Hub）'
+  if (String(target || '').startsWith('NODE:')) {
+    const id = String(target).slice(5)
+    const node = auditNodes.value.find((item) => item.node_id === id)
+    return node ? nodeLabel(node) : id
+  }
+  return '未分配'
+}
 const fetchAuditNodes = async () => {
   try {
     const res = await getAuditNodes()
