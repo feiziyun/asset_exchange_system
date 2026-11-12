@@ -17,21 +17,35 @@
               <el-tabs v-model="activeName" class="demo-tabs" :stretch="true">
                 <el-tab-pane label="登陆" name="first">
                   <!-- 登录表单 -->
-                  <el-form class="login-form">
+                  <form class="login-form" @submit.prevent="Login">
                     <el-form-item label="账号">
-                      <el-input v-model="loginData.account" placeholder="请输入账号" />
+                      <el-input v-model="loginData.account" name="username" autocomplete="username" placeholder="请输入账号" />
+                    </el-form-item>
+                    <el-form-item v-if="savedAccounts.length" class="saved-accounts-row">
+                      <el-dropdown @command="selectSavedAccount">
+                        <el-button text type="primary">切换已保存账号（{{ savedAccounts.length }}）</el-button>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item v-for="account in savedAccounts" :key="account" :command="account">{{ account }}</el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+                      <el-button text type="primary" @click="chooseBrowserPassword">选择浏览器保存的密码</el-button>
                     </el-form-item>
                     <el-form-item label="密码">
                       <el-input
                         v-model="loginData.password"
+                        name="password"
+                        type="password"
+                        autocomplete="current-password"
                         placeholder="请输入密码"
                         show-password
                       />
                     </el-form-item>
                     <el-form-item>
                       <el-checkbox v-model="rememberAccount">记住账号</el-checkbox>
+                      <el-checkbox v-model="savePassword">用浏览器保存密码</el-checkbox>
                     </el-form-item>
-                  </el-form>
 
                   <div class="login-foot-wrapped">
                     <!-- 忘记密码 -->
@@ -39,7 +53,7 @@
                       <span class="forget-password-button" @click="openForget">忘记密码</span>
                     </div>
                     <!-- 登陆按钮 -->
-                    <el-button type="primary" class="login-button" plain @click="Login"
+                    <el-button type="primary" class="login-button" native-type="submit" plain
                       >登 录</el-button
                     >
                     <!-- 转去注册 -->
@@ -48,6 +62,7 @@
                       <span class="go-registet-button" @click="goRegister">马上注册</span>
                     </div>
                   </div>
+                  </form>
                 </el-tab-pane>
 
                 <el-tab-pane label="注册" name="second">
@@ -106,6 +121,9 @@ import { getRoleKey } from '@/utils/auth'
 const router = useRouter()
 const activeName = ref('first') // 默认登录表单
 const rememberAccount = ref(false) // 是否记住账号
+const savePassword = ref(false)
+const savedAccounts = ref<string[]>([])
+const SAVED_ACCOUNTS_KEY = 'savedLoginAccounts'
 
 interface formData {
   account: string
@@ -128,12 +146,50 @@ const registerData: formData = reactive({
 
 // 页面加载时读取保存的账号
 onMounted(() => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SAVED_ACCOUNTS_KEY) || '[]')
+    savedAccounts.value = Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+  } catch {
+    savedAccounts.value = []
+  }
   const savedAccount = localStorage.getItem('savedAccount')
   if (savedAccount) {
     loginData.account = savedAccount
     rememberAccount.value = true
   }
 })
+
+const selectSavedAccount = (account: string) => {
+  loginData.account = account
+  loginData.password = ''
+  rememberAccount.value = true
+}
+
+const chooseBrowserPassword = async () => {
+  if (!navigator.credentials?.get) {
+    ElMessage.info('请点击密码框，从浏览器的密码管理器选择账号')
+    return
+  }
+  try {
+    const credential = await navigator.credentials.get({ password: true, mediation: 'required' } as any) as any
+    if (!credential?.password) return
+    loginData.account = credential.id || ''
+    loginData.password = credential.password
+    rememberAccount.value = true
+  } catch {
+    ElMessage.info('请点击密码框，从浏览器的密码管理器选择账号')
+  }
+}
+
+const storeBrowserPassword = async (account: string, password: string) => {
+  const PasswordCredentialClass = (window as any).PasswordCredential
+  if (!PasswordCredentialClass || !navigator.credentials?.store) return
+  try {
+    await navigator.credentials.store(new PasswordCredentialClass({ id: account, password, name: account }))
+  } catch (error) {
+    console.warn('浏览器未保存登录密码:', error)
+  }
+}
 
 // 转去注册
 const goRegister = () => {
@@ -180,6 +236,12 @@ const Login = async () => {
       } else {
         localStorage.removeItem('savedAccount')
       }
+      if (rememberAccount.value || savePassword.value) {
+        savedAccounts.value = [loginData.account, ...savedAccounts.value.filter((account) => account !== loginData.account)]
+        localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(savedAccounts.value))
+      }
+
+      if (savePassword.value) await storeBrowserPassword(loginData.account, loginData.password)
 
       const role = getRoleKey(identity)
       if (role === 'admin') {
