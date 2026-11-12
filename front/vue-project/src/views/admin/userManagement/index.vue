@@ -12,7 +12,7 @@
 
       <el-table :data="userList" style="width: 100%" v-loading="loading" empty-text="暂无用户">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="account" label="账号" width="180" show-overflow-tooltip />
+        <el-table-column prop="account" label="账号" width="160" show-overflow-tooltip />
         <el-table-column label="身份" width="100">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
