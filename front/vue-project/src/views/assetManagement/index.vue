@@ -1470,7 +1470,7 @@ onMounted(fetchCurrent)
 .seller-table th:nth-child(10) { width: 48px; }
 
 .styled-table tbody tr:nth-of-type(odd) td {
-  background: #f9fbfd;
+  background: #fff;
 }
 
 .styled-table tbody tr:nth-of-type(even) td {
@@ -1478,7 +1478,7 @@ onMounted(fetchCurrent)
 }
 
 .table-hover-row tbody tr:hover td {
-  background: #eef3f8;
+  background: #f5f7fa;
   transition: background-color 0.2s ease;
 }
 
