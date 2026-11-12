@@ -24,7 +24,7 @@
         <el-table-column v-if="selectedType === 'auditor'" label="审计入口" width="190" show-overflow-tooltip>
           <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
         </el-table-column>
-        <el-table-column label="创建时间" min-width="200">
+        <el-table-column label="创建时间" width="180">
           <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
         </el-table-column>
         <el-table-column label="操作" width="330" fixed="right" class-name="actions-column">
