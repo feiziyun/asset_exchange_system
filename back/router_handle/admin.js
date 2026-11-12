@@ -225,8 +225,13 @@ exports.getUserList = async (req, res) => {
     const args = [];
     const keyword = String(req.query.keyword || '').trim();
     if (keyword) {
-      where.push('(account LIKE ? OR name LIKE ?)');
-      args.push(`%${keyword}%`, `%${keyword}%`);
+      if (/^\d+$/.test(keyword) && Number.isSafeInteger(Number(keyword))) {
+        where.push('(id = ? OR account LIKE ?)');
+        args.push(Number(keyword), `%${keyword}%`);
+      } else {
+        where.push('account LIKE ?');
+        args.push(`%${keyword}%`);
+      }
     }
     if (req.query.identity === 'ordinary') {
       where.push("identity IN ('buyer', 'seller')");

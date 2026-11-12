@@ -7,6 +7,15 @@
         <el-tab-pane v-for="type in userTypes" :key="type.value" :name="type.value" :label="`${type.label}（${type.count}）`" />
       </el-tabs>
       <div class="panel-heading">
+        <el-input
+          v-model="searchInput"
+          class="search-input"
+          placeholder="输入用户 ID 或账号"
+          clearable
+          @keyup.enter="handleSearch"
+          @clear="handleSearch"
+        />
+        <el-button @click="handleSearch">搜索用户</el-button>
         <el-button type="primary" @click="openCreateDialog">新增用户</el-button>
       </div>
 
@@ -151,6 +160,8 @@ const loading = ref(false)
 const loadError = ref('')
 const auditorTargetReady = ref(true)
 const userList = ref([])
+const searchInput = ref('')
+const searchKeyword = ref('')
 const selectedType = ref('all')
 const currentPage = ref(1)
 const pageSize = ref(20)
@@ -281,6 +292,7 @@ const fetchUserList = async () => {
       pageSize: pageSize.value
     }
     if (selectedType.value !== 'all') params.identity = selectedType.value
+    if (searchKeyword.value) params.keyword = searchKeyword.value
 
     const res = await getUserList(params)
     if (requestId !== userListRequestId) return
@@ -311,6 +323,12 @@ const fetchUserList = async () => {
 }
 
 const selectType = () => {
+  currentPage.value = 1
+  fetchUserList()
+}
+
+const handleSearch = () => {
+  searchKeyword.value = searchInput.value.trim()
   currentPage.value = 1
   fetchUserList()
 }
@@ -419,8 +437,11 @@ onMounted(() => {
   .panel-heading {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-bottom: 16px;
+    .search-input { width: 220px; max-width: 100%; }
+    .el-button { margin: 0; }
   }
   .action-buttons {
     display: flex;
