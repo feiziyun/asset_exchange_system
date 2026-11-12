@@ -8,79 +8,56 @@
         </div>
       </section>
 
-      <section class="table-section" v-loading="loading">
-        <div v-if="orders.length" class="table-wrap">
-          <table class="styled-table table-hover-row">
-            <thead>
-              <tr>
-                <th>资产名</th>
-                <th>交易ID</th>
-                <th>价格</th>
-                <th>资产ID</th>
-                <th>状态</th>
-                <th>卖家地址</th>
-                <th>买家地址</th>
-                <th>申请数量</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in orders" :key="item.id">
-                <td>
-                  <div class="truncate-cell" :title="item.asset_name || '-'">
-                    {{ item.asset_name || '-' }}
-                  </div>
-                </td>
-                <td>
-                  <div class="truncate-cell" :title="item.transaction?.transaction_id || '-'">
-                    {{ item.transaction?.transaction_id || '-' }}
-                  </div>
-                </td>
-                <td>{{ formatPrice(item.deal_price) }} {{ item.price_unit || '人民币' }}</td>
-                <td>{{ item.asset_id || '-' }}</td>
-                <td>
-                  <el-tag :type="statusTagType(item)" effect="light">
-                    {{ transactionStatusText(item) }}
-                  </el-tag>
-                </td>
-                <td>
-                  <div class="truncate-cell" :title="sellerAddress(item)">
-                    {{ sellerAddress(item) }}
-                  </div>
-                </td>
-                <td>
-                  <div class="truncate-cell" :title="buyerAddress(item)">
-                    {{ buyerAddress(item) }}
-                  </div>
-                </td>
-                <td>{{ item.buy_qty || 1 }}</td>
-                <td>
-                  <div class="row-actions">
-                    <el-button
-                      v-if="isPendingOrder(item)"
-                      type="primary"
-                      link
-                      :loading="actionLoadingNo === item.order_no"
-                      @click="handleSellerConfirm(item)"
-                    >
-                      确认交易
-                    </el-button>
-                    <el-button
-                      v-else-if="item.delegation_id && item.chain_transfer_status !== 'SUCCESS' && ['已确认', '已完成'].includes(item.transaction?.status || '')"
-                      type="primary"
-                      link
-                      :loading="actionLoadingNo === item.order_no"
-                      @click="transferProxyOrder(item)"
-                    >链上过户</el-button>
-                    <span v-else>-</span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <el-empty v-else description="暂无订单" />
+      <section class="table-section">
+        <el-table :data="orders" v-loading="loading" style="width: 100%" empty-text="暂无订单" class="orders-table">
+          <el-table-column prop="asset_name" label="资产名" min-width="140" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.asset_name || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="交易ID" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.transaction?.transaction_id || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="价格" min-width="130">
+            <template #default="{ row }">{{ formatPrice(row.deal_price) }} {{ row.price_unit || '人民币' }}</template>
+          </el-table-column>
+          <el-table-column label="资产ID" width="90">
+            <template #default="{ row }">{{ row.asset_id || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="状态" width="105">
+            <template #default="{ row }">
+              <el-tag :type="statusTagType(row)" effect="light">{{ transactionStatusText(row) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="卖家地址" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">{{ sellerAddress(row) }}</template>
+          </el-table-column>
+          <el-table-column label="买家地址" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">{{ buyerAddress(row) }}</template>
+          </el-table-column>
+          <el-table-column label="申请数量" width="90">
+            <template #default="{ row }">{{ row.buy_qty || 1 }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="105" fixed="right">
+            <template #default="{ row }">
+              <div class="row-actions">
+                <el-button
+                  v-if="isPendingOrder(row)"
+                  type="primary"
+                  link
+                  :loading="actionLoadingNo === row.order_no"
+                  @click="handleSellerConfirm(row)"
+                >确认交易</el-button>
+                <el-button
+                  v-else-if="row.delegation_id && row.chain_transfer_status !== 'SUCCESS' && ['已确认', '已完成'].includes(row.transaction?.status || '')"
+                  type="primary"
+                  link
+                  :loading="actionLoadingNo === row.order_no"
+                  @click="transferProxyOrder(row)"
+                >链上过户</el-button>
+                <span v-else>-</span>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
 
         <div class="pager">
           <el-pagination
@@ -291,74 +268,15 @@ onMounted(fetchOrders)
   font-weight: 700;
 }
 
-.table-wrap {
-  overflow-x: auto;
-}
-
-.styled-table {
-  width: 100%;
-  min-width: 1120px;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 13px;
-}
-
-.styled-table th,
-.styled-table td {
-  border: 1px solid #e1e6ef;
-  padding: 5px 4px;
-  text-align: center;
-  vertical-align: middle;
-  word-wrap: break-word;
-  overflow: hidden;
-  position: relative;
-  line-height: 1.3;
-  font-size: 12px;
+.orders-table {
+  --el-table-header-bg-color: #fff;
+  --el-table-border-color: #e9edf2;
   color: #22304f;
 }
 
-.styled-table th {
-  background: #f8fafc;
-  color: #3d4b66;
-  font-weight: 700;
-  font-size: 12px;
-  white-space: nowrap;
-  border-bottom: 2px solid #dde4ee;
-}
-
-.styled-table th:nth-child(1) { width: 110px; }
-.styled-table th:nth-child(2) { width: 132px; }
-.styled-table th:nth-child(3) { width: 88px; }
-.styled-table th:nth-child(4) { width: 82px; }
-.styled-table th:nth-child(5) { width: 72px; }
-.styled-table th:nth-child(6) { width: 138px; }
-.styled-table th:nth-child(7) { width: 138px; }
-.styled-table th:nth-child(8) { width: 62px; }
-.styled-table th:nth-child(9) { width: 66px; }
-
-.styled-table td {
-  background: #fff;
-}
-
-.styled-table tbody tr:nth-of-type(odd) td {
-  background: #fff;
-}
-
-.styled-table tbody tr:nth-of-type(even) td {
-  background: #ffffff;
-}
-
-.table-hover-row tbody tr:hover td {
-  background: #f5f7fa;
-  transition: background-color 0.2s ease;
-}
-
-.truncate-cell {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: left;
-  padding: 0 4px;
+.orders-table :deep(.el-table__header th) {
+  color: #46546b;
+  font-weight: 600;
 }
 
 .row-actions {

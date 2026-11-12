@@ -1315,7 +1315,7 @@ onMounted(async () => {
   width: 100%;
   display: flex;
   justify-content: center;
-  background: #f5f7fb;
+  background: #fff;
 
   .register-page {
     padding: 16px 20px;
@@ -1326,9 +1326,11 @@ onMounted(async () => {
 }
 
 .register-card {
-  border-radius: 10px;
-  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
-  border: none;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, #d6dae1, #f2f3f5 55%, #d3d8e0) border-box;
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.04);
 
   :deep(.el-card__header) {
     padding: 14px 18px;
@@ -1354,9 +1356,10 @@ onMounted(async () => {
 
 .form-section {
   padding: 16px;
-  border: 1px solid #e7edf8;
-  border-radius: 8px;
-  background: #fbfcff;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #d8dde4, #f0f1f3 50%, #d8dde4) border-box;
 }
 
 .section-title {
@@ -1383,9 +1386,9 @@ onMounted(async () => {
 .cover-box {
   width: 160px;
   height: 160px;
-  border: 1px dashed #c8d7f0;
+  border: 1px dashed #cbd0d8;
   border-radius: 8px;
-  background: #f8fbff;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1472,7 +1475,7 @@ onMounted(async () => {
   margin-right: 12px;
   border: 1px solid #7ea6d8;
   border-radius: 6px;
-  background: #f4f8ff;
+  background: #fff;
   color: #2f59d9;
   font-size: 13px;
   font-weight: 500;
@@ -1482,7 +1485,7 @@ onMounted(async () => {
 
 .native-file-input:hover::file-selector-button {
   border-color: #5b8def;
-  background: #eaf2ff;
+  background: #fff;
 }
 
 .asset-file-row {
@@ -1564,13 +1567,15 @@ onMounted(async () => {
   min-height: 32px;
   padding: 0 10px;
   border-radius: 4px;
-  background: #eef3ff;
+  border: 1px solid #e3e7ed;
+  background: #fff;
   color: #2f59d9;
   font-size: 13px;
 }
 
 .result-chip--warn {
-  background: #fff4e8;
+  border-color: #ece6dc;
+  background: #fff;
   color: #c97a16;
 }
 
@@ -1672,7 +1677,7 @@ onMounted(async () => {
   padding: 12px;
   border: 1px solid #e7edf8;
   border-radius: 8px;
-  background: #fbfcff;
+  background: #fff;
 }
 
 .valuation-result-title {
@@ -1686,8 +1691,9 @@ onMounted(async () => {
   margin: 0;
   padding: 12px;
   border-radius: 6px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #fff;
+  border: 1px solid #e3e7ed;
+  color: #334155;
   font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -1733,7 +1739,7 @@ onMounted(async () => {
   padding: 12px 14px;
   border: 1px solid #e7edf8;
   border-radius: 8px;
-  background: #fbfcff;
+  background: #fff;
 
   & + & {
     margin-top: 12px;
@@ -1754,17 +1760,20 @@ onMounted(async () => {
 }
 
 .status-icon--pending {
-  background: #eef3ff;
+  background: #fff;
+  border: 1px solid #dbe5f5;
   color: #2f59d9;
 }
 
 .status-icon--success {
-  background: #eaf8ef;
+  background: #fff;
+  border: 1px solid #dcefe2;
   color: #1f9d55;
 }
 
 .status-icon--error {
-  background: #fdecee;
+  background: #fff;
+  border: 1px solid #f3dfe2;
   color: #d24d57;
 }
 
@@ -1804,7 +1813,7 @@ onMounted(async () => {
   margin-top: 14px;
   padding: 12px 14px;
   border-radius: 8px;
-  background: #f6f8fc;
+  background: #fff;
   border: 1px solid #e7edf8;
 }
 

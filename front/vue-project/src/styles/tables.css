@@ -3,6 +3,10 @@ table {
   background-color: #fff;
 }
 
+table tbody td {
+  background-color: #fff;
+}
+
 .el-table {
   --el-table-bg-color: #fff;
   --el-table-tr-bg-color: #fff;

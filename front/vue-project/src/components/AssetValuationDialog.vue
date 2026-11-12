@@ -770,15 +770,15 @@ watch(
 }
 
 .valuation-method-box {
-  border: 1px solid rgba(17, 94, 89, 0.14);
+  border: 1px solid #d9dee6;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
+  background: #fff;
   margin-bottom: 10px;
   overflow: hidden;
 }
 
 .valuation-method-box[open] {
-  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12);
+  box-shadow: inset 0 0 0 1px #eef0f3;
 }
 
 .valuation-method-box summary {
@@ -787,8 +787,8 @@ watch(
   padding: 10px 12px;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(90deg, rgba(15, 118, 110, 0.09), rgba(240, 140, 52, 0.08));
-  border-bottom: 1px solid rgba(17, 94, 89, 0.15);
+  background: #fff;
+  border-bottom: 1px solid #e5e9ef;
 }
 
 .valuation-method-box summary::-webkit-details-marker {
@@ -855,14 +855,14 @@ watch(
   font-size: 13px;
   border-radius: 999px;
   color: #166534;
-  background: rgba(22, 101, 52, 0.1);
+  background: #fff;
   border: 1px solid rgba(22, 101, 52, 0.2);
 }
 
 .valuation-result-status.has-errors {
   color: #b91c1c;
   border-color: rgba(185, 28, 28, 0.24);
-  background: rgba(185, 28, 28, 0.08);
+  background: #fff;
 }
 
 .valuation-result-wrap {
@@ -918,7 +918,7 @@ watch(
 }
 
 .valuation-note-row td {
-  background: #fcf7ef;
+  background: #fff;
   color: #6c4f2d;
   font-size: 13px;
 }
