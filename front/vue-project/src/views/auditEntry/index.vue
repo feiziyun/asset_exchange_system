@@ -34,8 +34,10 @@ const openAuditPlatform = async () => {
     let url = ''
     if (target === 'HUB') {
       const res = await startPamEntry()
-      url = res.data?.entry_url || ''
-      if (!url) throw new Error(res.data?.error || res.data?.message || '审计平台未返回跳转地址')
+      const path = res.data?.handoff_url || ''
+      if (!path) throw new Error(res.data?.error || res.data?.message || '交易系统未返回审计交接地址')
+      const launchOrigin = import.meta.env.VITE_AUDIT_LAUNCH_ORIGIN || window.location.origin
+      url = new URL(path, launchOrigin).toString()
     } else if (target.startsWith('NODE:')) {
       const res = await createPamNodeTicket(target.slice(5))
       const path = res.data?.url || ''

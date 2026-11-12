@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../jwt_config');
 const auditConfig = require('../config/audit.json');
@@ -8,6 +9,8 @@ const HUB_API_BASE_URL = auditConfig.hubApiBaseUrl || process.env.HUB_API_BASE_U
 const HUB_TRADING_TOKEN = auditConfig.hubTradingToken || process.env.HUB_TRADING_TOKEN || '';
 const ENTRY_COOKIE = 'bupt_pam_trade_entry';
 const ENTRY_COOKIE_TTL_MS = 300000;
+const HANDOFF_TTL_MS = 60000;
+const handoffs = new Map();
 
 const allowedIdentity = (identity) => identity === 'auditor' || identity === 'admin';
 
@@ -76,7 +79,36 @@ exports.startPamEntry = async (req, res) => {
     maxAge: ENTRY_COOKIE_TTL_MS,
   });
   if (req.method === 'GET') return res.redirect(303, entryUrl.toString());
-  return res.json({ message: '审计平台跳转地址已生成', entry_url: entryUrl.toString() });
+  // The browser must receive the cookie from the same host used by the Hub
+  // authorization callback. A one-use handoff lets it navigate there first.
+  for (const [key, item] of handoffs) {
+    if (item.expiresAt < Date.now()) handoffs.delete(key);
+  }
+  const handoff = crypto.randomBytes(24).toString('hex');
+  handoffs.set(handoff, { token, entryUrl: entryUrl.toString(), expiresAt: Date.now() + HANDOFF_TTL_MS });
+  return res.json({
+    message: '审计平台跳转地址已生成',
+    entry_url: entryUrl.toString(),
+    handoff_url: `/api/pam/entry-continue?ticket=${handoff}`,
+  });
+};
+
+exports.continuePamEntry = (req, res) => {
+  const ticket = String(req.query?.ticket || '');
+  const handoff = handoffs.get(ticket);
+  handoffs.delete(ticket);
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  if (!handoff || handoff.expiresAt < Date.now()) {
+    return res.status(400).send('审计入口已过期，请返回交易系统重新进入');
+  }
+  res.cookie(ENTRY_COOKIE, handoff.token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: ENTRY_COOKIE_TTL_MS,
+  });
+  return res.redirect(303, handoff.entryUrl);
 };
 
 exports.getPamNodes = async (req, res) => {
