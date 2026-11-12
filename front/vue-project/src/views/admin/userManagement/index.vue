@@ -10,24 +10,21 @@
         <el-button type="primary" @click="openCreateDialog">新增用户</el-button>
       </div>
 
-      <el-table :data="userList" :fit="selectedType !== 'auditor'" style="width: 100%" v-loading="loading" empty-text="暂无用户">
-        <el-table-column prop="id" label="ID" :width="selectedType === 'auditor' ? 80 : 100" />
-        <el-table-column prop="account" label="账号" :width="selectedType === 'auditor' ? 160 : 180" show-overflow-tooltip />
-        <el-table-column label="身份" :width="selectedType === 'auditor' ? 100 : undefined" :min-width="selectedType === 'auditor' ? undefined : 160">
+      <el-table :data="userList" style="width: 100%" v-loading="loading" empty-text="暂无用户">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="account" label="账号" width="180" show-overflow-tooltip />
+        <el-table-column label="身份" width="100">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
-        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" width="210" show-overflow-tooltip>
-          <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" :width="selectedType === 'auditor' ? 100 : undefined" :min-width="selectedType === 'auditor' ? undefined : 120">
+        <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '正常' : '冻结' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" :width="selectedType === 'auditor' ? 190 : undefined" :min-width="selectedType === 'auditor' ? undefined : 200">
+        <el-table-column label="创建时间" min-width="200">
           <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
         </el-table-column>
-        <el-table-column label="操作" :width="selectedType === 'auditor' ? 330 : 390" fixed="right" class-name="actions-column">
+        <el-table-column label="操作" width="330" fixed="right" class-name="actions-column">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleViewDetail(row)">查看详情</el-button>
             <el-button link type="primary" size="small" :disabled="row.identity === 'admin' || updatingRoleId === row.id" @click="openRoleEditor(row)">更改用户身份</el-button>
@@ -56,7 +53,6 @@
         <el-descriptions-item label="姓名">{{ currentDetail.name || '-' }}</el-descriptions-item>
         <el-descriptions-item label="身份">{{ identityLabel(currentDetail.identity) }}</el-descriptions-item>
         <el-descriptions-item label="部门">{{ currentDetail.department || '-' }}</el-descriptions-item>
-        <el-descriptions-item v-if="currentDetail.identity === 'auditor'" label="审计入口">{{ targetLabel(currentDetail.auditor_target) }}</el-descriptions-item>
         <el-descriptions-item label="性别">
           {{ currentDetail.sex === 'M' ? '男' : currentDetail.sex === 'F' ? '女' : '-' }}
         </el-descriptions-item>
@@ -149,7 +145,7 @@ const loading = ref(false)
 const loadError = ref('')
 const auditorTargetReady = ref(true)
 const userList = ref([])
-const selectedType = ref('ordinary')
+const selectedType = ref('all')
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
@@ -176,6 +172,7 @@ const stats = ref({
   auditor: 0,
 })
 const userTypes = computed(() => [
+  { value: 'all', label: '全部用户', count: Number(stats.value.total) },
   { value: 'ordinary', label: '普通用户', count: Number(stats.value.buyer) + Number(stats.value.seller) },
   { value: 'admin', label: '管理员', count: Number(stats.value.admin) },
   { value: 'regulator', label: '监管用户', count: Number(stats.value.regulator) },
@@ -202,15 +199,6 @@ const roleDialogVisible = ref(false)
 const roleEdit = ref({ id: 0, account: '', identity: '', auditor_target: '' })
 let userListRequestId = 0
 const nodeLabel = (node) => `${node.node_name || node.node_id}${node.online ? '' : '（离线）'}`
-const targetLabel = (target) => {
-  if (target === 'HUB') return '全局审计总览（Hub）'
-  if (String(target || '').startsWith('NODE:')) {
-    const id = String(target).slice(5)
-    const node = auditNodes.value.find((item) => item.node_id === id)
-    return node ? nodeLabel(node) : id
-  }
-  return '未分配'
-}
 const fetchAuditNodes = async () => {
   try {
     const res = await getAuditNodes()
@@ -277,7 +265,7 @@ const fetchUserList = async () => {
       page: currentPage.value,
       pageSize: pageSize.value
     }
-    params.identity = selectedType.value
+    if (selectedType.value !== 'all') params.identity = selectedType.value
 
     const res = await getUserList(params)
     if (requestId !== userListRequestId) return

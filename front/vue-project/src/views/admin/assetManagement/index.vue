@@ -52,7 +52,6 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="asset_name" label="资产名称" min-width="200" />
         <el-table-column prop="category_name" label="分类" width="160" />
-        <el-table-column prop="region_name" label="地区" width="120" />
         <el-table-column prop="price" label="价格" width="120">
           <template #default="{ row }">
             ¥{{ formatPrice(row.price) }}
