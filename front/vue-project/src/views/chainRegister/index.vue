@@ -1626,32 +1626,56 @@ onMounted(async () => {
   gap: 10px;
 }
 
-/* 资产登记的选择控件使用柔和的中性灰。 */
+/* 保留原生单选、多选形状，选中时用小勾提示。 */
 .register-form :deep(.el-radio),
 .register-form :deep(.el-checkbox) {
-  color: #596273;
+  color: #4b5563;
 }
 
 .register-form :deep(.el-radio__inner),
 .register-form :deep(.el-checkbox__inner) {
   background: #fff;
-  border-color: #bec5cf;
+  border-color: #c4cbd2;
+}
+
+.register-form :deep(.el-radio__inner) {
+  width: 16px;
+  height: 16px;
+}
+
+.register-form :deep(.el-checkbox__inner) {
+  width: 16px;
+  height: 16px;
 }
 
 .register-form :deep(.el-radio:not(.is-disabled):hover .el-radio__inner),
 .register-form :deep(.el-checkbox:not(.is-disabled):hover .el-checkbox__inner) {
-  border-color: #8994a3;
+  border-color: #7890a0;
 }
 
 .register-form :deep(.el-radio__input.is-checked .el-radio__inner),
 .register-form :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
-  background: #8792a1;
-  border-color: #8792a1;
+  background: #fff;
+  border-color: #7890a0;
+}
+
+.register-form :deep(.el-radio__input.is-checked .el-radio__inner::after) {
+  width: 4px;
+  height: 8px;
+  border: solid #607f92;
+  border-width: 0 2px 2px 0;
+  border-radius: 0;
+  background: transparent;
+  transform: translate(-50%, -62%) rotate(45deg);
+}
+
+.register-form :deep(.el-checkbox__input.is-checked .el-checkbox__inner::after) {
+  border-color: #607f92;
 }
 
 .register-form :deep(.el-radio__input.is-checked + .el-radio__label),
 .register-form :deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
-  color: #4a5565;
+  color: #374151;
 }
 
 .register-form :deep(.el-radio__input.is-disabled .el-radio__inner),
@@ -1661,7 +1685,7 @@ onMounted(async () => {
 }
 
 .register-form :deep(.el-switch) {
-  --el-switch-on-color: #8792a1;
+  --el-switch-on-color: #7890a0;
   --el-switch-off-color: #cbd1d9;
 }
 
