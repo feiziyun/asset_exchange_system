@@ -1,4 +1,3 @@
-const crypto = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../jwt_config');
 const auditConfig = require('../config/audit.json');
@@ -7,10 +6,8 @@ const pamNodes = require('../service/pamNodes');
 const HUB_WEB_ORIGIN = auditConfig.hubWebOrigin || process.env.HUB_WEB_ORIGIN || '';
 const HUB_API_BASE_URL = auditConfig.hubApiBaseUrl || process.env.HUB_API_BASE_URL || '';
 const HUB_TRADING_TOKEN = auditConfig.hubTradingToken || process.env.HUB_TRADING_TOKEN || '';
-const ENTRY_COOKIE = 'bupt_pam_trade_entry';
+const ENTRY_COOKIE = 'pam_trade_entry';
 const ENTRY_COOKIE_TTL_MS = 300000;
-const HANDOFF_TTL_MS = 60000;
-const handoffs = new Map();
 
 const allowedIdentity = (identity) => identity === 'auditor' || identity === 'admin';
 
@@ -65,7 +62,8 @@ exports.startPamEntry = async (req, res) => {
     return res.status(503).json({ error: '审计平台跳转未配置，请联系管理员' });
   }
 
-  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  const token = String(req.headers.authorization || req.body?.token || req.query?.token || '')
+    .replace(/^Bearer\s+/i, '').trim();
   if (!token) return res.status(401).json({ error: '缺少登录令牌' });
 
   const entryUrl = new URL('/entry/start', `${HUB_WEB_ORIGIN.replace(/\/$/, '')}/`);
@@ -79,36 +77,7 @@ exports.startPamEntry = async (req, res) => {
     maxAge: ENTRY_COOKIE_TTL_MS,
   });
   if (req.method === 'GET') return res.redirect(303, entryUrl.toString());
-  // The browser must receive the cookie from the same host used by the Hub
-  // authorization callback. A one-use handoff lets it navigate there first.
-  for (const [key, item] of handoffs) {
-    if (item.expiresAt < Date.now()) handoffs.delete(key);
-  }
-  const handoff = crypto.randomBytes(24).toString('hex');
-  handoffs.set(handoff, { token, entryUrl: entryUrl.toString(), expiresAt: Date.now() + HANDOFF_TTL_MS });
-  return res.json({
-    message: '审计平台跳转地址已生成',
-    entry_url: entryUrl.toString(),
-    handoff_url: `/api/pam/entry-continue?ticket=${handoff}`,
-  });
-};
-
-exports.continuePamEntry = (req, res) => {
-  const ticket = String(req.query?.ticket || '');
-  const handoff = handoffs.get(ticket);
-  handoffs.delete(ticket);
-  res.set('Cache-Control', 'no-store');
-  res.set('Referrer-Policy', 'no-referrer');
-  if (!handoff || handoff.expiresAt < Date.now()) {
-    return res.status(400).send('审计入口已过期，请返回交易系统重新进入');
-  }
-  res.cookie(ENTRY_COOKIE, handoff.token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: ENTRY_COOKIE_TTL_MS,
-  });
-  return res.redirect(303, handoff.entryUrl);
+  return res.json({ message: '审计平台跳转地址已生成', entry_url: entryUrl.toString() });
 };
 
 exports.getPamNodes = async (req, res) => {
@@ -177,7 +146,15 @@ exports.authorizePamEntry = async (req, res) => {
   if (!requestId) return res.status(400).send('缺少 request_id');
 
   const token = readEntryCookie(req.headers.cookie);
-  if (!token) return res.status(401).send('缺少交易交接凭据，请重新从交易系统进入');
+  if (!token) {
+    console.error('[PAM] 授权回调缺少交易交接凭据', {
+      host: req.headers.host,
+      forwardedHost: req.headers['x-forwarded-host'],
+      protocol: req.headers['x-forwarded-proto'] || req.protocol,
+      cookieNames: String(req.headers.cookie || '').split(';').map((part) => part.split('=')[0].trim()).filter(Boolean),
+    });
+    return res.status(401).send('缺少交易交接凭据，请重新从交易系统进入');
+  }
 
   let claims;
   try {

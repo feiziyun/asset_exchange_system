@@ -1,8 +1,11 @@
 import request from '@/http/index.js'
 
-// The Hub handoff and node launch navigate to the public backend origin.
-// API requests stay on the configured API origin so HTTPS pages can use a proxy.
-const auditRequestConfig = () => ({ withCredentials: true })
+// Hub follows the reference flow: set the cookie on the public trading backend,
+// whose host must also receive the Hub authorization callback.
+const auditRequestConfig = () => ({
+  ...(import.meta.env.VITE_AUDIT_LAUNCH_ORIGIN ? { baseURL: import.meta.env.VITE_AUDIT_LAUNCH_ORIGIN } : {}),
+  withCredentials: true,
+})
 
 export const startPamEntry = (pccContractId = '') => {
   return request.post('/api/pam/entry-start',

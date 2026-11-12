@@ -80,7 +80,6 @@ app.use(
       /^\/api\/transaction-supervision(?:\/|$)/,
       /^\/api\/regulator(?:\/|$)/,
       '/api/pam/entry-start',
-      '/api/pam/entry-continue',
       '/api/pam/node-ticket',
       '/api/pam/nodes',
       '/api/pam/authorize',
