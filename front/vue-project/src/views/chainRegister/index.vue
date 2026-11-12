@@ -51,10 +51,11 @@
 	                    <input
 	                      ref="sourceFileInputRef"
 	                      type="file"
-	                      class="native-file-input native-file-input--compact"
-	                      @click="resetSourceFileInput"
+	                      class="hidden-file-input"
 	                      @change="onSourceFileSelected"
 	                    />
+	                    <el-button type="primary" class="market-search-button" @click="triggerSourceFileSelect">选择文件</el-button>
+	                    <span v-if="sourceFile" class="selected-file-name" :title="sourceFile.name">{{ sourceFile.name }}</span>
 	                    <span v-if="fileSizeText" class="field-inline-tip field-inline-tip--inline file-size-inline">
 	                      文件大小：{{ fileSizeText }}
 	                    </span>
@@ -69,8 +70,8 @@
                     数字指纹已生成
                   </span>
                   <el-button
-                    class="register-action-button"
-                    plain
+                    class="market-search-button"
+                    type="primary"
                     :loading="similarityChecking"
                     @click="runOmniPrintSimilarityCheck"
                   >
@@ -88,11 +89,9 @@
                     />
                   </el-select>
                   <el-button
-                    class="register-action-button"
+                    class="market-search-button"
                     type="primary"
-                    plain
                     :loading="classifying"
-                    :disabled="!canClassify"
                     @click="runClassification"
                   >
                     {{ classifying ? '分类中...' : '分类分级' }}
@@ -186,7 +185,7 @@
                     style="width: 220px"
                     @change="normalizeRegisterAuctionPrice"
                   />
-                  <el-button class="register-action-button" plain @click="openValuationDialog">资产估值</el-button>
+                  <el-button type="primary" class="market-search-button" @click="openValuationDialog">资产估值</el-button>
                   <span v-if="form.pricing_mode === 'auction'" class="field-inline-tip field-inline-tip--inline">
                     资产估值将作为起拍价
                   </span>
@@ -735,13 +734,8 @@ const refreshSubCategoryOptions = async () => {
   }
 }
 
-const canClassify = computed(() => Boolean(
-  String(form.asset_name || '').trim() &&
-  String(form.description || '').trim() &&
-  String(form.classification_method_name || '').trim(),
-))
 const fileSizeText = computed(() => {
-  const size = Number(form.file_size || 0)
+  const size = Number(sourceFile.value?.size || form.file_size || 0)
   if (!size) return ''
   if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`
   if (size >= 1024) return `${(size / 1024).toFixed(2)} KB`
@@ -943,16 +937,24 @@ const runOmniPrintSimilarityCheck = async () => {
 }
 
 const runClassification = async () => {
-  if (!canClassify.value) {
-    ElMessage.warning('请先选择分类分级方法，并填写资产名称和资产介绍')
+  const methodName = String(form.classification_method_name || '').trim()
+  if (!methodName) {
+    ElMessage.warning('请先选择分类分级方法')
+    return
+  }
+  const text = [form.asset_name, form.description]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join('。')
+  if (text.length < 2) {
+    ElMessage.warning('请填写资产名称或资产介绍，再进行分类分级')
     return
   }
 
   classifying.value = true
   try {
-    const text = `${String(form.asset_name || '').trim()}。${String(form.description || '').trim()}`
     const res: any = await classifyAsset({
-      method_name: form.classification_method_name,
+      method_name: methodName,
       text,
     })
     const data = res?.data?.data || {}
@@ -991,10 +993,10 @@ const onSourceFileSelected = async (event: Event) => {
   sourceFile.value = file
 }
 
-const resetSourceFileInput = (event: MouseEvent) => {
-  const target = event.target as HTMLInputElement
-  // 允许重复选择同一个文件时仍触发 change。
-  target.value = ''
+const triggerSourceFileSelect = () => {
+  if (!sourceFileInputRef.value) return
+  sourceFileInputRef.value.value = ''
+  sourceFileInputRef.value.click()
 }
 
 const onPictureSelected = (event: Event) => {
@@ -1463,31 +1465,6 @@ onMounted(async () => {
   width: 100%;
 }
 
-.native-file-input {
-  width: 100%;
-  font-size: 13px;
-  color: #35507f;
-}
-
-.native-file-input::file-selector-button {
-  height: 32px;
-  padding: 0 14px;
-  margin-right: 12px;
-  border: 1px solid #7ea6d8;
-  border-radius: 6px;
-  background: #fff;
-  color: #2f59d9;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.native-file-input:hover::file-selector-button {
-  border-color: #5b8def;
-  background: #fff;
-}
-
 .asset-file-row {
   display: flex;
   align-items: center;
@@ -1496,9 +1473,22 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-.native-file-input--compact {
-  flex: 0 1 360px;
-  min-width: 0;
+.selected-file-name {
+  max-width: 280px;
+  overflow: hidden;
+  color: #455468;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-search-button {
+  min-width: 80px;
+  height: 32px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .file-size-inline {

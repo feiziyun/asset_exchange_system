@@ -100,44 +100,26 @@
           <template #header>
             <div class="section-title">个人资料管理</div>
           </template>
-          <el-form :model="profileForm" label-width="88px" class="profile-form">
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="账号">
-                  <el-input v-model="profileForm.account" disabled />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="角色">
-                  <el-input :model-value="roleLabel" disabled />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="姓名">
-                  <el-input v-model="profileForm.name" placeholder="请输入姓名" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="邮箱">
-                  <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-row :gutter="12">
-              <el-col :span="12">
-                <el-form-item label="性别">
-                  <el-select v-model="profileForm.gender" style="width: 100%">
-                    <el-option label="未知" value="未知" />
-                    <el-option label="男" value="男" />
-                    <el-option label="女" value="女" />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
+          <el-form :model="profileForm" label-width="88px" class="profile-form account-fields">
+            <el-form-item label="账号">
+              <el-input v-model="profileForm.account" disabled />
+            </el-form-item>
+            <el-form-item label="角色">
+              <el-input :model-value="roleLabel" disabled />
+            </el-form-item>
+            <el-form-item label="姓名">
+              <el-input v-model="profileForm.name" placeholder="请输入姓名" />
+            </el-form-item>
+            <el-form-item label="邮箱">
+              <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
+            </el-form-item>
+            <el-form-item label="性别">
+              <el-select v-model="profileForm.gender" style="width: 100%">
+                <el-option label="未知" value="未知" />
+                <el-option label="男" value="男" />
+                <el-option label="女" value="女" />
+              </el-select>
+            </el-form-item>
 
             <el-form-item>
               <el-button type="primary" @click="saveProfile">保存资料</el-button>
@@ -149,24 +131,16 @@
           <template #header>
             <div class="section-title">密码管理</div>
           </template>
-          <el-form :model="passwordForm" label-width="88px" class="profile-form">
-            <el-row :gutter="12">
-              <el-col :span="8">
-                <el-form-item label="旧密码">
-                  <el-input v-model="passwordForm.oldPassword" show-password />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="新密码">
-                  <el-input v-model="passwordForm.newPassword" show-password />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="确认密码">
-                  <el-input v-model="passwordForm.confirmPassword" show-password />
-                </el-form-item>
-              </el-col>
-            </el-row>
+          <el-form :model="passwordForm" label-width="88px" class="profile-form account-fields">
+            <el-form-item label="旧密码">
+              <el-input v-model="passwordForm.oldPassword" type="password" show-password />
+            </el-form-item>
+            <el-form-item label="新密码">
+              <el-input v-model="passwordForm.newPassword" type="password" show-password />
+            </el-form-item>
+            <el-form-item label="确认密码">
+              <el-input v-model="passwordForm.confirmPassword" type="password" show-password />
+            </el-form-item>
             <el-form-item>
               <el-button type="warning" @click="savePassword">修改密码</el-button>
             </el-form-item>
@@ -680,6 +654,8 @@ onMounted(() => {
 }
 
 .wallet-card { margin-bottom: 12px; }
+.account-fields { width: 100%; max-width: 420px; }
+.account-fields :deep(.el-form-item__content) { min-width: 0; }
 .wallet-amount { font-size: 24px; font-weight: 600; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
 .recharge-content { display: flex; align-items: center; flex-direction: column; gap: 10px; }
 .ledger-pages { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 12px; }
