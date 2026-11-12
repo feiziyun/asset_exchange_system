@@ -1060,6 +1060,7 @@ const openValuationDialog = () => {
 const valuationAsset = computed(() => ({
   id: undefined,
   asset_name: form.asset_name,
+  asset_type: form.classification_data_level,
   description: form.description,
   file_hash: form.file_hash,
   price: form.price,

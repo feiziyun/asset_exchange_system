@@ -132,7 +132,7 @@
       <div class="button-container">
         <el-button
           type="primary"
-          :disabled="valuationSaving || !valuationMethodResults.length || valuationMethodResults[0].valuation === null"
+          :disabled="valuationSaving || valuationCalculating || !valuationMethodResults.length || (valuationMethodResults[0].valuation === null && !valuationResultDetail?.valuationLevel)"
           :loading="valuationSaving"
           @click="saveCurrentValuationRecord"
         >
@@ -153,6 +153,7 @@ import { saveAssetValuationRecord } from '@/api/asset'
 type AssetLike = {
   id?: number
   asset_name?: string
+  asset_type?: string
   description?: string
   file_hash?: string
   price?: number
@@ -177,7 +178,6 @@ const dialogVisible = computed({
 })
 
 const valuationMethodOptions = [
-  { value: 'ml_qwen_opensea', label: 'Qwen增强机器学习估值' },
   { value: 'cost', label: '成本法' },
   { value: 'income', label: '收益法' },
   { value: 'market', label: '市场法' },
@@ -186,6 +186,7 @@ const valuationMethodOptions = [
   { value: 'technical', label: '技术分析法' },
   { value: 'dcf', label: 'DCF估值法' },
   { value: 'ahp', label: '层次分析法(AHP)' },
+  { value: 'ml_qwen_opensea', label: 'Qwen增强机器学习估值' },
 ]
 
 const valuationSections = [
@@ -338,12 +339,17 @@ const lastValuationInputSnapshot = ref<Record<string, any> | null>(null)
 const valuationModelApiUrl =
   import.meta.env.VITE_VALUATION_MODEL_API_URL ||
   (typeof window !== 'undefined' && (window as any).__VALUATION_MODEL_API_URL__) ||
-  'http://127.0.0.1:8039/predict'
+  'http://10.112.191.163:8039/predict'
 
 const selectedValuationSection = computed(() => valuationSections.find((item) => item.method === selectedValuationMethod.value) || null)
 const isMlQwenResult = computed(() => selectedValuationMethod.value === 'ml_qwen_opensea')
 const formatNum = (value: number, digits = 2) => Number(value).toFixed(digits)
 const formatPercent = (value: number) => `${(value * 100).toFixed(2)}%`
+const valuationToYuan = (value: number, unit = '万元') => {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return null
+  return Number((numeric * (String(unit).includes('万') ? 10000 : 1)).toFixed(2))
+}
 
 const resetValuationToDefaults = () => {
   Object.assign(params, valuationDefaults)
@@ -540,7 +546,7 @@ const submitValuation = async () => {
     const payload = {
       fileHash: props.asset?.file_hash || '',
       assetName: inputSnapshot.openseaAssetName || props.asset?.asset_name || '',
-      assetType: '',
+      assetType: props.asset?.asset_type || '',
       description: inputSnapshot.openseaDescription || props.asset?.description || '',
       methodKey: selectedValuationMethod.value,
       inputSnapshot,
@@ -586,8 +592,13 @@ const submitValuation = async () => {
       }]
       valuationHasErrors.value = false
       valuationResultStatus.value = `${selectedMethodLabel}完成，结果已更新`
-      if (valuation !== null) emit('price-updated', valuation)
-      ElMessage.success(`${selectedMethodLabel}完成`)
+      if (valuation !== null) {
+        const priceYuan = valuationToYuan(valuation, valuationResultDetail.value.valuationUnit)
+        if (priceYuan !== null) emit('price-updated', priceYuan)
+        ElMessage.success(`${selectedMethodLabel}完成，已写入资产估值`)
+      } else {
+        ElMessage.success(`${selectedMethodLabel}完成`)
+      }
     } catch (error: any) {
       const message = error?.response?.data?.message || error?.message || '服务器模型服务不可用或服务异常'
       lastValuationInputSnapshot.value = inputSnapshot
@@ -612,7 +623,10 @@ const submitValuation = async () => {
   lastValuationInputSnapshot.value = getSelectedMethodInputSnapshot()
   valuationResultStatus.value = hasError ? `${getMethodLabel(selectedValuationMethod.value)}输入存在错误，请按提示修正` : `${getMethodLabel(selectedValuationMethod.value)}计算完成，结果已更新`
   const firstValid = valuationMethodResults.value.find((item) => item.valuation !== null && item.valuation !== undefined)
-  if (firstValid) emit('price-updated', Number(firstValid.valuation))
+  if (firstValid) {
+    const priceYuan = valuationToYuan(Number(firstValid.valuation), '万元')
+    if (priceYuan !== null) emit('price-updated', priceYuan)
+  }
   dialogVisible.value = false
   resultDialogVisible.value = true
   if (hasError) ElMessage.warning(`${getMethodLabel(selectedValuationMethod.value)}参数存在问题，请查看结果明细`)
@@ -639,6 +653,10 @@ const saveCurrentValuationRecord = async () => {
     return
   }
   const fileHash = props.asset?.file_hash || ''
+  if (!fileHash && !props.asset?.id) {
+    ElMessage.error('请先生成资产哈希，再保存估值记录')
+    return
+  }
   const payload = {
     asset_id: props.asset?.id || null,
     fileHash,
