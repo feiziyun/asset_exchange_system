@@ -16,13 +16,13 @@
         <el-table-column label="身份" width="100">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
-        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" width="210" show-overflow-tooltip>
-          <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
-        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '正常' : '冻结' }}</el-tag>
           </template>
+        </el-table-column>
+        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" width="190" show-overflow-tooltip>
+          <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
         </el-table-column>
         <el-table-column label="创建时间" min-width="200">
           <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
