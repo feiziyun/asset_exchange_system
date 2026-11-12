@@ -27,7 +27,7 @@
         <el-table-column label="创建时间" width="160">
           <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right" class-name="actions-column">
+        <el-table-column label="操作" width="300" fixed="right" class-name="actions-column">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" size="small" @click="handleViewDetail(row)">查看详情</el-button>
