@@ -66,7 +66,7 @@ exports.startPamEntry = async (req, res) => {
   if (!token) return res.status(401).json({ error: '缺少登录令牌' });
 
   const entryUrl = new URL('/entry/start', `${HUB_WEB_ORIGIN.replace(/\/$/, '')}/`);
-  const contractId = String(req.body?.pcc_contract_id || '').trim();
+  const contractId = String(req.body?.pcc_contract_id || req.query?.pcc_contract_id || '').trim();
   if (contractId) entryUrl.searchParams.set('pcc_contract_id', contractId);
 
   res.cookie(ENTRY_COOKIE, token, {
@@ -75,7 +75,21 @@ exports.startPamEntry = async (req, res) => {
     path: '/',
     maxAge: ENTRY_COOKIE_TTL_MS,
   });
+  if (req.method === 'GET') return res.redirect(303, entryUrl.toString());
   return res.json({ message: '审计平台跳转地址已生成', entry_url: entryUrl.toString() });
+};
+
+exports.getPamNodes = async (req, res) => {
+  if (!allowedIdentity(req.auth?.identity)) {
+    return res.status(403).json({ message: '当前账号没有访问权限' });
+  }
+  try {
+    const nodes = await pamNodes.fetchNodes(true);
+    return res.json({ nodes });
+  } catch (error) {
+    console.error('获取审计节点目录失败:', error);
+    return res.status(502).json({ message: '获取审计节点目录失败' });
+  }
 };
 
 exports.createNodeTicket = async (req, res) => {

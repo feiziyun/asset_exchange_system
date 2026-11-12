@@ -41,8 +41,8 @@ const fetchNodes = async () => {
   loading.value = true
   try {
     const res = await getAuditNodeCredentials()
-    if (res.data.status !== 0) throw new Error(res.data.message || '加载节点失败')
-    nodes.value = res.data.data?.nodes || []
+    if (!Array.isArray(res.data?.nodes)) throw new Error(res.data?.message || '加载节点失败')
+    nodes.value = res.data.nodes
     for (const node of nodes.value) forms[node.node_id] = { username: node.username || '', password: '' }
   } catch (error) {
     ElMessage.error(error?.response?.data?.message || error?.message || '加载节点失败')
@@ -58,7 +58,7 @@ const save = async (node) => {
   saving[node.node_id] = true
   try {
     const res = await saveAuditNodeCredentials(node.node_id, form)
-    if (res.data.status !== 0) throw new Error(res.data.message || '保存节点凭据失败')
+    if (res.data?.success !== true) throw new Error(res.data?.message || '保存节点凭据失败')
     ElMessage.success('节点凭据已保存')
     await fetchNodes()
   } catch (error) {

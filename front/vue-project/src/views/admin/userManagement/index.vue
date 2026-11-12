@@ -228,7 +228,7 @@ const targetLabel = (target) => {
 const fetchAuditNodes = async () => {
   try {
     const res = await getAuditNodes()
-    auditNodes.value = res.data?.data?.nodes || []
+    auditNodes.value = res.data?.nodes || []
   } catch (error) {
     ElMessage.error(error?.response?.data?.message || '获取审计节点失败')
   }

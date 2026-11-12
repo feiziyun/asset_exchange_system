@@ -9,7 +9,10 @@ const app = express();
 
 //CORS 是用来解决：浏览器“跨域请求”被拦截的问题
 const cors = require('cors');
-app.use(cors());
+const pamCors = cors({ origin: true, credentials: true });
+const defaultCors = cors();
+app.use((req, res, next) => req.path.startsWith('/api/pam/')
+  ? pamCors(req, res, next) : defaultCors(req, res, next));
 
 //导入body-parser
 var bodyParser = require('body-parser');
@@ -78,8 +81,10 @@ app.use(
       /^\/api\/regulator(?:\/|$)/,
       '/api/pam/entry-start',
       '/api/pam/node-ticket',
+      '/api/pam/nodes',
       '/api/pam/authorize',
       '/api/pam/node-launch',
+      /^\/api\/admin\/nodes(?:\/|$)/,
       '/api/alipay/notify',
       '/api/delegate-asset',
       '/api/revoke-delegation',
@@ -117,6 +122,7 @@ const assetRouter = require('./router/asset');
 const digitalContractRouter = require('./router/digitalContract');
 const certificateRouter = require('./router/certificate');
 const adminRouter = require('./router/admin');
+const adminHandler = require('./router_handle/admin');
 const auditRouter = require('./router/audit');
 const originalCompatRouter = require('./router/originalCompat');
 const transactionSupervisionRouter = require('./router/transactionSupervision');
@@ -145,7 +151,10 @@ app.use([
 ], businessJwt);
 app.use('/api/pam/entry-start', businessJwt);
 app.use('/api/pam/node-ticket', businessJwt);
+app.use('/api/pam/nodes', businessJwt);
 app.use('/api/pam', auditRouter);
+app.get('/api/admin/nodes', businessJwt, adminAuth, adminHandler.getAuditNodeCredentials);
+app.post('/api/admin/nodes/:nodeId/credentials', businessJwt, adminAuth, adminHandler.saveAuditNodeCredentials);
 app.use('/api/regulator', businessJwt, require('./router/regulatorProxy'));
 app.use('/api', originalCompatRouter);
 app.use('/api', businessJwt, require('./router/delegation'));

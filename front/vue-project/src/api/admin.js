@@ -22,9 +22,9 @@ export const updateUserIdentity = (id, identity, auditorTarget = '') => {
   return request.patch(`/admin/users/${id}/identity`, { identity, auditor_target: auditorTarget })
 }
 
-export const getAuditNodes = () => request.get('/admin/audit-nodes')
-export const getAuditNodeCredentials = () => request.get('/admin/audit-nodes/credentials')
-export const saveAuditNodeCredentials = (nodeId, data) => request.post(`/admin/audit-nodes/${encodeURIComponent(nodeId)}/credentials`, data)
+export const getAuditNodes = () => request.get('/api/pam/nodes')
+export const getAuditNodeCredentials = () => request.get('/api/admin/nodes')
+export const saveAuditNodeCredentials = (nodeId, data) => request.post(`/api/admin/nodes/${encodeURIComponent(nodeId)}/credentials`, data)
 
 // 获取链上信息
 export const getChainInfo = (params) => {

@@ -98,17 +98,20 @@ exports.getAuditNodes = async (_req, res) => {
   }
 };
 
-exports.getAuditNodeCredentials = async (_req, res) => {
+exports.getAuditNodeCredentials = async (req, res) => {
   try {
     const nodes = await pamNodes.fetchNodes(true);
     const [rows] = await pamNodes.pool.query('SELECT node_id, node_name, username, updated_at FROM pam_node_credentials');
     const byId = new Map(rows.map((row) => [row.node_id, row]));
-    return res.send({ status: 0, data: { nodes: nodes.map((node) => ({
+    const resultNodes = nodes.map((node) => ({
       ...node,
       has_credentials: byId.has(node.node_id),
       username: byId.get(node.node_id)?.username || '',
       credentials_updated_at: byId.get(node.node_id)?.updated_at || null,
-    })) } });
+    }));
+    return req.originalUrl.startsWith('/api/admin/nodes')
+      ? res.json({ nodes: resultNodes })
+      : res.send({ status: 0, data: { nodes: resultNodes } });
   } catch (error) {
     console.error('获取审计节点凭据状态失败:', error);
     return res.status(502).send({ status: 1, message: error.message || '获取审计节点失败' });
@@ -136,7 +139,9 @@ exports.saveAuditNodeCredentials = async (req, res) => {
       await pamNodes.pool.query('UPDATE pam_node_credentials SET node_name = ?, username = ? WHERE node_id = ?',
         [node.node_name || nodeId, username, nodeId]);
     }
-    return res.send({ status: 0, message: '节点凭据已保存' });
+    return req.originalUrl.startsWith('/api/admin/nodes')
+      ? res.json({ success: true, message: '节点凭据已保存' })
+      : res.send({ status: 0, message: '节点凭据已保存' });
   } catch (error) {
     console.error('保存审计节点凭据失败:', error);
     return res.status(500).send({ status: 1, message: error.message || '保存节点凭据失败' });
