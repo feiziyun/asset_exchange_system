@@ -27,11 +27,13 @@
         <el-table-column label="创建时间" width="160">
           <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="330" fixed="right" class-name="actions-column">
+        <el-table-column label="操作" width="200" fixed="right" class-name="actions-column">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleViewDetail(row)">查看详情</el-button>
-            <el-button link type="primary" size="small" :disabled="row.identity === 'admin' || updatingRoleId === row.id" @click="openRoleEditor(row)">更改用户身份</el-button>
-            <el-button link :type="row.status === 0 ? 'danger' : 'success'" size="small" :disabled="row.identity === 'admin'" @click="handleToggleStatus(row)">{{ row.status === 0 ? '冻结' : '解冻' }}</el-button>
+            <div class="action-buttons">
+              <el-button link type="primary" size="small" @click="handleViewDetail(row)">查看详情</el-button>
+              <el-button link type="primary" size="small" :disabled="row.identity === 'admin' || updatingRoleId === row.id" @click="openRoleEditor(row)">更改用户身份</el-button>
+              <el-button link :type="row.status === 0 ? 'danger' : 'success'" size="small" :disabled="row.identity === 'admin'" @click="handleToggleStatus(row)">{{ row.status === 0 ? '冻结' : '解冻' }}</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -420,8 +422,11 @@ onMounted(() => {
     justify-content: flex-end;
     margin-bottom: 16px;
   }
-  :deep(.actions-column .cell) {
-    white-space: nowrap;
+  .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    .el-button { margin: 0; }
   }
 }
 </style>
