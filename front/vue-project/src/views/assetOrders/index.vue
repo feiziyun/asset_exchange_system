@@ -2,7 +2,21 @@
   <div class="common-wrapped">
     <div class="orders-page">
       <header class="orders-header">
-        <h2 class="page-title">订单列表</h2>
+        <div class="header-main">
+          <h2 class="page-title">订单列表</h2>
+          <div class="header-search">
+            <el-input
+              v-model="searchInput"
+              placeholder="搜索订单号或资产名称"
+              clearable
+              @keyup.enter="onSearch"
+              @clear="onSearch"
+            >
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <el-button @click="onSearch">搜索</el-button>
+          </div>
+        </div>
         <div class="header-actions">
           <span class="order-count">共 {{ pagination.total }} 笔订单</span>
           <el-button type="primary" @click="fetchOrders">刷新</el-button>
@@ -41,7 +55,10 @@
               </div>
             </div>
             <div class="order-side">
-              <div class="order-price">{{ formatPrice(row.deal_price) }} <span>{{ row.price_unit || '人民币' }}</span></div>
+              <div class="order-price">
+                <span class="price-label">价格</span>
+                <strong>{{ formatPrice(row.deal_price) }} <span>{{ row.price_unit || '人民币' }}</span></strong>
+              </div>
               <el-button
                 v-if="isPendingOrder(row)"
                 type="primary"
@@ -79,6 +96,7 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { getOrderList, proxyTransfer, sellerConfirmOrder } from '@/api/asset'
 import { formatPrice } from '@/utils/price'
 
@@ -106,10 +124,13 @@ interface OrderItem {
 const loading = ref(false)
 const actionLoadingNo = ref('')
 const orders = ref<OrderItem[]>([])
+const searchInput = ref('')
+let ordersRequestId = 0
 
 const query = reactive({
   page: 1,
   page_size: 10,
+  keyword: '',
   order_role: 'seller',
 })
 
@@ -146,9 +167,11 @@ const buyerAddress = (order?: OrderItem | null) => {
 }
 
 const fetchOrders = async () => {
+  const requestId = ++ordersRequestId
   loading.value = true
   try {
-    const res = await getOrderList(query)
+    const res = await getOrderList({ ...query })
+    if (requestId !== ordersRequestId) return
     if (res.data.status === 0) {
       const list = res.data.data?.list || []
       orders.value = list
@@ -160,10 +183,17 @@ const fetchOrders = async () => {
       ElMessage.error(res.data.message || '获取订单失败')
     }
   } catch {
+    if (requestId !== ordersRequestId) return
     ElMessage.error('获取订单失败')
   } finally {
-    loading.value = false
+    if (requestId === ordersRequestId) loading.value = false
   }
+}
+
+const onSearch = () => {
+  query.keyword = searchInput.value.trim()
+  query.page = 1
+  fetchOrders()
 }
 
 const onPageChange = (page: number) => {
@@ -252,6 +282,29 @@ onMounted(fetchOrders)
 
 .orders-header h2 {
   margin: 0;
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-width: 0;
+}
+
+.header-main h2 {
+  flex-shrink: 0;
+}
+
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, 360px);
+}
+
+.header-search .el-input {
+  flex: 1;
+  min-width: 0;
 }
 
 .header-actions {
@@ -375,13 +428,21 @@ onMounted(fetchOrders)
 }
 
 .order-price {
-  color: #1f2328;
-  font-size: 18px;
-  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
   white-space: nowrap;
 }
 
-.order-price span {
+.order-price strong {
+  color: #1f2328;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.order-price .price-label,
+.order-price strong span {
   color: #57606a;
   font-size: 12px;
   font-weight: 400;
@@ -398,9 +459,32 @@ onMounted(fetchOrders)
   border-top: 1px solid #d8dee4;
 }
 
+.pager :deep(.el-pagination) {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 @media (max-width: 720px) {
   .orders-page {
     padding: 18px 12px 32px;
+  }
+
+  .orders-header {
+    flex-wrap: wrap;
+  }
+
+  .header-main {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header-search {
+    width: 100%;
+  }
+
+  .header-actions {
+    margin-left: auto;
   }
 
   .order-item {
