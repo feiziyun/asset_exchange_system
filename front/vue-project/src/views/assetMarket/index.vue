@@ -1145,7 +1145,9 @@ onMounted(async () => {
 
 .asset-title {
   margin: 0;
-  color: #243d85;
+  color: #0969da;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   font-size: 17px;
   white-space: nowrap;
   overflow: hidden;
@@ -1156,7 +1158,7 @@ onMounted(async () => {
     transform 0.18s ease;
 
   &:hover {
-    color: #3f6cf6;
+    color: #0550ae;
     transform: translateX(2px);
   }
 }

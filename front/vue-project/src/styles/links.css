@@ -1,0 +1,28 @@
+/* Text links in content areas follow GitHub's light theme link treatment. */
+#app .el-main a[href]:not(.el-button),
+#app .el-footer a[href]:not(.el-button),
+#app .el-dialog a[href]:not(.el-button),
+#app .el-drawer a[href]:not(.el-button),
+body .el-button.is-link:not(.is-disabled),
+body .el-button.is-text:not(.is-disabled) {
+  color: #0969da;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body .el-button.is-link:not(.is-disabled),
+body .el-button.is-text:not(.is-disabled) {
+  --el-button-text-color: #0969da;
+  --el-button-hover-text-color: #0550ae;
+  --el-button-hover-link-text-color: #0550ae;
+  --el-button-active-text-color: #0550ae;
+}
+
+#app .el-main a[href]:not(.el-button):hover,
+#app .el-footer a[href]:not(.el-button):hover,
+#app .el-dialog a[href]:not(.el-button):hover,
+#app .el-drawer a[href]:not(.el-button):hover,
+body .el-button.is-link:not(.is-disabled):hover,
+body .el-button.is-text:not(.is-disabled):hover {
+  color: #0550ae;
+}

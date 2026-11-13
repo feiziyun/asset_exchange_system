@@ -458,6 +458,8 @@ const Login = async () => {
             .forget-password-button {
               font-size: 13px;
               color: #0969da;
+              text-decoration: underline;
+              text-underline-offset: 3px;
               cursor: pointer;
             }
           }
@@ -472,6 +474,8 @@ const Login = async () => {
 
             .go-registet-button {
               color: #0969da;
+              text-decoration: underline;
+              text-underline-offset: 3px;
               cursor: pointer;
             }
           }
