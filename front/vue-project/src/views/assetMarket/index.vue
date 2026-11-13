@@ -1014,7 +1014,7 @@ onMounted(async () => {
     padding: 5px 0;
 
     & + .filter-row {
-      border-top: 1px solid #f0f2f8;
+      border-top: 1px solid #d8dee4;
     }
   }
 
@@ -1022,7 +1022,7 @@ onMounted(async () => {
     flex-shrink: 0;
     width: 104px;
     font-size: 13px;
-    color: #1f2328;
+    color: #57606a;
     font-weight: 600;
     white-space: nowrap;
   }
@@ -1036,25 +1036,22 @@ onMounted(async () => {
 
   .option-chip {
     padding: 3px 10px;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 13px;
-    color: #4a5a88;
+    color: #57606a;
     cursor: pointer;
-    transition: all 0.15s;
-    /* 未选中：无边框，背景透明 */
     border: 1px solid transparent;
     background: transparent;
 
     &:hover {
-      color: #3f6cf6;
-      background: #f0f4ff;
+      color: #1f2328;
+      background: #f6f8fa;
     }
 
-    /* 选中：显示边框 + 浅蓝背景 */
     &.active {
-      border-color: #3f6cf6;
-      background: #eef3ff;
-      color: #2a55da;
+      border-color: #d1d9e0;
+      background: #f6f8fa;
+      color: #1f2328;
       font-weight: 600;
     }
   }
