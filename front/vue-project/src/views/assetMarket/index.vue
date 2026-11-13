@@ -1134,7 +1134,7 @@ onMounted(async () => {
 
 .asset-title-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -1145,6 +1145,7 @@ onMounted(async () => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 17px;
   font-weight: 600;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1154,16 +1155,16 @@ onMounted(async () => {
 .asset-tags {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  color: #57606a;
+  align-items: baseline;
+  color: #6e7781;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.35;
 }
 
 .asset-tags span:not(:last-child)::after {
   content: '/';
-  color: #8c959f;
-  margin: 0 8px;
+  color: #afb8c1;
+  margin: 0 4px;
 }
 
 .asset-brief {
