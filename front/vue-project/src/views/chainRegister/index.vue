@@ -1,11 +1,8 @@
 <template>
   <div class="common-wrapped">
     <div class="register-page">
+      <h2 class="register-page-title page-title">资产登记</h2>
       <el-card v-if="currentRole === 'seller'" shadow="never" class="register-card">
-        <template #header>
-          <div class="header">资产登记</div>
-        </template>
-
         <el-form :model="form" label-width="132px" class="register-form">
           <section class="form-section">
             <div class="section-title">基础信息</div>
@@ -1327,6 +1324,10 @@ onMounted(async () => {
   }
 }
 
+.register-page-title {
+  margin: 0 0 12px 16px;
+}
+
 .register-card {
   border: 1px solid transparent;
   border-radius: 12px;
@@ -1334,20 +1335,9 @@ onMounted(async () => {
     linear-gradient(135deg, #d6dae1, #f2f3f5 55%, #d3d8e0) border-box;
   box-shadow: 0 8px 24px rgba(31, 41, 55, 0.04);
 
-  :deep(.el-card__header) {
-    padding: 14px 18px;
-    border-bottom: 1px solid #eef2fb;
-  }
-
   :deep(.el-card__body) {
     padding: 16px 18px;
   }
-}
-
-.header {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2328;
 }
 
 .register-form {
@@ -1366,9 +1356,11 @@ onMounted(async () => {
 
 .section-title {
   margin-bottom: 14px;
-  font-size: 14px;
+  font-family: 'Hiragino Sans GB', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  font-size: 15px;
   font-weight: 600;
-  color: #1f2328;
+  line-height: 1.4;
+  color: #3d444d;
 }
 
 .register-main {

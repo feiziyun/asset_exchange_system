@@ -3,7 +3,7 @@
     <section class="page-header">
       <div>
         <p class="eyebrow">系统运维</p>
-        <h2>服务管理</h2>
+        <h2 class="page-title">服务管理</h2>
         <span>集中查看和控制系统后台服务。</span>
       </div>
       <el-button plain :disabled="refreshing" @click="refreshServices">

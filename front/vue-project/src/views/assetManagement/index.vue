@@ -4,7 +4,7 @@
       <section class="toolbar-section">
         <div class="toolbar-row">
           <div class="title-wrap">
-            <div class="title">{{ pageTitle }}</div>
+            <div class="title page-title">{{ pageTitle }}</div>
             <el-tag v-if="isAdmin" type="danger" effect="light">{{ roleText }}</el-tag>
           </div>
           <el-input

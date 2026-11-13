@@ -3,7 +3,7 @@
     <div class="orders-page">
       <section class="toolbar-section">
         <div class="toolbar-row">
-          <div class="list-title">订单列表</div>
+          <div class="list-title page-title">订单列表</div>
           <el-button type="primary" @click="fetchOrders">刷新</el-button>
         </div>
       </section>

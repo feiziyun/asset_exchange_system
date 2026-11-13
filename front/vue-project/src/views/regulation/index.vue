@@ -3,7 +3,7 @@
     <section class="page-header">
       <div>
         <p class="eyebrow">自动监管分析平台</p>
-        <h2>穿透式账户监管工作台</h2>
+        <h2 class="page-title">穿透式账户监管工作台</h2>
         <span>持续发现、排队检测并沉淀账户风险快照。</span>
       </div>
       <div class="header-actions">

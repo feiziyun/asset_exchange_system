@@ -1,6 +1,6 @@
 <template>
   <div class="cross-page">
-    <h2>跨链跨平台</h2>
+    <h2 class="page-title">跨链跨平台</h2>
     <div class="cross-grid">
       <el-card>
         <template #header><strong>跨平台检索</strong></template>

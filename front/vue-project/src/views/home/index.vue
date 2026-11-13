@@ -1,6 +1,6 @@
 <template>
   <div class="home-page">
-    <h2 class="dashboard-title">数据面板</h2>
+    <h2 class="dashboard-title page-title">数据面板</h2>
 
     <section class="dashboard dashboard-new">
       <article class="dashboard-item summary-card">

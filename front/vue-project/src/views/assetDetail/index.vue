@@ -26,7 +26,7 @@
             </div>
             <div class="main-left">
               <div class="title-row">
-                <h2>{{ detail.asset_name || '未命名资产' }}</h2>
+                <h2 class="page-title">{{ detail.asset_name || '未命名资产' }}</h2>
                 <el-tag v-if="detail.delegation_id" type="success">代理</el-tag>
                 <el-tag type="primary" effect="plain">{{
                   detail.sub_category_name || '未分类'

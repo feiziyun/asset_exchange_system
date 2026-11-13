@@ -3,7 +3,7 @@
     <el-card>
       <div class="panel-head">
         <div>
-          <h2>审计节点配置</h2>
+          <h2 class="page-title">审计节点配置</h2>
           <p>配置节点查看账号。密码加密保存，不会回显。</p>
         </div>
         <el-button :loading="loading" @click="fetchNodes">刷新节点</el-button>

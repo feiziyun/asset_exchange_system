@@ -1,7 +1,7 @@
 <template>
   <div class="audit-entry-page">
     <div class="audit-entry-card">
-      <div class="title">审计入口</div>
+      <div class="title page-title">审计入口</div>
       <div class="desc">
         {{ loading ? '正在进入外部审计平台，请稍候…' : errorMessage || '点击下方按钮进入审计平台' }}
       </div>

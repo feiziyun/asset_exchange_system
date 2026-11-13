@@ -3,7 +3,7 @@
     <div class="delivery-page">
       <section class="toolbar-section">
         <div class="toolbar-row">
-          <div class="list-title">交付工作台</div>
+          <div class="list-title page-title">交付工作台</div>
           <el-button type="primary" @click="fetchOrders">刷新</el-button>
         </div>
       </section>

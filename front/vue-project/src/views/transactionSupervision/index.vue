@@ -3,7 +3,7 @@
     <section class="transaction-page">
       <header class="page-header">
         <div>
-          <h2>交易穿透监管</h2>
+          <h2 class="page-title">交易穿透监管</h2>
           <p>展示当前接入数据源中的链上交易及其监管状态。</p>
         </div>
         <el-button :loading="refreshing" @click="refreshAll()">刷新</el-button>
