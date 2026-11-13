@@ -103,15 +103,11 @@
                 <div class="asset-title-row">
                   <h3 class="asset-title" @click="goDetail(item.id, item.publish_id)">{{ item.asset_name }}</h3>
                   <div class="asset-tags">
-                    <el-tag v-if="item.seller_type === 'AGENT'" size="small" type="success">代理</el-tag>
-                    <el-tag size="small" type="info">{{ item.category_name || '未分类' }}</el-tag>
-                    <el-tag size="small">{{ item.sub_category_name || '未分类' }}</el-tag>
-                    <el-tag size="small" type="danger">
-                      {{ item.classification_data_level || '一般数据' }}
-                    </el-tag>
-                    <el-tag size="small" type="warning">{{
-                      item.region_name || '未知地区'
-                    }}</el-tag>
+                    <span v-if="item.seller_type === 'AGENT'">代理</span>
+                    <span>{{ item.category_name || '未分类' }}</span>
+                    <span>{{ item.sub_category_name || '未分类' }}</span>
+                    <span>{{ item.classification_data_level || '一般数据' }}</span>
+                    <span>{{ item.region_name || '未知地区' }}</span>
                   </div>
                 </div>
                 <p class="asset-brief">{{ item.brief || '暂无摘要' }}</p>
@@ -1157,8 +1153,17 @@ onMounted(async () => {
 
 .asset-tags {
   display: flex;
-  gap: 6px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  color: #57606a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.asset-tags span:not(:last-child)::after {
+  content: '/';
+  color: #8c959f;
+  margin: 0 8px;
 }
 
 .asset-brief {
