@@ -714,7 +714,7 @@ onMounted(fetchDetail)
 
 .desc {
   margin: 16px 0;
-  color: #5f6f99;
+  color: #57606a;
   line-height: 1.8;
 }
 

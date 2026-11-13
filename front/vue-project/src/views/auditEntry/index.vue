@@ -94,7 +94,7 @@ onMounted(() => {
 
 .desc {
   margin-top: 14px;
-  color: #5c6883;
+  color: #57606a;
   line-height: 1.8;
 }
 

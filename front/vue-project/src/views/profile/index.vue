@@ -818,7 +818,7 @@ onMounted(() => {
 }
 
 .role-tip {
-  color: #5e6d95;
+  color: #57606a;
   margin-bottom: 10px;
 }
 

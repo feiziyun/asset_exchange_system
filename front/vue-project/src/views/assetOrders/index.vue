@@ -275,7 +275,7 @@ onMounted(fetchOrders)
 }
 
 .orders-table :deep(.el-table__header th) {
-  color: #46546b;
+  color: #57606a;
   font-weight: 600;
 }
 

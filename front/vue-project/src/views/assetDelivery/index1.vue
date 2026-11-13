@@ -1764,7 +1764,7 @@ onBeforeUnmount(() => {
 .list-title {
   font-size: 16px;
   font-weight: 700;
-  color: #1f335f;
+  color: #1f2328;
 }
 
 .table-wrap {
@@ -1789,7 +1789,7 @@ onBeforeUnmount(() => {
   border: 1px solid #d8e2f2;
   border-radius: 8px;
   background: #fff;
-  color: #4b5d7c;
+  color: #57606a;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1824,13 +1824,13 @@ onBeforeUnmount(() => {
   line-height: 1;
   border: 1px solid #d8e2f0;
   background: #f5f7fb;
-  color: #607089;
+  color: #57606a;
 }
 
 .request-status-pill.is-none {
   background: #f5f7fb;
   border-color: #d8e2f0;
-  color: #607089;
+  color: #57606a;
 }
 
 .request-status-pill.is-pending {
@@ -1927,7 +1927,7 @@ onBeforeUnmount(() => {
 }
 
 .upload-btn.secondary {
-  color: #5f6f89;
+  color: #57606a;
   border-color: #d9e1ee;
   background: #f8fafc;
 }
@@ -2064,13 +2064,13 @@ onBeforeUnmount(() => {
 }
 
 .confirm-text {
-  color: #4a5878;
+  color: #57606a;
   line-height: 1.8;
 }
 
 .selected-file-name {
   margin-top: 6px;
-  color: #5f6f8f;
+  color: #57606a;
   font-size: 12px;
   line-height: 1.5;
   word-break: break-all;

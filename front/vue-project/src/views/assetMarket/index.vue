@@ -1026,7 +1026,7 @@ onMounted(async () => {
     flex-shrink: 0;
     width: 104px;
     font-size: 13px;
-    color: #3a4b7a;
+    color: #1f2328;
     font-weight: 600;
     white-space: nowrap;
   }
@@ -1171,7 +1171,7 @@ onMounted(async () => {
 
 .asset-brief {
   margin: 7px 0;
-  color: #5f6f99;
+  color: #57606a;
   font-size: 13px;
   line-height: 1.6;
   overflow: hidden;
@@ -1189,7 +1189,7 @@ onMounted(async () => {
 }
 
 .permission-label {
-  color: #51617f;
+  color: #57606a;
   font-size: 12px;
   white-space: nowrap;
 }
@@ -1244,7 +1244,7 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 6px 16px;
   margin: 6px 0;
-  color: #51617f;
+  color: #57606a;
   font-size: 12px;
 }
 
@@ -1284,7 +1284,7 @@ onMounted(async () => {
   padding: 10px;
   border-radius: 6px;
   background: #edf2fa;
-  color: #304264;
+  color: #1f2328;
   font-size: 12px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

@@ -1513,7 +1513,7 @@ onMounted(fetchCurrent)
 .brief-cell {
   width: 100%;
   box-sizing: border-box;
-  color: #4b5974;
+  color: #57606a;
   word-break: break-word;
   text-align: left;
   display: -webkit-box;
@@ -1562,7 +1562,7 @@ onMounted(fetchCurrent)
 }
 
 .legacy-edit-dialog :deep(.el-form-item__label) {
-  color: #384861;
+  color: #1f2328;
   font-weight: 500;
 }
 
@@ -1614,7 +1614,7 @@ onMounted(fetchCurrent)
 }
 
 .summary-label {
-  color: #607089;
+  color: #57606a;
   font-size: 13px;
 }
 

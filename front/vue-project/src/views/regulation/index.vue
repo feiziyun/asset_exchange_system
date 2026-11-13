@@ -1413,7 +1413,7 @@ p {
   display: flex;
   justify-content: space-between;
   margin-bottom: 6px;
-  color: #44506a;
+  color: #57606a;
   font-size: 13px;
 }
 

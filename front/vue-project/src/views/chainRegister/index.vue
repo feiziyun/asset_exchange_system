@@ -1476,7 +1476,7 @@ onMounted(async () => {
 .selected-file-name {
   max-width: 280px;
   overflow: hidden;
-  color: #455468;
+  color: #57606a;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1625,7 +1625,7 @@ onMounted(async () => {
   margin-top: 6px;
   font-size: 12px;
   line-height: 1.5;
-  color: #61708f;
+  color: #57606a;
   word-break: break-all;
 }
 
@@ -1665,7 +1665,7 @@ onMounted(async () => {
 .valuation-field__label {
   font-size: 13px;
   font-weight: 600;
-  color: #35507f;
+  color: #1f2328;
 }
 
 .valuation-result-block {
@@ -1801,7 +1801,7 @@ onMounted(async () => {
 }
 
 .pending-text {
-  color: #61708f;
+  color: #57606a;
 }
 
 .status-detail {
@@ -1825,7 +1825,7 @@ onMounted(async () => {
   }
 
   span {
-    color: #61708f;
+    color: #57606a;
   }
 
   strong {

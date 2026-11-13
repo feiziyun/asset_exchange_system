@@ -40,10 +40,23 @@
   height: 16px;
   margin: 0;
   opacity: 1;
-  outline: revert;
+  outline: none;
+  box-shadow: none;
+  transition: none;
+  animation: none;
   accent-color: #0969da;
   cursor: pointer;
   z-index: auto;
+}
+
+.el-checkbox__input .el-checkbox__original:focus,
+.el-checkbox__input .el-checkbox__original:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.el-checkbox__input.is-focus:not(.is-checked) .el-checkbox__original:not(:focus-visible) {
+  border-color: revert;
 }
 
 .el-checkbox__inner {
