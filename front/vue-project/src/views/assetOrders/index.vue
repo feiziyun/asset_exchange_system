@@ -262,7 +262,7 @@ onMounted(fetchOrders)
   width: 100%;
   display: flex;
   justify-content: center;
-  background: #f6f8fa;
+  background: #fff;
 }
 
 .orders-page {
@@ -277,7 +277,13 @@ onMounted(fetchOrders)
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 4px 16px;
+  margin-bottom: 12px;
+  padding: 14px 18px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #d8dde4, #f0f1f3 50%, #d8dde4) border-box;
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.04);
 }
 
 .orders-header h2 {
@@ -321,9 +327,11 @@ onMounted(fetchOrders)
 .orders-panel {
   min-height: 160px;
   overflow: hidden;
-  background: #fff;
-  border: 1px solid #d1d9e0;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #d8dde4, #f0f1f3 50%, #d8dde4) border-box;
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.04);
 }
 
 .order-item {
