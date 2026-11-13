@@ -1727,13 +1727,13 @@ onBeforeUnmount(() => {
   width: 100%;
   display: flex;
   justify-content: center;
-  background-color: #f5f6fa;
+  background-color: #f5f7fb;
 }
 
 .delivery-page {
-  width: 96%;
-  min-height: 100vh;
-  padding: 8px 10px 24px;
+  width: min(100%, 1240px);
+  min-height: calc(100vh - 112px);
+  padding: 24px 24px 48px;
   box-sizing: border-box;
 }
 
@@ -1873,6 +1873,16 @@ onBeforeUnmount(() => {
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13px;
+}
+
+.seller-delivery-table th:nth-child(3),
+.seller-delivery-table td:nth-child(3) {
+  width: 10%;
+}
+
+.seller-delivery-table th:last-child,
+.seller-delivery-table td:last-child {
+  width: 27%;
 }
 
 .styled-table th,

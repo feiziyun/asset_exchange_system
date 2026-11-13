@@ -81,9 +81,6 @@
 
       <!-- 底部资产展示 -->
       <section class="result-section" v-loading="loading">
-        <div class="result-top">
-          <span class="result-count">共 {{ pagination.total }} 个数据资产</span>
-        </div>
         <el-alert v-if="listError" :title="listError" type="error" :closable="false">
           <template #default>
             <el-button type="primary" link @click="fetchList()">重试加载</el-button>
@@ -1044,19 +1041,6 @@ onMounted(async () => {
   margin-top: 10px;
   width: 100%;
   box-sizing: border-box;
-}
-
-.result-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.result-count {
-  color: #57606a;
-  font-weight: 500;
-  font-size: 13px;
 }
 
 .asset-list {

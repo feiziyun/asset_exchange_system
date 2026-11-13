@@ -54,7 +54,6 @@
             </div>
             <div class="order-side">
               <div class="order-price">
-                <span class="price-label">价格</span>
                 <strong>{{ formatPrice(row.deal_price) }} <span>{{ row.price_unit || '人民币' }}</span></strong>
               </div>
               <el-button
@@ -423,7 +422,6 @@ onMounted(fetchOrders)
   font-weight: 600;
 }
 
-.order-price .price-label,
 .order-price strong span {
   color: #57606a;
   font-size: 12px;

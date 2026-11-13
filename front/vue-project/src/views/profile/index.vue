@@ -1,6 +1,5 @@
 <template>
   <div class="profile-page common-wrapped" v-loading="loading">
-    <h2 class="page-title">个人中心</h2>
     <el-card class="profile-header" shadow="never">
       <div class="header-content">
         <div class="avatar-block">
@@ -19,7 +18,7 @@
         <div class="base">
           <div class="title-row">
             <span class="name">{{ displayName }}</span>
-            <span class="role-label">{{ roleLabel }}</span>
+            <el-tag type="success">{{ roleLabel }}</el-tag>
           </div>
           <div class="desc">
             <span>账号：{{ user.account || '-' }}</span>
@@ -30,8 +29,8 @@
       </div>
     </el-card>
 
-    <div class="profile-grid">
-      <main class="main-column">
+    <el-row :gutter="12" class="main-row">
+      <el-col :xs="24" :sm="24" :md="16">
         <el-card shadow="never" class="wallet-card">
           <template #header>
             <div class="certificate-heading">
@@ -42,7 +41,7 @@
             </div>
           </template>
           <div class="wallet-amount">¥ {{ walletBalance }}</div>
-          <el-table :data="walletLedger" size="small" empty-text="暂无流水" class="ledger-table">
+          <el-table :data="walletLedger" size="small" empty-text="暂无流水">
             <el-table-column label="时间" min-width="145">
               <template #default="scope">{{ formatDateTime(scope.row.created_at) }}</template>
             </el-table-column>
@@ -101,7 +100,7 @@
           <template #header>
             <div class="section-title">个人资料管理</div>
           </template>
-          <el-form :model="profileForm" label-position="top" class="profile-form account-fields">
+          <el-form :model="profileForm" label-width="88px" class="profile-form account-fields">
             <el-form-item label="账号">
               <el-input v-model="profileForm.account" disabled />
             </el-form-item>
@@ -128,11 +127,11 @@
           </el-form>
         </el-card>
 
-        <el-card class="password-card" shadow="never">
+        <el-card class="password-card" shadow="never" style="margin-top: 12px">
           <template #header>
             <div class="section-title">密码管理</div>
           </template>
-          <el-form :model="passwordForm" label-position="top" class="profile-form account-fields">
+          <el-form :model="passwordForm" label-width="88px" class="profile-form account-fields">
             <el-form-item label="旧密码">
               <el-input v-model="passwordForm.oldPassword" type="password" show-password />
             </el-form-item>
@@ -147,25 +146,24 @@
             </el-form-item>
           </el-form>
         </el-card>
-      </main>
+      </el-col>
 
-      <aside class="side-column">
-        <el-card shadow="never" class="role-card">
+      <el-col :xs="24" :sm="24" :md="8">
+        <el-card shadow="never">
           <template #header>
             <div class="section-title">角色工作台</div>
           </template>
+          <div class="role-tip">当前角色：{{ roleLabel }}</div>
           <div class="work-list">
             <div v-for="item in roleModules" :key="item.title" class="work-item">
-              <div class="work-copy">
-                <div class="work-title">{{ item.title }}</div>
-                <div class="work-desc">{{ item.desc }}</div>
-              </div>
+              <div class="work-title">{{ item.title }}</div>
+              <div class="work-desc">{{ item.desc }}</div>
               <el-button type="primary" link @click="goPath(item.path)">进入</el-button>
             </div>
           </div>
         </el-card>
-      </aside>
-    </div>
+      </el-col>
+    </el-row>
 
     <el-dialog v-model="rechargeVisible" width="360px" @closed="stopRechargePolling">
       <template #header>
@@ -651,185 +649,94 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .profile-page {
-  width: 100%;
-  min-height: calc(100vh - 112px);
-  padding: 24px max(24px, calc(50% - 596px)) 48px;
-  box-sizing: border-box;
-  background: #f5f7fb;
+  width: 85%;
+  margin: 14px auto;
 }
 
-.profile-page > .page-title {
-  margin: 0 0 18px 4px;
-}
-
-.profile-page :deep(.el-card) {
-  border: 0;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
-}
-
-.profile-page :deep(.el-card__header) {
-  padding: 16px 20px;
-  border-bottom: 1px solid #d8dee4;
-}
-
-.profile-page :deep(.el-card__body) {
-  padding: 20px;
-}
+.wallet-card { margin-bottom: 12px; }
+.account-fields { width: 100%; max-width: 420px; }
+.account-fields :deep(.el-form-item__content) { min-width: 0; }
+.wallet-amount { font-size: 24px; font-weight: 600; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
+.recharge-content { display: flex; align-items: center; flex-direction: column; gap: 10px; }
+.ledger-pages { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 12px; }
+.recharge-entry-button { display: inline-flex; align-items: center; gap: 5px; }
+.recharge-entry-button img { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; }
+.recharge-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.recharge-title img { width: 24px; height: 24px; border-radius: 5px; object-fit: contain; }
 
 .profile-header {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  border-radius: 10px;
 
   .header-content {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 14px;
   }
 
   .avatar-block {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    flex: 0 0 auto;
+    gap: 8px;
   }
 
   .title-row {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 
     .name {
       font-size: 22px;
-      color: #1f2328;
-      font-weight: 600;
-      line-height: 1.35;
+      color: #233f97;
+      font-weight: 700;
     }
   }
 
-  .role-label {
-    padding: 3px 9px;
-    border: 1px solid #d1d9e0;
-    border-radius: 20px;
-    background: #f6f8fa;
-    color: #57606a;
-    font-size: 12px;
-  }
-
   .desc {
-    color: #57606a;
+    color: #6f7aa3;
     font-size: 13px;
     display: flex;
-    gap: 8px 20px;
+    gap: 12px;
     flex-wrap: wrap;
   }
 }
 
-.profile-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  align-items: start;
-  gap: 16px;
-}
+.main-row {
+  .certificate-card {
+    margin-bottom: 12px;
+  }
 
-.main-column,
-.side-column {
-  min-width: 0;
-}
+  .profile-card {
+    margin-bottom: 12px;
+  }
 
-.main-column > .el-card + .el-card {
-  margin-top: 16px;
-}
+  .password-card {
+    margin-top: 12px;
+  }
 
-.section-title {
-  color: #1f2328;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.certificate-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.wallet-amount {
-  margin-bottom: 18px;
-  color: #1f2328;
-  font-size: 30px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.ledger-table {
-  --el-table-header-bg-color: #f6f8fa;
-  --el-table-border-color: #d8dee4;
-  color: #1f2328;
-}
-
-.ledger-table :deep(.el-table__header th) {
-  color: #57606a;
-  font-weight: 600;
-}
-
-.ledger-pages {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
-  color: #57606a;
-  font-size: 13px;
-}
-
-.recharge-entry-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.recharge-entry-button img {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  object-fit: contain;
-}
-
-.recharge-content {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.recharge-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.recharge-title img {
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
-  object-fit: contain;
+  .section-title {
+    color: #223e95;
+    font-weight: 700;
+  }
 }
 
 .certificate-section {
   min-height: 120px;
 }
 
+.certificate-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .cert-surface {
-  padding: 16px 18px;
-  border: 1px solid #dcdfe6;
-  border-radius: 10px;
-  background: #fff;
+  background: #f7f7f7;
+  border-radius: 8px;
+  padding: 20px 22px;
 }
 
 .cert-main {
@@ -841,26 +748,29 @@ onMounted(() => {
 }
 
 .cert-name {
-  color: #1f2328;
-  font-size: 16px;
+  color: #111827;
+  font-size: 18px;
   font-weight: 600;
 }
 
 .cert-org {
   margin-top: 4px;
-  color: #57606a;
+  color: #6b7280;
   font-size: 12px;
 }
 
 .cert-badge {
   flex: none;
-  color: #1a7f37;
-  padding: 2px 0;
+  color: #047857;
+  background: #ecfdf5;
+  border-radius: 8px;
+  padding: 4px 10px;
   font-size: 12px;
 }
 
 .cert-badge.expired {
-  color: #cf222e;
+  color: #b91c1c;
+  background: #fef2f2;
 }
 
 .cert-grid {
@@ -881,117 +791,58 @@ onMounted(() => {
 }
 
 .cert-item span {
-  color: #6e7781;
+  color: #6b7280;
   font-size: 12px;
 }
 
 .cert-item strong {
-  color: #1f2328;
+  color: #111827;
   font-size: 13px;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
 
 .mono {
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 
-.account-fields {
-  width: 100%;
-  max-width: 420px;
-}
-
-.account-fields :deep(.el-form-item__label) {
-  padding-bottom: 7px;
-  color: #1f2328;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.account-fields :deep(.el-form-item__content) {
-  min-width: 0;
-}
-
-.account-fields :deep(.el-input__wrapper),
-.account-fields :deep(.el-select__wrapper) {
-  min-height: 36px;
-  border-radius: 6px;
-}
-
-.account-fields :deep(.el-form-item:last-child) {
-  margin-bottom: 0;
-}
-
-.work-list {
-  display: flex;
-  flex-direction: column;
-
-  .work-item {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 14px 0;
-
-    & + .work-item {
-      border-top: 1px solid #d8dee4;
-    }
-
-    &:first-child {
-      padding-top: 0;
-    }
-
-    &:last-child {
-      padding-bottom: 0;
-    }
-
-    .work-copy {
-      min-width: 0;
-    }
-
-    .work-title {
-      color: #1f2328;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .work-desc {
-      color: #57606a;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .el-button {
-      flex: 0 0 auto;
-      margin: 0;
-    }
-  }
-}
-
-@media (max-width: 900px) {
-  .profile-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 @media (max-width: 600px) {
-  .profile-page {
-    padding: 18px 12px 32px;
-  }
-
-  .profile-header .header-content {
-    align-items: flex-start;
-  }
-
   .cert-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .cert-item.span-2 {
     grid-column: auto;
+  }
+}
+
+.role-tip {
+  color: #57606a;
+  margin-bottom: 10px;
+}
+
+.work-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .work-item {
+    border: 1px solid #edf0f8;
+    border-radius: 8px;
+    padding: 10px;
+
+    .work-title {
+      color: #29459c;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .work-desc {
+      color: #7a86aa;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
   }
 }
 </style>

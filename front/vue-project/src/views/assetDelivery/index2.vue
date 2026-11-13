@@ -1566,13 +1566,13 @@ onBeforeUnmount(() => {
   width: 100%;
   display: flex;
   justify-content: center;
-  background-color: #f5f6fa;
+  background-color: #f5f7fb;
 }
 
 .delivery-page {
-  width: 96%;
-  min-height: 100vh;
-  padding: 8px 10px 24px;
+  width: min(100%, 1240px);
+  min-height: calc(100vh - 112px);
+  padding: 24px 24px 48px;
   box-sizing: border-box;
 }
 
@@ -1712,6 +1712,16 @@ onBeforeUnmount(() => {
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13px;
+}
+
+.buyer-table th:nth-child(2),
+.buyer-table td:nth-child(2) {
+  width: 12%;
+}
+
+.buyer-table th:last-child,
+.buyer-table td:last-child {
+  width: 42%;
 }
 
 .styled-table th,
