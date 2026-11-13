@@ -262,7 +262,7 @@ onMounted(fetchOrders)
   width: 100%;
   display: flex;
   justify-content: center;
-  background: #fff;
+  background: #f5f7fb;
 }
 
 .orders-page {
@@ -270,6 +270,7 @@ onMounted(fetchOrders)
   min-height: calc(100vh - 112px);
   padding: 24px 24px 48px;
   box-sizing: border-box;
+  background: #f5f7fb;
 }
 
 .orders-header {
@@ -279,11 +280,9 @@ onMounted(fetchOrders)
   gap: 16px;
   margin-bottom: 12px;
   padding: 14px 18px;
-  border: 1px solid transparent;
   border-radius: 10px;
-  background: linear-gradient(#fff, #fff) padding-box,
-    linear-gradient(120deg, #d8dde4, #f0f1f3 50%, #d8dde4) border-box;
-  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.04);
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
 }
 
 .orders-header h2 {
@@ -327,11 +326,9 @@ onMounted(fetchOrders)
 .orders-panel {
   min-height: 160px;
   overflow: hidden;
-  border: 1px solid transparent;
   border-radius: 10px;
-  background: linear-gradient(#fff, #fff) padding-box,
-    linear-gradient(120deg, #d8dde4, #f0f1f3 50%, #d8dde4) border-box;
-  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.04);
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
 }
 
 .order-item {

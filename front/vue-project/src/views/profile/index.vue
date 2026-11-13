@@ -655,7 +655,7 @@ onMounted(() => {
   min-height: calc(100vh - 112px);
   padding: 24px max(24px, calc(50% - 596px)) 48px;
   box-sizing: border-box;
-  background: #fff;
+  background: #f5f7fb;
 }
 
 .profile-page > .page-title {
@@ -663,11 +663,10 @@ onMounted(() => {
 }
 
 .profile-page :deep(.el-card) {
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 10px;
-  background: linear-gradient(#fff, #fff) padding-box,
-    linear-gradient(120deg, #d8dde4, #f0f1f3 50%, #d8dde4) border-box;
-  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.04);
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
 }
 
 .profile-page :deep(.el-card__header) {
@@ -828,10 +827,9 @@ onMounted(() => {
 
 .cert-surface {
   padding: 16px 18px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: linear-gradient(#fff, #fff) padding-box,
-    linear-gradient(120deg, #d8dde4, #f0f1f3 50%, #d8dde4) border-box;
+  border: 1px solid #dcdfe6;
+  border-radius: 10px;
+  background: #fff;
 }
 
 .cert-main {
