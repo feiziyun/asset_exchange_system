@@ -10,6 +10,7 @@
 
       <el-main>
         <div class="login-wrapped">
+          <img class="bg" src="@/assets/login-bg.jpg" alt="" />
           <div class="content">
             <el-card class="box-card">
               <el-tabs v-model="activeName" class="login-tabs" :stretch="true">
@@ -325,18 +326,27 @@ const Login = async () => {
 .el-main {
   padding: 0;
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 
   .login-wrapped {
+    position: relative;
     width: 100%;
-    padding: 48px 20px 64px;
-    box-sizing: border-box;
+    min-height: calc(100vh - 128px);
+
+    .bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.65;
+    }
 
     .content {
+      position: relative;
       display: flex;
-      justify-content: center;
+      justify-content: flex-end;
+      box-sizing: border-box;
+      padding: clamp(48px, 10vh, 120px) 10% 64px;
 
       .box-card {
         width: min(100%, 390px);
@@ -488,6 +498,7 @@ const Login = async () => {
 .footer-wrapped {
   height: auto;
   padding: 20px 0 26px;
+  background: #fff;
 
   .foot-content {
     width: min(100%, 1200px);
@@ -525,7 +536,12 @@ const Login = async () => {
   }
 
   .el-main .login-wrapped {
-    padding: 24px 16px 40px;
+    min-height: calc(100vh - 120px);
+  }
+
+  .el-main .login-wrapped .content {
+    justify-content: center;
+    padding: 32px 16px 48px;
   }
 
   .el-main .login-wrapped .content .box-card :deep(.el-card__body) {
