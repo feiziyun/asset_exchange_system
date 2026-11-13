@@ -2,23 +2,24 @@
   <div class="common-wrapped">
     <div class="manage-page">
       <section class="toolbar-section">
-        <div class="toolbar-row">
+        <div class="toolbar-row app-search-layout">
           <div class="title-wrap">
             <div class="title page-title">{{ pageTitle }}</div>
             <el-tag v-if="isAdmin" type="danger" effect="light">{{ roleText }}</el-tag>
           </div>
-          <el-input
-            v-model="keyword"
-            class="search-input app-search-input"
-            placeholder="搜索资产名称/摘要/订单号"
-            clearable
-            @keyup.enter="onSearch"
-          >
-            <template #prefix><el-icon><Search /></el-icon></template>
-          </el-input>
-          <el-button type="primary" @click="onSearch">查询</el-button>
-          <el-button @click="onReset">重置</el-button>
-          <el-button @click="refreshCurrent">刷新</el-button>
+          <div class="app-search-bar">
+            <el-input
+              v-model="keyword"
+              class="search-input app-search-input"
+              placeholder="搜索资产名称/摘要/订单号"
+              clearable
+              @keyup.enter="onSearch"
+              @clear="onSearch"
+            >
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <el-button class="app-search-button" @click="onSearch">搜索</el-button>
+          </div>
         </div>
       </section>
 
@@ -892,21 +893,6 @@ const onSearch = () => {
   fetchPurchasedAssets()
 }
 
-const onReset = () => {
-  keyword.value = ''
-  ownedQuery.page = 1
-  ownedQuery.page_size = 10
-  ownedQuery.keyword = ''
-  purchasedQuery.page = 1
-  purchasedQuery.page_size = 10
-  purchasedQuery.keyword = ''
-  fetchCurrent()
-}
-
-const refreshCurrent = () => {
-  fetchCurrent()
-}
-
 const paymentVisible = ref(false)
 const paymentOrderNo = ref('')
 
@@ -1393,12 +1379,8 @@ onMounted(fetchCurrent)
 }
 
 .toolbar-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-
   .title-wrap {
-    min-width: 180px;
+    min-width: 0;
     display: flex;
     gap: 8px;
     align-items: center;
@@ -1410,9 +1392,6 @@ onMounted(fetchCurrent)
     font-weight: 700;
   }
 
-  .search-input {
-    width: 220px;
-  }
 }
 
 .admin-alert {
@@ -1645,14 +1624,6 @@ onMounted(fetchCurrent)
 }
 
 @media (max-width: 900px) {
-  .toolbar-row {
-    flex-wrap: wrap;
-  }
-
-  .toolbar-row .search-input {
-    width: 100%;
-  }
-
   .edit-grid-row {
     grid-template-columns: 1fr;
     gap: 0;

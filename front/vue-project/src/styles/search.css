@@ -17,3 +17,61 @@
 .app-search-input .el-input__prefix-inner {
   color: #8c959f;
 }
+
+/* Equal side columns keep the search centered even when the title varies. */
+.app-search-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.app-search-bar {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.app-search-bar .app-search-input {
+  flex: 1;
+  min-width: 0;
+}
+
+body .el-button.app-search-button {
+  --el-button-bg-color: #eaf3ff;
+  --el-button-border-color: #b6d3f8;
+  --el-button-text-color: #0759b6;
+  --el-button-hover-bg-color: #dcecff;
+  --el-button-hover-border-color: #8ab8f2;
+  --el-button-hover-text-color: #064b97;
+  --el-button-active-bg-color: #cfe4fc;
+  --el-button-active-border-color: #78aaeb;
+  --el-button-active-text-color: #064b97;
+  min-width: 78px;
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 20px;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+body .el-button.app-search-button:focus-visible {
+  outline: 2px solid #1677ff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .app-search-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .app-search-bar {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+  }
+}

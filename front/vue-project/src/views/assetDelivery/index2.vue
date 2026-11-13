@@ -2,15 +2,14 @@
   <div class="common-wrapped">
     <div class="delivery-page">
       <section class="toolbar-section">
-        <div class="toolbar-row">
+        <div class="toolbar-row app-search-layout">
           <div class="list-title page-title">资产交付</div>
-          <div class="toolbar-actions">
+          <div class="app-search-bar">
             <el-input v-model="searchInput" class="delivery-search app-search-input" placeholder="搜索订单号或资产名称"
               clearable @keyup.enter="onSearch" @clear="onSearch">
               <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
-            <el-button @click="onSearch">搜索</el-button>
-            <el-button type="primary" @click="fetchOrders">刷新</el-button>
+            <el-button class="app-search-button" @click="onSearch">搜索</el-button>
           </div>
         </div>
       </section>
@@ -1610,21 +1609,7 @@ onBeforeUnmount(() => {
 }
 
 .toolbar-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.delivery-search {
-  width: 300px;
+  min-width: 0;
 }
 
 .list-title {
@@ -1959,20 +1944,6 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .actions {
     flex-direction: column;
-  }
-
-  .toolbar-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .toolbar-actions {
-    margin-left: 0;
-    flex-wrap: wrap;
-  }
-
-  .delivery-search {
-    width: 100%;
   }
 
   .dialog-grid {

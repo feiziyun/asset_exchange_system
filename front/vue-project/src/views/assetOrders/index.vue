@@ -1,26 +1,23 @@
 <template>
   <div class="common-wrapped">
     <div class="orders-page">
-      <header class="orders-header">
-        <div class="header-main">
-          <h2 class="page-title">订单列表</h2>
-          <div class="header-search">
-            <el-input
-              v-model="searchInput"
-              class="app-search-input"
-              placeholder="搜索订单号或资产名称"
-              clearable
-              @keyup.enter="onSearch"
-              @clear="onSearch"
-            >
-              <template #prefix><el-icon><Search /></el-icon></template>
-            </el-input>
-            <el-button @click="onSearch">搜索</el-button>
-          </div>
+      <header class="orders-header app-search-layout">
+        <h2 class="page-title">订单列表</h2>
+        <div class="app-search-bar">
+          <el-input
+            v-model="searchInput"
+            class="app-search-input"
+            placeholder="搜索订单号或资产名称"
+            clearable
+            @keyup.enter="onSearch"
+            @clear="onSearch"
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <el-button class="app-search-button" @click="onSearch">搜索</el-button>
         </div>
         <div class="header-actions">
           <span class="order-count">共 {{ pagination.total }} 笔订单</span>
-          <el-button type="primary" @click="fetchOrders">刷新</el-button>
         </div>
       </header>
 
@@ -275,10 +272,6 @@ onMounted(fetchOrders)
 }
 
 .orders-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   margin-bottom: 12px;
   padding: 14px 18px;
   border-radius: 10px;
@@ -290,33 +283,16 @@ onMounted(fetchOrders)
   margin: 0;
 }
 
-.header-main {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  min-width: 0;
-}
-
-.header-main h2 {
-  flex-shrink: 0;
-}
-
-.header-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: min(100%, 360px);
-}
-
-.header-search .el-input {
-  flex: 1;
-  min-width: 0;
-}
-
 .header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  grid-column: 3;
+  justify-self: end;
+}
+
+@media (max-width: 900px) {
+  .header-actions {
+    grid-column: 1;
+    justify-self: start;
+  }
 }
 
 .order-count {
@@ -473,24 +449,6 @@ onMounted(fetchOrders)
 @media (max-width: 720px) {
   .orders-page {
     padding: 18px 12px 32px;
-  }
-
-  .orders-header {
-    flex-wrap: wrap;
-  }
-
-  .header-main {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .header-search {
-    width: 100%;
-  }
-
-  .header-actions {
-    margin-left: auto;
   }
 
   .order-item {

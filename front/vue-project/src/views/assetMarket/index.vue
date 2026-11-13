@@ -3,21 +3,22 @@
     <div class="market-page">
       <!-- 顶部搜索 -->
       <section class="search-section">
-        <div class="search-row">
+        <div class="search-row app-search-layout">
           <div class="search-title page-title"><span>{{ isRegulator ? '交易市场' : '自动驾驶数字资产' }}</span></div>
-          <el-input
-            v-model="query.keyword"
-            class="search-input app-search-input"
-            placeholder="请输入你要搜索的内容"
-            clearable
-            @keyup.enter="onSearch"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-          <el-button type="primary" class="search-btn" @click="onSearch">搜索</el-button>
-          <el-button v-if="isRegulator" plain @click="crossSearchVisible = true">跨链/跨平台检索</el-button>
+          <div class="app-search-bar">
+            <el-input
+              v-model="query.keyword"
+              class="search-input app-search-input"
+              placeholder="请输入你要搜索的内容"
+              clearable
+              @keyup.enter="onSearch"
+              @clear="onSearch"
+            >
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <el-button class="app-search-button" @click="onSearch">搜索</el-button>
+          </div>
+          <el-button v-if="isRegulator" class="cross-search-action" plain @click="crossSearchVisible = true">跨链/跨平台检索</el-button>
         </div>
       </section>
 
@@ -748,17 +749,6 @@ const onSearch = () => {
   fetchList()
 }
 
-const onReset = () => {
-  query.page = 1
-  query.page_size = 10
-  query.keyword = ''
-  query.category_id = undefined
-  query.region_id = undefined
-  query.classification_data_level = undefined
-  query.classification_category_name = undefined
-  fetchList()
-}
-
 const onPageChange = (page: number) => {
   query.page = page
   fetchList()
@@ -971,30 +961,21 @@ onMounted(async () => {
   box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
 
   .search-row {
-    display: flex;
-    align-items: center;
-    width: auto;
-    gap: 10px;
-    width: fit-content; /* ✅ 宽度收缩为内容实际宽度 */
-    margin: 0 auto; /* ✅ 水平居中 */
-
     .search-title {
       flex-shrink: 0;
       font-size: 16px;
       font-weight: 600;
       color: #1f2328;
       white-space: nowrap;
-      margin-right: 30px;
     }
 
     .search-input {
-      width: 320px;
-      flex-shrink: 0;
+      width: 100%;
     }
 
-    .search-btn {
-      width: 80px;
-      flex-shrink: 0;
+    .cross-search-action {
+      grid-column: 3;
+      justify-self: end;
     }
 
   }
@@ -1287,6 +1268,11 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
+  .search-section .search-row .cross-search-action {
+    grid-column: 1;
+    justify-self: start;
+  }
+
   .cross-platform-grid {
     grid-template-columns: 1fr;
   }
