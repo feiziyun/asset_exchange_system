@@ -19,17 +19,16 @@
                   <!-- 登录表单 -->
                   <form class="login-form" @submit.prevent="Login">
                     <el-form-item label="账号">
-                      <el-input v-model="loginData.account" name="username" autocomplete="username" placeholder="请输入账号" />
-                    </el-form-item>
-                    <el-form-item v-if="savedAccounts.length" class="saved-accounts-row">
-                      <el-dropdown @command="selectSavedAccount">
-                        <el-button text type="primary">切换已保存账号（{{ savedAccounts.length }}）</el-button>
-                        <template #dropdown>
-                          <el-dropdown-menu>
-                            <el-dropdown-item v-for="account in savedAccounts" :key="account" :command="account">{{ account }}</el-dropdown-item>
-                          </el-dropdown-menu>
-                        </template>
-                      </el-dropdown>
+                      <el-autocomplete
+                        v-model="loginData.account"
+                        name="username"
+                        autocomplete="off"
+                        placeholder="请输入账号"
+                        :fetch-suggestions="suggestSavedAccounts"
+                        :trigger-on-focus="true"
+                        @input="onAccountInput"
+                        @select="selectSavedAccount"
+                      />
                     </el-form-item>
                     <el-form-item label="密码">
                       <el-input
@@ -116,6 +115,7 @@ import { ElMessage } from 'element-plus'
 import { login, register } from '@/api/login'
 import { useRouter } from 'vue-router'
 import { getRoleKey } from '@/utils/auth'
+import { loadSavedPassword, removeSavedPassword, saveLoginPassword } from '@/utils/savedPasswords'
 
 const router = useRouter()
 const activeName = ref('first') // 默认登录表单
@@ -144,7 +144,7 @@ const registerData: formData = reactive({
 })
 
 // 页面加载时读取保存的账号
-onMounted(() => {
+onMounted(async () => {
   try {
     const parsed = JSON.parse(localStorage.getItem(SAVED_ACCOUNTS_KEY) || '[]')
     savedAccounts.value = Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
@@ -155,23 +155,36 @@ onMounted(() => {
   if (savedAccount) {
     loginData.account = savedAccount
     rememberAccount.value = true
+    await fillSavedPassword(savedAccount)
   }
 })
 
-const selectSavedAccount = (account: string) => {
+const suggestSavedAccounts = (_query: string, callback: (items: { value: string }[]) => void) => {
+  callback(savedAccounts.value.map((value) => ({ value })))
+}
+
+const onAccountInput = () => {
+  loginData.password = ''
+  savePassword.value = false
+}
+
+const fillSavedPassword = async (account: string) => {
+  try {
+    const password = await loadSavedPassword(account)
+    if (loginData.account !== account) return
+    loginData.password = password || ''
+    savePassword.value = Boolean(password)
+  } catch (error) {
+    console.warn('读取已保存的密码失败:', error)
+  }
+}
+
+const selectSavedAccount = async (item: { value: string }) => {
+  const account = item.value
   loginData.account = account
   loginData.password = ''
   rememberAccount.value = true
-}
-
-const storeBrowserPassword = async (account: string, password: string) => {
-  const PasswordCredentialClass = (window as any).PasswordCredential
-  if (!PasswordCredentialClass || !navigator.credentials?.store) return
-  try {
-    await navigator.credentials.store(new PasswordCredentialClass({ id: account, password, name: account }))
-  } catch (error) {
-    console.warn('浏览器未保存登录密码:', error)
-  }
+  await fillSavedPassword(account)
 }
 
 // 转去注册
@@ -219,12 +232,27 @@ const Login = async () => {
       } else {
         localStorage.removeItem('savedAccount')
       }
-      if (rememberAccount.value || savePassword.value) {
-        savedAccounts.value = [loginData.account, ...savedAccounts.value.filter((account) => account !== loginData.account)]
-        localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(savedAccounts.value))
+      if (savePassword.value) {
+        try {
+          await saveLoginPassword(loginData.account, loginData.password)
+        } catch (error) {
+          console.warn('保存登录密码失败:', error)
+          savePassword.value = false
+        }
+      } else {
+        try {
+          await removeSavedPassword(loginData.account)
+        } catch (error) {
+          console.warn('清除已保存的密码失败:', error)
+        }
       }
 
-      if (savePassword.value) await storeBrowserPassword(loginData.account, loginData.password)
+      if (rememberAccount.value || savePassword.value) {
+        savedAccounts.value = [loginData.account, ...savedAccounts.value.filter((account) => account !== loginData.account)]
+      } else {
+        savedAccounts.value = savedAccounts.value.filter((account) => account !== loginData.account)
+      }
+      localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(savedAccounts.value))
 
       const role = getRoleKey(identity)
       if (role === 'admin') {
