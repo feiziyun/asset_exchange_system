@@ -246,7 +246,6 @@
         </el-form>
 
         <div class="actions">
-          <el-button @click="resetForm">重置</el-button>
           <el-button v-if="uploadingSource" type="info" disabled>源文件哈希生成中</el-button>
           <el-button type="primary" :loading="submitting" @click="submitForm">提交登记</el-button>
         </div>
@@ -1626,7 +1625,8 @@ onMounted(async () => {
   padding-top: 14px;
   border-top: 1px solid #eef2fb;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: center;
   gap: 10px;
 }
 

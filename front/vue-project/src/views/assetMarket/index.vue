@@ -156,7 +156,7 @@
                   </div>
                 </div>
                 <div class="asset-meta">
-                  <span>创建时间：{{ formatDateTime(item.created_at) }}</span>
+                  <span>登记时间：{{ formatDateTime(item.created_at) }}</span>
                   <span>浏览：{{ item.view_count || 0 }}</span>
                   <span>成交：{{ item.trade_count || 0 }}</span>
                 </div>
