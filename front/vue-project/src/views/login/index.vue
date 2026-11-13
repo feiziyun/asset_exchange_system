@@ -10,11 +10,9 @@
 
       <el-main>
         <div class="login-wrapped">
-          <img class="bg" src="@/assets/login-bg.jpg" alt="" />
-
           <div class="content">
             <el-card class="box-card">
-              <el-tabs v-model="activeName" class="demo-tabs" :stretch="true">
+              <el-tabs v-model="activeName" class="login-tabs" :stretch="true">
                 <el-tab-pane label="登陆" name="first">
                   <!-- 登录表单 -->
                   <form class="login-form" @submit.prevent="Login">
@@ -40,18 +38,18 @@
                         show-password
                       />
                     </el-form-item>
-                    <el-form-item>
+                    <el-form-item class="remember-row">
                       <el-checkbox v-model="rememberAccount">记住账号</el-checkbox>
                       <el-checkbox v-model="savePassword">记住密码</el-checkbox>
                     </el-form-item>
 
-                  <div class="login-foot-wrapped">
+                    <div class="login-foot-wrapped">
                     <!-- 忘记密码 -->
                     <div class="forget-password">
                       <span class="forget-password-button" @click="openForget">忘记密码</span>
                     </div>
                     <!-- 登陆按钮 -->
-                    <el-button type="primary" class="login-button" native-type="submit" plain
+                    <el-button type="success" class="login-button" native-type="submit"
                       >登 录</el-button
                     >
                     <!-- 转去注册 -->
@@ -59,7 +57,7 @@
                       <span>还没有账号？</span>
                       <span class="go-registet-button" @click="goRegister">马上注册</span>
                     </div>
-                  </div>
+                    </div>
                   </form>
                 </el-tab-pane>
 
@@ -83,7 +81,7 @@
                     </el-form-item>
                   </el-form>
                   <!-- 注册按钮 -->
-                  <el-button type="primary" class="register-button" plain @click="Register"
+                  <el-button type="success" class="register-button" @click="Register"
                     >注 册</el-button
                   >
                 </el-tab-pane>
@@ -96,8 +94,6 @@
       <el-footer class="footer-wrapped">
         <div class="foot-content">
           <div class="title">
-            <span>基于区块链的自动驾驶数字资产交易系统</span>|
-            <span>基于区块链的自动驾驶数字资产交易系统</span>|
             <span>基于区块链的自动驾驶数字资产交易系统</span>
           </div>
         </div>
@@ -278,33 +274,49 @@ const Login = async () => {
 </script>
 
 <style lang="scss" scoped>
+.common-layout {
+  min-height: 100vh;
+  background: #f6f8fa;
+  color: #24292f;
+}
+
+.common-layout > .el-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
 .header-wrapped {
   padding: 0;
-  height: 40px;
+  height: 64px;
   display: flex;
   align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #d8dee4;
 
   .header-content {
-    width: min(100%, 1280px);
+    width: min(100%, 1200px);
     margin: 0 auto;
-    padding: 0 18px;
+    padding: 0 24px;
     box-sizing: border-box;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 24px;
+    gap: 16px;
 
     h3 {
       margin: 0;
       flex: 1 1 auto;
       min-width: 0;
-      font-size: 20px;
-      line-height: 1.25;
+      font-size: 17px;
+      line-height: 1.4;
+      font-weight: 600;
     }
 
     .welcome {
       flex: 0 0 auto;
-      font-size: 14px;
+      font-size: 13px;
+      color: #57606a;
       white-space: nowrap;
     }
   }
@@ -312,37 +324,113 @@ const Login = async () => {
 
 .el-main {
   padding: 0;
-  height: 90vh;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   .login-wrapped {
-    position: relative;
     width: 100%;
-    margin: 0 auto;
-
-    .bg {
-      width: 100%; /* ✅ 宽铺满 */
-      height: 90vh; /* ✅ 高度按比例自动 */
-      display: block; /* 去掉 img 默认空隙 */
-      opacity: 65%;
-      object-fit: cover;
-    }
+    padding: 48px 20px 64px;
+    box-sizing: border-box;
 
     .content {
-      position: absolute;
-      inset: 0;
-      /* 这里随便你布局 */
-      .box-card {
-        width: 350px;
-        min-height: 430px;
-        float: right;
-        position: relative;
-        top: 15%;
-        right: 10%;
-        padding-bottom: 10px;
+      display: flex;
+      justify-content: center;
 
-        .el-form {
-          margin-top: 30px;
+      .box-card {
+        width: min(100%, 390px);
+        border: 1px solid #d8dee4;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 8px 24px rgb(27 31 36 / 6%);
+
+        :deep(.el-card__body) {
+          padding: 26px 28px 28px;
         }
+
+        :deep(.el-tabs__header) {
+          margin-bottom: 24px;
+        }
+
+        :deep(.el-tabs__item) {
+          height: 42px;
+          font-size: 16px;
+          color: #57606a;
+          font-weight: 500;
+        }
+
+        :deep(.el-tabs__item.is-active) {
+          color: #24292f;
+          font-weight: 600;
+        }
+
+        :deep(.el-tabs__active-bar) {
+          height: 2px;
+          background: #2da44e;
+        }
+
+        :deep(.el-form-item) {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          margin-bottom: 18px;
+        }
+
+        :deep(.el-form-item__label) {
+          width: auto;
+          height: auto;
+          justify-content: flex-start;
+          padding: 0 0 7px;
+          line-height: 20px;
+          color: #24292f;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        :deep(.el-form-item__content) {
+          display: flex;
+          width: 100%;
+          line-height: normal;
+        }
+
+        :deep(.el-input),
+        :deep(.el-autocomplete) {
+          width: 100%;
+        }
+
+        :deep(.el-input__wrapper) {
+          min-height: 38px;
+          border-radius: 6px;
+          box-shadow: 0 0 0 1px #d0d7de inset;
+        }
+
+        :deep(.el-input__wrapper.is-focus) {
+          box-shadow: 0 0 0 1px #0969da inset, 0 0 0 3px rgb(9 105 218 / 15%);
+        }
+
+        :deep(.el-radio-group) {
+          gap: 20px;
+        }
+
+        :deep(.remember-row) {
+          margin: -2px 0 0;
+        }
+
+        :deep(.remember-row .el-form-item__content) {
+          gap: 18px;
+        }
+
+        :deep(.remember-row .el-checkbox) {
+          margin-right: 0;
+        }
+
+        :deep(.el-checkbox__label),
+        :deep(.el-radio__label) {
+          color: #57606a;
+          font-size: 13px;
+        }
+
         .login-foot-wrapped {
           display: flex;
           flex-direction: column;
@@ -350,38 +438,47 @@ const Login = async () => {
           .forget-password {
             display: flex;
             justify-content: flex-end;
-            margin: 10px 0;
+            margin: 4px 0 18px;
+
             .forget-password-button {
-              font-size: 12px;
-              color: #409eff;
-              cursor: pointer; //鼠标移动效果
+              font-size: 13px;
+              color: #0969da;
+              cursor: pointer;
             }
           }
 
           .go-register {
-            font-size: 12px;
-            margin: 12px 0;
+            font-size: 13px;
+            margin: 18px 0 0;
             display: flex;
             justify-content: center;
+            gap: 4px;
+            color: #57606a;
 
             .go-registet-button {
-              font-size: 12px;
-              color: #409eff;
+              color: #0969da;
               cursor: pointer;
             }
           }
         }
 
-        .login-button .register-button {
+        .login-button,
+        .register-button {
           width: 100%;
-          display: flex;
-          justify-content: center;
+          height: 40px;
+          margin: 0;
+          border: 1px solid #2a9145;
+          border-radius: 6px;
+          background: #2da44e;
+          color: #fff;
+          font-size: 14px;
+          font-weight: 600;
         }
-        //登陆注册按钮
-        :deep(.el-button) {
-          width: 300px;
-          height: 45px;
-          font-size: 16px;
+
+        .login-button:hover,
+        .register-button:hover {
+          border-color: #248a3e;
+          background: #2c974b;
         }
       }
     }
@@ -389,58 +486,50 @@ const Login = async () => {
 }
 
 .footer-wrapped {
-  margin-top: 0;
+  height: auto;
+  padding: 20px 0 26px;
+
   .foot-content {
-    width: min(100%, 1280px);
+    width: min(100%, 1200px);
     margin: 0 auto;
-    padding: 0 18px;
+    padding: 0 20px;
     box-sizing: border-box;
     display: flex;
     justify-content: center;
 
     .title {
       font-size: 12px;
-      color: #999;
+      color: #8c959f;
     }
 
     span {
-      margin: 0px 12px;
-      color: #666;
-      font-size: 12px;
+      color: inherit;
     }
   }
-}
-//样式穿透？
-:deep(.el-tabs__item) {
-  color: #333;
-  font-size: 18px;
-}
-//输入框高度
-:deep(.el-input__inner) {
-  height: 40px;
-}
-//输入框标签字体
-:deep(.el-form-item__label) {
-  font-size: 14px;
-  line-height: 40px;
 }
 
 @media (max-width: 768px) {
   .header-wrapped {
-    height: 36px;
+    height: 60px;
 
     .header-content {
-      padding: 0 12px;
+      padding: 0 16px;
       gap: 12px;
 
       h3 {
-        font-size: 20px;
+        font-size: 14px;
       }
+
+      .welcome { display: none; }
     }
   }
 
-  .footer-wrapped .foot-content {
-    padding: 0 12px;
+  .el-main .login-wrapped {
+    padding: 24px 16px 40px;
+  }
+
+  .el-main .login-wrapped .content .box-card :deep(.el-card__body) {
+    padding: 22px;
   }
 }
 </style>
