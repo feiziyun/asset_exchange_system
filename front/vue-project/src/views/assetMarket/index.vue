@@ -985,7 +985,7 @@ onMounted(async () => {
       flex-shrink: 0;
       font-size: 16px;
       font-weight: 600;
-      color: #193a8d;
+      color: #1f2328;
       white-space: nowrap;
       margin-right: 30px;
     }
@@ -1263,7 +1263,7 @@ onMounted(async () => {
 
   h3 {
     margin: 0 0 14px;
-    color: #243d85;
+    color: #1f2328;
     font-size: 16px;
   }
 }

@@ -1,40 +1,17 @@
-/* GitHub light theme form controls, based on Accessibility.html. */
-.el-radio__inner,
-.el-checkbox__inner {
+/* Keep the existing radio appearance. GitHub uses native browser checkboxes. */
+.el-radio__inner {
   width: 16px;
   height: 16px;
   background: #fff;
   border: 1px solid #8c959f;
-  transition: border-color 0.15s, background-color 0.15s;
-}
-
-.el-radio__inner {
   border-radius: 50%;
 }
 
-.el-checkbox__inner {
-  border-radius: 4px;
-}
-
-.el-checkbox__inner::after {
-  top: 3px;
-  left: 3px;
-  width: 8px;
-  height: 5px;
-  border: solid #fff;
-  border-width: 0 0 2px 2px;
-  transform: rotate(-45deg) scale(0);
-  transform-origin: center;
-}
-
-.el-radio:not(.is-disabled):hover .el-radio__inner,
-.el-checkbox:not(.is-disabled):hover .el-checkbox__inner {
+.el-radio:not(.is-disabled):hover .el-radio__inner {
   border-color: #0969da;
 }
 
-.el-radio__input.is-checked .el-radio__inner,
-.el-checkbox__input.is-checked .el-checkbox__inner,
-.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+.el-radio__input.is-checked .el-radio__inner {
   background: #0969da;
   border-color: #0969da;
 }
@@ -45,22 +22,45 @@
   background: #fff;
 }
 
-.el-checkbox__input.is-checked .el-checkbox__inner::after {
-  transform: rotate(-45deg) scale(1);
-}
-
-.el-checkbox__input.is-checked + .el-checkbox__label {
-  color: #24292f;
-}
-
-.el-radio__input.is-focus:not(.is-disabled) .el-radio__inner,
-.el-checkbox__input.is-focus:not(.is-disabled) .el-checkbox__inner {
+.el-radio__input.is-focus:not(.is-disabled) .el-radio__inner {
   outline: 2px solid #0969da;
   outline-offset: 2px;
 }
 
-.el-radio__input.is-disabled .el-radio__inner,
-.el-checkbox__input.is-disabled .el-checkbox__inner {
+.el-radio__input.is-disabled .el-radio__inner {
   background: #f6f8fa;
   border-color: #d0d7de;
+}
+
+/* Let the browser draw the checkbox and its check mark. */
+.el-checkbox__input .el-checkbox__original {
+  appearance: auto;
+  position: static;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  opacity: 1;
+  outline: revert;
+  accent-color: #0969da;
+  cursor: pointer;
+  z-index: auto;
+}
+
+.el-checkbox__inner {
+  display: none;
+}
+
+.el-checkbox__input .el-checkbox__original:disabled {
+  cursor: not-allowed;
+}
+
+.el-checkbox,
+.el-checkbox__input.is-checked + .el-checkbox__label {
+  color: #1f2328;
+}
+
+.el-checkbox__label {
+  color: #1f2328;
+  font-size: 14px;
+  font-weight: 400;
 }

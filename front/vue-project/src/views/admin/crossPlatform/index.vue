@@ -128,7 +128,7 @@ const submit = async () => {
 
 <style scoped>
 .cross-page { padding: 20px; }
-h2 { margin: 0 0 18px; color: #0f2744; }
+h2 { margin: 0 0 18px; color: #1f2328; }
 .cross-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .search-row { display: flex; gap: 8px; margin-bottom: 12px; }
 .mode { margin-bottom: 12px; }

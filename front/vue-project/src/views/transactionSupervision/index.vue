@@ -748,7 +748,7 @@ export default {
 
 .detail-section-title {
   margin: 22px 0 12px;
-  color: #193a8d;
+  color: #1f2328;
   font-size: 16px;
   font-weight: 600;
 }

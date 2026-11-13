@@ -74,6 +74,6 @@ onMounted(fetchNodes)
 <style scoped>
 .audit-nodes-page { padding: 20px; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.panel-head h2 { margin: 0 0 6px; color: #0f2744; }
+.panel-head h2 { margin: 0 0 6px; color: #1f2328; }
 .panel-head p { margin: 0; color: #667085; }
 </style>

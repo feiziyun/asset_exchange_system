@@ -9,6 +9,7 @@ import './styles/tables.css';
 import './styles/buttons.css';
 import './styles/controls.css';
 import './styles/links.css';
+import './styles/typography.css';
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'virtual:svg-icons-register'
 

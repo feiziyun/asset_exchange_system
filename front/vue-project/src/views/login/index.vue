@@ -440,7 +440,6 @@ const Login = async () => {
           margin-right: 0;
         }
 
-        :deep(.el-checkbox__label),
         :deep(.el-radio__label) {
           color: #57606a;
           font-size: 13px;

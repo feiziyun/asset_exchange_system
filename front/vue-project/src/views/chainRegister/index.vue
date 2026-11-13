@@ -1347,7 +1347,7 @@ onMounted(async () => {
 .header {
   font-size: 16px;
   font-weight: 600;
-  color: #193a8d;
+  color: #1f2328;
 }
 
 .register-form {
@@ -1368,7 +1368,7 @@ onMounted(async () => {
   margin-bottom: 14px;
   font-size: 14px;
   font-weight: 600;
-  color: #213b75;
+  color: #1f2328;
 }
 
 .register-main {
@@ -1679,7 +1679,7 @@ onMounted(async () => {
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #213b75;
+  color: #1f2328;
 }
 
 .valuation-raw {
@@ -1714,7 +1714,7 @@ onMounted(async () => {
   :deep(.el-dialog__title) {
     font-size: 16px;
     font-weight: 600;
-    color: #193a8d;
+    color: #1f2328;
   }
 
   :deep(.el-dialog__body) {
@@ -1781,7 +1781,7 @@ onMounted(async () => {
   margin-bottom: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: #213b75;
+  color: #1f2328;
 }
 
 .success-text,
@@ -1829,7 +1829,7 @@ onMounted(async () => {
   }
 
   strong {
-    color: #213b75;
+    color: #1f2328;
     font-weight: 500;
     word-break: break-all;
   }

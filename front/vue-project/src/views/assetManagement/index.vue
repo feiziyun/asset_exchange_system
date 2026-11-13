@@ -1403,7 +1403,7 @@ onMounted(fetchCurrent)
 
   .title {
     font-size: 15px;
-    color: #1d3972;
+    color: #1f2328;
     font-weight: 700;
   }
 
@@ -1440,7 +1440,7 @@ onMounted(fetchCurrent)
 
 .styled-table th {
   background: #f8fafc;
-  color: #3d4b66;
+  color: #1f2328;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
@@ -1449,7 +1449,7 @@ onMounted(fetchCurrent)
 
 .styled-table td {
   background: #fff;
-  color: #22304f;
+  color: #1f2328;
   font-size: 12px;
   line-height: 1.3;
 }
@@ -1631,7 +1631,7 @@ onMounted(fetchCurrent)
   word-break: break-word;
   font-size: 12px;
   line-height: 1.6;
-  color: #22304f;
+  color: #1f2328;
 }
 
 .valuation-error {

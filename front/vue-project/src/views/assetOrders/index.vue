@@ -263,7 +263,7 @@ onMounted(fetchOrders)
 }
 
 .list-title {
-  color: #1d3972;
+  color: #1f2328;
   font-size: 15px;
   font-weight: 700;
 }
@@ -271,7 +271,7 @@ onMounted(fetchOrders)
 .orders-table {
   --el-table-header-bg-color: #fff;
   --el-table-border-color: #e9edf2;
-  color: #22304f;
+  color: #1f2328;
 }
 
 .orders-table :deep(.el-table__header th) {

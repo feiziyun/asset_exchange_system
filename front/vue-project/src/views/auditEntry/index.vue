@@ -89,7 +89,7 @@ onMounted(() => {
 .title {
   font-size: 24px;
   font-weight: 700;
-  color: #0f2744;
+  color: #1f2328;
 }
 
 .desc {

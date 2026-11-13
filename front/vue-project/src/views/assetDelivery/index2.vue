@@ -1572,7 +1572,7 @@ onBeforeUnmount(() => {
 .title {
   margin: 0 0 12px;
   font-size: 16px;
-  color: #1d3972;
+  color: #1f2328;
   font-weight: 700;
 }
 
@@ -1710,12 +1710,12 @@ onBeforeUnmount(() => {
   vertical-align: middle;
   line-height: 1.45;
   font-size: 12px;
-  color: #22304f;
+  color: #1f2328;
 }
 
 .styled-table th {
   background: #f8fafc;
-  color: #3d4b66;
+  color: #1f2328;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
@@ -1841,7 +1841,7 @@ onBeforeUnmount(() => {
 }
 
 .dialog-item strong {
-  color: #22304f;
+  color: #1f2328;
   font-size: 14px;
   line-height: 1.7;
   word-break: break-word;
@@ -1856,7 +1856,7 @@ onBeforeUnmount(() => {
 
 .history-title {
   margin-bottom: 12px;
-  color: #22304f;
+  color: #1f2328;
   font-size: 14px;
   font-weight: 700;
 }
@@ -1892,7 +1892,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  color: #22304f;
+  color: #1f2328;
   font-size: 13px;
 }
 
@@ -1920,7 +1920,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   min-height: 32px;
-  color: #22304f;
+  color: #1f2328;
   font-size: 13px;
 }
 

@@ -1082,7 +1082,7 @@ p {
 
 .page-header h2,
 .drawer-title h3 {
-  color: #193a8d;
+  color: #1f2328;
 }
 
 .page-header span,
@@ -1147,7 +1147,7 @@ p {
 
 .kpi-card strong {
   font-size: 26px;
-  color: #1a2850;
+  color: #1f2328;
 }
 
 .panel {
@@ -1220,7 +1220,7 @@ p {
 
 .agent-item strong {
   display: block;
-  color: #1a2850;
+  color: #1f2328;
 }
 
 .agent-item span {
@@ -1229,7 +1229,7 @@ p {
 }
 
 .agent-item b {
-  color: #193a8d;
+  color: #1f2328;
 }
 
 :deep(.clickable-row) {
@@ -1278,7 +1278,7 @@ p {
 
 .step-item strong {
   display: block;
-  color: #1a2850;
+  color: #1f2328;
   margin-bottom: 4px;
 }
 
@@ -1326,7 +1326,7 @@ p {
 }
 
 .process-verdict strong {
-  color: #193a8d;
+  color: #1f2328;
   font-size: 18px;
 }
 
@@ -1366,7 +1366,7 @@ p {
 
 .process-waiting strong {
   display: block;
-  color: #1a2850;
+  color: #1f2328;
   margin-bottom: 6px;
 }
 
@@ -1385,7 +1385,7 @@ p {
 }
 
 .detail-summary strong {
-  color: #193a8d;
+  color: #1f2328;
   font-size: 18px;
 }
 
@@ -1402,7 +1402,7 @@ p {
 
 .probability-panel h3 {
   margin-bottom: 12px;
-  color: #1a2850;
+  color: #1f2328;
 }
 
 .probability-row {
@@ -1435,7 +1435,7 @@ p {
 }
 
 .probability-panel dd {
-  color: #1a2850;
+  color: #1f2328;
   font-weight: 600;
 }
 
