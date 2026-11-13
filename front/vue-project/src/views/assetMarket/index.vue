@@ -1145,22 +1145,14 @@ onMounted(async () => {
 
 .asset-title {
   margin: 0;
-  color: #0969da;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: #1f2328;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 17px;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
-  transition:
-    color 0.18s ease,
-    transform 0.18s ease;
-
-  &:hover {
-    color: #0550ae;
-    transform: translateX(2px);
-  }
 }
 
 .asset-tags {
