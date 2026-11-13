@@ -272,6 +272,7 @@ onMounted(fetchOrders)
 }
 
 .orders-header {
+  box-sizing: border-box;
   margin-bottom: 12px;
   padding: 14px 18px;
   border-radius: 10px;
