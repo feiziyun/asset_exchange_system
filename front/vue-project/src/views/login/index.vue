@@ -20,6 +20,7 @@
                     <el-form-item label="账号">
                       <el-autocomplete
                         v-model="loginData.account"
+                        class="account-input"
                         name="username"
                         autocomplete="off"
                         placeholder="请输入账号"
@@ -349,7 +350,7 @@ const Login = async () => {
       padding: clamp(48px, 10vh, 120px) 10% 64px;
 
       .box-card {
-        width: min(100%, 390px);
+        width: min(100%, 370px);
         border: 1px solid #d8dee4;
         border-radius: 8px;
         background: #fff;
@@ -417,6 +418,10 @@ const Login = async () => {
 
         :deep(.el-input__wrapper.is-focus) {
           box-shadow: 0 0 0 1px #0969da inset, 0 0 0 3px rgb(9 105 218 / 15%);
+        }
+
+        :deep(.account-input .el-input__wrapper.is-focus) {
+          box-shadow: 0 0 0 1px #0969da inset;
         }
 
         :deep(.el-radio-group) {
