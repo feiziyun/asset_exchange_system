@@ -436,13 +436,13 @@ onMounted(fetchOrders)
 
 .pager {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   padding: 16px 0 0;
 }
 
 .pager :deep(.el-pagination) {
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 @media (max-width: 720px) {

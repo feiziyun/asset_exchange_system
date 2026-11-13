@@ -1042,12 +1042,8 @@ onMounted(async () => {
 /* ── 结果区 ── */
 .result-section {
   margin-top: 10px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 16px 18px;
-  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
-  /* 禁止水平滚动条 */
-  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .result-top {
@@ -1070,6 +1066,8 @@ onMounted(async () => {
 }
 
 .asset-card {
+  width: 100%;
+  box-sizing: border-box;
   border-radius: 10px;
   /* 卡片本身也不产生横向溢出 */
   overflow: hidden;
