@@ -1,0 +1,19 @@
+/* Shared search field, adapted from the former header search. */
+.app-search-input .el-input__wrapper {
+  border: 1.5px solid transparent;
+  border-radius: 20px;
+  background: #f0f4fc;
+  box-shadow: none;
+  transition: border-color 0.25s, background-color 0.25s, box-shadow 0.25s;
+}
+
+.app-search-input .el-input__wrapper:hover,
+.app-search-input .el-input__wrapper.is-focus {
+  border-color: #1677ff;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+}
+
+.app-search-input .el-input__prefix-inner {
+  color: #8c959f;
+}

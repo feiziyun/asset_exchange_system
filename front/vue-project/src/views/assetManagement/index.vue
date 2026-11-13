@@ -9,11 +9,13 @@
           </div>
           <el-input
             v-model="keyword"
-            class="search-input"
+            class="search-input app-search-input"
             placeholder="搜索资产名称/摘要/订单号"
             clearable
             @keyup.enter="onSearch"
-          />
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
           <el-button type="primary" @click="onSearch">查询</el-button>
           <el-button @click="onReset">重置</el-button>
           <el-button @click="refreshCurrent">刷新</el-button>
@@ -489,6 +491,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import AssetValuationDialog from '@/components/AssetValuationDialog.vue'
 import AlipayPaymentDialog from '@/components/AlipayPaymentDialog.vue'
 import { startOrderPayment } from '@/utils/orderPayment'

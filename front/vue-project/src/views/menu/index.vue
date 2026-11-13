@@ -8,19 +8,6 @@
             <div class="header-top-left">
               <img src="@/assets/logo.svg" alt="Logo" style="height: 50px" />
             </div>
-            <!-- 搜索框 -->
-            <div class="header-top-middle">
-              <el-input
-                v-model="searchBox"
-                class="search-input"
-                placeholder="搜索资产、交易、用户…"
-                clearable
-              >
-                <template #prefix>
-                  <el-icon class="search-icon"><Search /></el-icon>
-                </template>
-              </el-input>
-            </div>
             <!-- 右侧：通知 + 用户 -->
             <div class="header-top-right">
               <!-- 消息通知 -->
@@ -150,7 +137,6 @@ import { useRouter } from 'vue-router'
 import { clearAuthData, parseTokenPayload, getRoleKey, getRoleLabel } from '@/utils/auth'
 import { getUserInfo } from '@/api/userInfo'
 import {
-  Search,
   Bell,
   ArrowDown,
   User,
@@ -215,7 +201,6 @@ const state = reactive({
 })
 const { circleUrl } = toRefs(state)
 const route = useRoute()
-const searchBox = ref('')
 
 // 从 token 中解析用户信息
 const tokenPayload = parseTokenPayload() || {}
@@ -297,36 +282,6 @@ $radius: 8px;
     .header-top-left {
       display: flex;
       align-items: center;
-    }
-    /* ── 中间搜索框 ── */
-    .header-top-middle {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-
-      .search-input {
-        width: 100%;
-        max-width: 420px;
-
-        :deep(.el-input__wrapper) {
-          border-radius: 20px !important;
-          background: #f0f4fc !important;
-          box-shadow: none !important;
-          border: 1.5px solid transparent;
-          transition: border-color 0.25s;
-
-          &:hover,
-          &.is-focus {
-            border-color: $accent !important;
-            background: #fff !important;
-            box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12) !important;
-          }
-        }
-      }
-
-      .search-icon {
-        color: #aab;
-      }
     }
     /* ── 右侧用户区 ── */
     .header-top-right {

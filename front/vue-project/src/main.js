@@ -8,6 +8,7 @@ import 'element-plus/dist/index.css';
 import './styles/tables.css';
 import './styles/buttons.css';
 import './styles/controls.css';
+import './styles/search.css';
 import './styles/links.css';
 import './styles/typography.css';
 import './styles/page-titles.css';

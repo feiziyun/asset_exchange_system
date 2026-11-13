@@ -7,7 +7,7 @@
           <div class="search-title page-title"><span>{{ isRegulator ? '交易市场' : '自动驾驶数字资产' }}</span></div>
           <el-input
             v-model="query.keyword"
-            class="search-input"
+            class="search-input app-search-input"
             placeholder="请输入你要搜索的内容"
             clearable
             @keyup.enter="onSearch"

@@ -7,6 +7,7 @@
           <div class="header-search">
             <el-input
               v-model="searchInput"
+              class="app-search-input"
               placeholder="搜索订单号或资产名称"
               clearable
               @keyup.enter="onSearch"

@@ -4,7 +4,14 @@
       <section class="toolbar-section">
         <div class="toolbar-row">
           <div class="list-title page-title">交付工作台</div>
-          <el-button type="primary" @click="fetchOrders">刷新</el-button>
+          <div class="toolbar-actions">
+            <el-input v-model="searchInput" class="delivery-search app-search-input" placeholder="搜索订单号或资产名称"
+              clearable @keyup.enter="onSearch" @clear="onSearch">
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <el-button @click="onSearch">搜索</el-button>
+            <el-button type="primary" @click="fetchOrders">刷新</el-button>
+          </div>
         </div>
       </section>
 
@@ -269,6 +276,7 @@ import DigitalContractPreview from '@/components/DigitalContractPreview.vue'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import {
   createFlPrivacyContract,
   createMpcPrivacyTask,
@@ -336,6 +344,8 @@ const route = useRoute()
 const tokenPayload = parseTokenPayload() || {}
 const roleKey = 'seller'
 const currentOrderNo = ref(String(route.query.order_no || ''))
+const searchInput = ref('')
+const activeKeyword = ref('')
 const activeTab = ref('assetUpload')
 
 const loading = ref(false)
@@ -1318,7 +1328,7 @@ const fetchOrders = async () => {
     const res = await getOrderList({
       ...query,
       order_role,
-      keyword: currentOrderNo.value || '',
+      keyword: currentOrderNo.value || activeKeyword.value,
     })
     if (res.data.status === 0) {
       const list = res.data.data?.list || []
@@ -1383,6 +1393,12 @@ const formatMpcThreshold = (order?: OrderItem | null) => {
 
 const onPageChange = (page: number) => { query.page = page; fetchOrders() }
 const onSizeChange = (size: number) => { query.page_size = size; query.page = 1; fetchOrders() }
+const onSearch = () => {
+  currentOrderNo.value = ''
+  activeKeyword.value = searchInput.value.trim()
+  query.page = 1
+  fetchOrders()
+}
 
 const openContractPreview = (order: OrderItem) => { selectedOrder.value = order; contractPreviewVisible.value = true }
 const openHistoryDialog = (order: OrderItem) => { selectedOrder.value = order; historyDialogVisible.value = true }
@@ -1761,6 +1777,17 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.delivery-search {
+  width: 300px;
+}
+
 .list-title {
   font-size: 16px;
   font-weight: 700;
@@ -2084,6 +2111,15 @@ onBeforeUnmount(() => {
   .toolbar-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .toolbar-actions {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .delivery-search {
+    width: 100%;
   }
 
   .dialog-grid {
