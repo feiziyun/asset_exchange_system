@@ -55,7 +55,7 @@
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handlePageSizeChange"
         @current-change="fetchUserList"
-        style="margin-top: 20px; justify-content: flex-end"
+        style="margin-top: 20px; justify-content: center"
       />
     </el-card>
 

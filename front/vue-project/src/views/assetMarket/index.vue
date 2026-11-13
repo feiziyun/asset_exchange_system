@@ -1211,7 +1211,7 @@ onMounted(async () => {
 .pager {
   margin-top: 14px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .regulator-market-details {

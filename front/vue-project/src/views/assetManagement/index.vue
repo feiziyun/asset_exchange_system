@@ -1570,7 +1570,7 @@ onMounted(fetchCurrent)
 .pager {
   margin-top: 8px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .valuation-result-block {

@@ -85,7 +85,7 @@
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSearch"
         @current-change="handleSearch"
-        style="margin-top: 20px; justify-content: flex-end"
+        style="margin-top: 20px; justify-content: center"
       />
     </el-card>
 

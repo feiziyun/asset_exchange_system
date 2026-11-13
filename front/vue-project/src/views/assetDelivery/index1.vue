@@ -1979,7 +1979,7 @@ onBeforeUnmount(() => {
 
 .pager {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 14px;
 }
 

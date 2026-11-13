@@ -84,7 +84,7 @@
         layout="total, sizes, prev, pager, next, jumper"
         @size-change="handleSearch"
         @current-change="fetchAssetList"
-        style="margin-top: 20px; justify-content: flex-end"
+        style="margin-top: 20px; justify-content: center"
       />
     </el-card>
     <el-dialog v-model="detailVisible" title="资产及区块链信息" width="680px">
