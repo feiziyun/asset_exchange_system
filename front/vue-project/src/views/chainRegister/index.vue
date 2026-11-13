@@ -2,7 +2,7 @@
   <div class="common-wrapped">
     <div class="register-page">
       <h2 class="register-page-title page-title">资产登记</h2>
-      <el-card v-if="currentRole === 'seller'" shadow="never" class="register-card">
+      <div v-if="currentRole === 'seller'">
         <el-form :model="form" label-width="132px" class="register-form">
           <section class="form-section">
             <div class="section-title">基础信息</div>
@@ -250,11 +250,11 @@
           <el-button v-if="uploadingSource" type="info" disabled>源文件哈希生成中</el-button>
           <el-button type="primary" :loading="submitting" @click="submitForm">提交登记</el-button>
         </div>
-      </el-card>
+      </div>
 
-      <el-card v-else shadow="never" class="register-card">
+      <div v-else>
         <el-empty description="当前账号为买家，仅卖家可进行资产上链登记" />
-      </el-card>
+      </div>
     </div>
 
     <AssetValuationDialog
@@ -1326,18 +1326,6 @@ onMounted(async () => {
 
 .register-page-title {
   margin: 0 0 12px 16px;
-}
-
-.register-card {
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: linear-gradient(#fff, #fff) padding-box,
-    linear-gradient(135deg, #d6dae1, #f2f3f5 55%, #d3d8e0) border-box;
-  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.04);
-
-  :deep(.el-card__body) {
-    padding: 16px 18px;
-  }
 }
 
 .register-form {
