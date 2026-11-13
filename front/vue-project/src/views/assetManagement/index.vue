@@ -28,11 +28,9 @@
                 <thead>
                   <tr>
                     <th>资产信息</th>
-                    <th>资产哈希</th>
                     <th>安全等级</th>
                     <th>资产介绍</th>
                     <th>数量</th>
-                    <th>性质</th>
                     <th>状态</th>
                     <th>可出售权益</th>
                     <th>编辑</th>
@@ -52,7 +50,6 @@
                         </div>
                       </div>
                     </td>
-                    <td class="hash-cell">{{ shortenHash(item.file_hash) }}</td>
                     <td>{{ item.classification_data_level || '一般数据' }}</td>
                     <td>
                       <div class="brief-cell">
@@ -60,7 +57,6 @@
                       </div>
                     </td>
                     <td>{{ item.is_proxy ? item.quantity_remaining : Number(item.remaining_qty || 0) + Number(item.available_qty || 0) }}</td>
-                    <td>{{ Number(item.total_qty || 1) > 1 ? '多份资产' : '单份资产' }}</td>
                     <td>
                       <el-tag :type="item.active_delegation ? 'warning' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? 'info' : statusTag(item.status)">
                         {{ item.active_delegation ? '代理托管中' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? Number(item.available_qty) > 0 ? '待上架' : '已售罄' : statusText(item.status) }}
@@ -1458,16 +1454,14 @@ onMounted(fetchCurrent)
   line-height: 1.3;
 }
 
-.seller-table th:nth-child(1) { width: 98px; }
-.seller-table th:nth-child(2) { width: 104px; }
-.seller-table th:nth-child(3) { width: 62px; }
-.seller-table th:nth-child(4) { width: 156px; }
-.seller-table th:nth-child(5) { width: 46px; }
-.seller-table th:nth-child(6) { width: 58px; }
-.seller-table th:nth-child(7) { width: 68px; }
-.seller-table th:nth-child(8) { width: 84px; }
-.seller-table th:nth-child(9),
-.seller-table th:nth-child(10) { width: 48px; }
+.seller-table th:nth-child(1) { width: 120px; }
+.seller-table th:nth-child(2) { width: 76px; }
+.seller-table th:nth-child(3) { width: 180px; }
+.seller-table th:nth-child(4) { width: 50px; }
+.seller-table th:nth-child(5) { width: 82px; }
+.seller-table th:nth-child(6) { width: 100px; }
+.seller-table th:nth-child(7) { width: 64px; }
+.seller-table th:nth-child(8) { width: 100px; }
 
 .styled-table tbody tr:nth-of-type(odd) td {
   background: #fff;
@@ -1514,11 +1508,6 @@ onMounted(fetchCurrent)
 .asset-name-wrap {
   word-break: break-word;
   min-width: 0;
-}
-
-.hash-cell {
-  color: #50627f;
-  word-break: break-all;
 }
 
 .brief-cell {
