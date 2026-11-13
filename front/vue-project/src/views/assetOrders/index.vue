@@ -1,65 +1,65 @@
 <template>
   <div class="common-wrapped">
     <div class="orders-page">
-      <section class="toolbar-section">
-        <div class="toolbar-row">
-          <div class="list-title page-title">订单列表</div>
+      <header class="orders-header">
+        <h2 class="page-title">订单列表</h2>
+        <div class="header-actions">
+          <span class="order-count">共 {{ pagination.total }} 笔订单</span>
           <el-button type="primary" @click="fetchOrders">刷新</el-button>
         </div>
-      </section>
+      </header>
 
-      <section class="table-section">
-        <el-table :data="orders" v-loading="loading" style="width: 100%" empty-text="暂无订单" class="orders-table">
-          <el-table-column prop="asset_name" label="资产名" min-width="140" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.asset_name || '-' }}</template>
-          </el-table-column>
-          <el-table-column label="交易ID" min-width="160" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.transaction?.transaction_id || '-' }}</template>
-          </el-table-column>
-          <el-table-column label="价格" min-width="130">
-            <template #default="{ row }">{{ formatPrice(row.deal_price) }} {{ row.price_unit || '人民币' }}</template>
-          </el-table-column>
-          <el-table-column label="资产ID" width="90">
-            <template #default="{ row }">{{ row.asset_id || '-' }}</template>
-          </el-table-column>
-          <el-table-column label="状态" width="105">
-            <template #default="{ row }">
-              <el-tag :type="statusTagType(row)" effect="light">{{ transactionStatusText(row) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="卖家地址" min-width="160" show-overflow-tooltip>
-            <template #default="{ row }">{{ sellerAddress(row) }}</template>
-          </el-table-column>
-          <el-table-column label="买家地址" min-width="160" show-overflow-tooltip>
-            <template #default="{ row }">{{ buyerAddress(row) }}</template>
-          </el-table-column>
-          <el-table-column label="申请数量" width="90">
-            <template #default="{ row }">{{ row.buy_qty || 1 }}</template>
-          </el-table-column>
-          <el-table-column label="操作" width="105" fixed="right">
-            <template #default="{ row }">
-              <div class="row-actions">
-                <el-button
-                  v-if="isPendingOrder(row)"
-                  type="primary"
-                  link
-                  :loading="actionLoadingNo === row.order_no"
-                  @click="handleSellerConfirm(row)"
-                >确认交易</el-button>
-                <el-button
-                  v-else-if="row.delegation_id && row.chain_transfer_status !== 'SUCCESS' && ['已确认', '已完成'].includes(row.transaction?.status || '')"
-                  type="primary"
-                  link
-                  :loading="actionLoadingNo === row.order_no"
-                  @click="transferProxyOrder(row)"
-                >链上过户</el-button>
-                <span v-else>-</span>
+      <section class="orders-panel" v-loading="loading">
+        <div v-if="orders.length" class="order-list">
+          <article v-for="row in orders" :key="row.id" class="order-item">
+            <div class="order-main">
+              <div class="order-heading">
+                <h3 class="order-name">{{ row.asset_name || '未命名资产' }}</h3>
+                <span class="order-status" :class="statusTagType(row)">{{ transactionStatusText(row) }}</span>
               </div>
-            </template>
-          </el-table-column>
-        </el-table>
+              <div class="order-meta">
+                <div class="meta-item meta-item-wide">
+                  <span class="meta-label">交易 ID</span>
+                  <span class="meta-value mono">{{ row.transaction?.transaction_id || '-' }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">资产 ID</span>
+                  <span class="meta-value">{{ row.asset_id || '-' }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">申请数量</span>
+                  <span class="meta-value">{{ row.buy_qty || 1 }}</span>
+                </div>
+                <div class="meta-item meta-item-wide">
+                  <span class="meta-label">卖家地址</span>
+                  <span class="meta-value mono">{{ sellerAddress(row) }}</span>
+                </div>
+                <div class="meta-item meta-item-wide">
+                  <span class="meta-label">买家地址</span>
+                  <span class="meta-value mono">{{ buyerAddress(row) }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="order-side">
+              <div class="order-price">{{ formatPrice(row.deal_price) }} <span>{{ row.price_unit || '人民币' }}</span></div>
+              <el-button
+                v-if="isPendingOrder(row)"
+                type="primary"
+                :loading="actionLoadingNo === row.order_no"
+                @click="handleSellerConfirm(row)"
+              >确认交易</el-button>
+              <el-button
+                v-else-if="row.delegation_id && row.chain_transfer_status !== 'SUCCESS' && ['已确认', '已完成'].includes(row.transaction?.status || '')"
+                type="primary"
+                :loading="actionLoadingNo === row.order_no"
+                @click="transferProxyOrder(row)"
+              >链上过户</el-button>
+            </div>
+          </article>
+        </div>
+        <el-empty v-else-if="!loading" description="暂无订单" />
 
-        <div class="pager">
+        <div v-if="pagination.total" class="pager">
           <el-pagination
             background
             layout="total, prev, pager, next, sizes"
@@ -232,70 +232,191 @@ onMounted(fetchOrders)
   width: 100%;
   display: flex;
   justify-content: center;
-  background: #f5f7fb;
+  background: #f6f8fa;
 }
 
 .orders-page {
-  width: 96%;
-  min-height: 100vh;
-  padding: 8px 10px;
+  width: min(100%, 1240px);
+  min-height: calc(100vh - 112px);
+  padding: 24px 24px 48px;
   box-sizing: border-box;
 }
 
-.toolbar-section,
-.table-section {
-  background: #fff;
-  border: 1px solid #e4e8f0;
-  border-radius: 10px;
-  padding: 10px 12px;
-  box-shadow: 0 2px 8px rgba(18, 41, 79, 0.06);
-}
-
-.table-section {
-  margin-top: 8px;
-}
-
-.toolbar-row {
+.orders-header {
   display: flex;
-  gap: 12px;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  padding: 0 4px 16px;
 }
 
-.list-title {
-  color: #1f2328;
-  font-size: 15px;
-  font-weight: 700;
+.orders-header h2 {
+  margin: 0;
 }
 
-.orders-table {
-  --el-table-header-bg-color: #fff;
-  --el-table-border-color: #e9edf2;
-  color: #1f2328;
-}
-
-.orders-table :deep(.el-table__header th) {
-  color: #57606a;
-  font-weight: 600;
-}
-
-.row-actions {
+.header-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0;
+  gap: 16px;
+}
+
+.order-count {
+  color: #57606a;
+  font-size: 13px;
+}
+
+.orders-panel {
+  min-height: 160px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #d1d9e0;
+  border-radius: 8px;
+}
+
+.order-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 24px;
+  padding: 20px 24px;
+}
+
+.order-item + .order-item {
+  border-top: 1px solid #d8dee4;
+}
+
+.order-item:hover {
+  background: #f6f8fa;
+}
+
+.order-main {
+  min-width: 0;
+}
+
+.order-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.order-name {
+  margin: 0;
+  color: #1f2328;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.order-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #57606a;
+  font-size: 12px;
   white-space: nowrap;
+}
+
+.order-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8c959f;
+}
+
+.order-status.warning::before {
+  background: #bf8700;
+}
+
+.order-status.success::before {
+  background: #1a7f37;
+}
+
+.order-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 20px;
+}
+
+.meta-item {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.meta-item-wide {
+  grid-column: 1 / -1;
+}
+
+.meta-label {
+  flex: 0 0 64px;
+  color: #6e7781;
+}
+
+.meta-value {
+  min-width: 0;
+  color: #57606a;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+.order-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.order-price {
+  color: #1f2328;
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.order-price span {
+  color: #57606a;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.order-side .el-button {
+  margin: 0;
 }
 
 .pager {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  padding: 16px 20px;
+  border-top: 1px solid #d8dee4;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 720px) {
   .orders-page {
-    width: 96%;
+    padding: 18px 12px 32px;
+  }
+
+  .order-item {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 18px 16px;
+  }
+
+  .order-side {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .pager {
+    padding: 14px 12px;
   }
 }
 </style>
