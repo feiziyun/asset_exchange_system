@@ -88,18 +88,27 @@
         </el-alert>
 
         <div v-if="list.length" class="asset-list">
-          <el-card v-for="item in list" :key="item.id" class="asset-card" shadow="hover">
+          <el-card
+            v-for="item in list"
+            :key="item.id"
+            class="asset-card"
+            shadow="hover"
+            role="link"
+            tabindex="0"
+            :aria-label="`查看${item.asset_name || '资产'}详情`"
+            @click="goDetail(item.id, item.publish_id)"
+            @keydown.enter.self="goDetail(item.id, item.publish_id)"
+          >
             <div class="asset-content">
               <img
                 class="asset-cover"
                 :src="resolveCover(item)"
                 @error="onCoverError"
                 alt="asset"
-                @click="goDetail(item.id, item.publish_id)"
               />
               <div class="asset-main">
                 <div class="asset-title-row">
-                  <h3 class="asset-title" @click="goDetail(item.id, item.publish_id)">{{ item.asset_name }}</h3>
+                  <h3 class="asset-title">{{ item.asset_name }}</h3>
                   <div class="asset-tags">
                     <span v-if="item.seller_type === 'AGENT'">代理</span>
                     <span>{{ item.category_name || '未分类' }}</span>
@@ -178,7 +187,7 @@
                   v-else-if="item.pricing_mode === 'auction' && isAuctionOpen(item) && canBuyAsset"
                   type="warning"
                   link
-                  @click="openBidDialog(item)"
+                  @click.stop="openBidDialog(item)"
                 >
                   参与竞拍
                 </el-button>
@@ -186,11 +195,10 @@
                   v-else-if="canBuyAsset"
                   type="success"
                   link
-                  @click="openBuyDialog(item)"
+                  @click.stop="openBuyDialog(item)"
                 >
                   立即购买
                 </el-button>
-                <el-button type="primary" link @click="goDetail(item.id, item.publish_id)">查看详情</el-button>
               </div>
             </div>
           </el-card>
@@ -1053,8 +1061,14 @@ onMounted(async () => {
   width: 100%;
   box-sizing: border-box;
   border-radius: 10px;
+  cursor: pointer;
   /* 卡片本身也不产生横向溢出 */
   overflow: hidden;
+
+  &:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: 2px;
+  }
 
   :deep(.el-card__body) {
     overflow: hidden;
@@ -1111,6 +1125,11 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 
 .asset-tags {
