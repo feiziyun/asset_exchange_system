@@ -1313,10 +1313,11 @@ onMounted(async () => {
   width: 100%;
   display: flex;
   justify-content: center;
-  background: #fff;
+  background: #f5f7fb;
 
   .register-page {
     padding: 16px 20px;
+    background: #f5f7fb;
     width: 85%;
     min-height: 100vh;
     box-sizing: border-box;
@@ -1335,10 +1336,9 @@ onMounted(async () => {
 
 .form-section {
   padding: 16px;
-  border: 1px solid transparent;
+  background: #fff;
   border-radius: 10px;
-  background: linear-gradient(#fff, #fff) padding-box,
-    linear-gradient(120deg, #d8dde4, #f0f1f3 50%, #d8dde4) border-box;
+  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
 }
 
 .section-title {
