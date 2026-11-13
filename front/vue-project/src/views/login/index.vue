@@ -30,7 +30,6 @@
                           </el-dropdown-menu>
                         </template>
                       </el-dropdown>
-                      <el-button text type="primary" @click="chooseBrowserPassword">选择浏览器保存的密码</el-button>
                     </el-form-item>
                     <el-form-item label="密码">
                       <el-input
@@ -44,7 +43,7 @@
                     </el-form-item>
                     <el-form-item>
                       <el-checkbox v-model="rememberAccount">记住账号</el-checkbox>
-                      <el-checkbox v-model="savePassword">用浏览器保存密码</el-checkbox>
+                      <el-checkbox v-model="savePassword">记住密码</el-checkbox>
                     </el-form-item>
 
                   <div class="login-foot-wrapped">
@@ -163,22 +162,6 @@ const selectSavedAccount = (account: string) => {
   loginData.account = account
   loginData.password = ''
   rememberAccount.value = true
-}
-
-const chooseBrowserPassword = async () => {
-  if (!navigator.credentials?.get) {
-    ElMessage.info('请点击密码框，从浏览器的密码管理器选择账号')
-    return
-  }
-  try {
-    const credential = await navigator.credentials.get({ password: true, mediation: 'required' } as any) as any
-    if (!credential?.password) return
-    loginData.account = credential.id || ''
-    loginData.password = credential.password
-    rememberAccount.value = true
-  } catch {
-    ElMessage.info('请点击密码框，从浏览器的密码管理器选择账号')
-  }
 }
 
 const storeBrowserPassword = async (account: string, password: string) => {
