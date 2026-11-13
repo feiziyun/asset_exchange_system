@@ -296,8 +296,6 @@ onBeforeUnmount(() => {
   margin: 0;
   padding: 10px 0 16px 10px;
   text-align: left;
-  font-size: 24px;
-  color: #333;
 }
 
 .dashboard-new {
@@ -358,8 +356,9 @@ onBeforeUnmount(() => {
 
 .summary-title h3 {
   margin: 0;
-  font-size: 15px;
-  color: #222;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--app-text-primary);
 }
 
 .dashboard-icon {
@@ -380,12 +379,12 @@ onBeforeUnmount(() => {
   font-size: 30px;
   font-weight: 700;
   margin: 5px 0 0;
-  color: #111;
+  color: var(--app-text-primary);
 }
 
 .main-label {
   font-size: 13px;
-  color: #777;
+  color: var(--app-text-secondary);
 }
 
 .trade-sub {
@@ -408,12 +407,12 @@ onBeforeUnmount(() => {
 
 .trade-box span {
   font-size: 13px;
-  color: #666;
+  color: var(--app-text-secondary);
 }
 
 .trade-box strong {
   font-size: 18px;
-  color: #222;
+  color: var(--app-text-primary);
 }
 
 .divider {
@@ -444,7 +443,7 @@ onBeforeUnmount(() => {
 .system-box span {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: var(--app-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -454,7 +453,7 @@ onBeforeUnmount(() => {
   display: block;
   margin-top: 4px;
   font-size: 20px;
-  color: #111;
+  color: var(--app-text-primary);
   line-height: 22px;
 }
 
@@ -509,7 +508,7 @@ onBeforeUnmount(() => {
 
 .industry-name {
   font-size: 12px;
-  color: #4b5563;
+  color: var(--app-text-secondary);
   text-align: left;
   overflow: hidden;
   white-space: nowrap;
@@ -518,8 +517,8 @@ onBeforeUnmount(() => {
 
 .industry-count {
   font-size: 16px;
-  font-weight: 700;
-  color: #1f2937;
+  font-weight: 600;
+  color: var(--app-text-primary);
   margin-left: 8px;
 }
 
@@ -533,6 +532,8 @@ onBeforeUnmount(() => {
 .sales-details h3 {
   margin: 0 0 20px;
   font-size: 18px;
+  font-weight: 600;
+  color: var(--app-text-primary);
   text-align: left;
 }
 

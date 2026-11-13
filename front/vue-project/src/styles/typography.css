@@ -1,5 +1,55 @@
+:root {
+  --app-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --el-font-family: var(--app-font-family);
+  font-family: var(--app-font-family);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  --app-text-primary: #1f2328;
+  --app-text-secondary: #57606a;
+  --app-text-muted: #6e7781;
+  --el-text-color-primary: var(--app-text-primary);
+  --el-text-color-regular: var(--app-text-secondary);
+  --el-text-color-secondary: var(--app-text-muted);
+  --el-text-color-placeholder: #8c959f;
+}
+
+body {
+  margin: 0;
+  color: var(--app-text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 #app {
-  --el-text-color-primary: #1f2328;
-  --el-text-color-regular: #1f2328;
-  color: #1f2328;
+  color: var(--app-text-primary);
+  font-family: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#app .el-form-item__label,
+#app .el-descriptions__label {
+  color: var(--app-text-secondary);
+  font-weight: 500;
+}
+
+#app .el-table__header th.el-table__cell {
+  color: var(--app-text-secondary);
+  font-weight: 600;
+}
+
+#app .el-table__body td.el-table__cell {
+  color: var(--app-text-primary);
+}
+
+#app .el-input:not(.is-disabled) .el-input__inner,
+#app .el-textarea:not(.is-disabled) .el-textarea__inner,
+#app .el-select:not(.is-disabled) .el-select__selected-item {
+  color: var(--app-text-primary);
 }

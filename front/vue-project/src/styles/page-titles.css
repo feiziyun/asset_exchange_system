@@ -1,9 +1,10 @@
 #app .page-title {
-  color: #666;
-  font-family: 'Hiragino Sans GB', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  color: var(--app-text-primary);
+  font-family: inherit;
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 #app .toolbar-section .page-title {

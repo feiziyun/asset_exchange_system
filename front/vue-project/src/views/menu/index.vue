@@ -374,11 +374,11 @@ $radius: 8px;
           .user-name {
             font-size: 14px;
             font-weight: 600;
-            color: #222;
+            color: var(--app-text-primary);
           }
           .user-role {
-            font-size: 11px;
-            color: #999;
+            font-size: 12px;
+            color: var(--app-text-secondary);
           }
         }
         .arrow-icon {
@@ -438,7 +438,7 @@ $radius: 8px;
     }
 
     .nav-clock {
-      color: rgba(235, 226, 226, 0.55);
+      color: rgba(255, 255, 255, 0.72);
       font-size: 13px;
       font-variant-numeric: tabular-nums;
       letter-spacing: 0.05em;

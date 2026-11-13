@@ -742,7 +742,7 @@ export default {
 .page-header p,
 .section-heading span {
   margin: 5px 0 0;
-  color: #64748b;
+  color: var(--app-text-secondary);
   font-size: 14px;
 }
 
@@ -811,7 +811,7 @@ export default {
 .kpi-card span,
 .kpi-card small {
   display: block;
-  color: #64748b;
+  color: var(--app-text-secondary);
 }
 
 .kpi-card strong {

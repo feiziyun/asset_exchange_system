@@ -1343,11 +1343,10 @@ onMounted(async () => {
 
 .section-title {
   margin-bottom: 14px;
-  font-family: 'Hiragino Sans GB', 'Microsoft YaHei', 'PingFang SC', sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
-  color: #3d444d;
+  color: var(--app-text-primary);
 }
 
 .register-main {
@@ -1396,7 +1395,7 @@ onMounted(async () => {
 
 .cover-empty {
   font-size: 13px;
-  color: #7b89a8;
+  color: var(--app-text-muted);
 }
 
 .hidden-file-input {
@@ -1616,7 +1615,7 @@ onMounted(async () => {
   color: #d24d57;
 
   :deep(a) {
-    color: #409eff;
+    color: #0969da;
   }
 }
 

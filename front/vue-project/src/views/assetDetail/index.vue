@@ -793,7 +793,7 @@ onMounted(fetchDetail)
 
   label {
     min-width: 90px;
-    color: #7c89ad;
+    color: var(--app-text-secondary);
   }
 
   span {

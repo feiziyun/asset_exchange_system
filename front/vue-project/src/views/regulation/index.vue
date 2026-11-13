@@ -1087,7 +1087,7 @@ p {
 
 .page-header span,
 .section-heading span {
-  color: #6d7890;
+  color: var(--app-text-secondary);
   font-size: 13px;
 }
 
@@ -1141,7 +1141,7 @@ p {
 
 .kpi-card span,
 .kpi-card small {
-  color: #6d7890;
+  color: var(--app-text-secondary);
   font-size: 12px;
 }
 
@@ -1224,7 +1224,7 @@ p {
 }
 
 .agent-item span {
-  color: #6d7890;
+  color: var(--app-text-secondary);
   font-size: 12px;
 }
 
@@ -1283,7 +1283,7 @@ p {
 }
 
 .step-item span {
-  color: #6d7890;
+  color: var(--app-text-secondary);
   font-size: 12px;
 }
 
@@ -1321,7 +1321,7 @@ p {
 .process-verdict span {
   display: block;
   font-size: 12px;
-  color: #6d7890;
+  color: var(--app-text-secondary);
   margin-bottom: 8px;
 }
 
@@ -1345,7 +1345,7 @@ p {
 
 .result-pending,
 .empty-hint {
-  color: #6d7890;
+  color: var(--app-text-secondary);
   font-size: 13px;
 }
 
@@ -1360,7 +1360,7 @@ p {
 
 .process-waiting {
   margin-top: 10px;
-  color: #6d7890;
+  color: var(--app-text-secondary);
   font-size: 13px;
 }
 
@@ -1380,7 +1380,7 @@ p {
 .detail-summary span {
   display: block;
   margin-bottom: 6px;
-  color: #6d7890;
+  color: var(--app-text-secondary);
   font-size: 12px;
 }
 
@@ -1431,7 +1431,7 @@ p {
 }
 
 .probability-panel dt {
-  color: #6d7890;
+  color: var(--app-text-secondary);
 }
 
 .probability-panel dd {

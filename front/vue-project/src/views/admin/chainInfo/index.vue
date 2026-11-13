@@ -207,25 +207,25 @@ onMounted(() => {
 
         .stat-label {
           font-size: 14px;
-          color: #666;
+          color: var(--app-text-secondary);
           margin-bottom: 8px;
         }
 
         .stat-value {
           font-size: 28px;
           font-weight: 600;
-          color: #1890ff;
+          color: var(--app-text-primary);
 
           &.success {
-            color: #52c41a;
+            color: #1a7f37;
           }
 
           &.warning {
-            color: #faad14;
+            color: #9a6700;
           }
 
           &.danger {
-            color: #f5222d;
+            color: #cf222e;
           }
         }
       }

@@ -1612,7 +1612,7 @@ onBeforeUnmount(() => {
 
 .current-order {
   margin: 0 0 10px;
-  color: #6c7a96;
+  color: var(--app-text-secondary);
   font-size: 12px;
 }
 
@@ -1800,7 +1800,7 @@ onBeforeUnmount(() => {
 
 .empty-cell {
   text-align: center;
-  color: #8b97ac;
+  color: var(--app-text-muted);
   padding: 24px 0;
 }
 
@@ -1836,7 +1836,7 @@ onBeforeUnmount(() => {
 }
 
 .dialog-item span {
-  color: #7785a3;
+  color: var(--app-text-secondary);
   font-size: 12px;
 }
 
@@ -1898,7 +1898,7 @@ onBeforeUnmount(() => {
 
 .history-note {
   margin-top: 6px;
-  color: #73829f;
+  color: var(--app-text-secondary);
   font-size: 13px;
 }
 

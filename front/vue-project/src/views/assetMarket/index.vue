@@ -1140,7 +1140,7 @@ onMounted(async () => {
 .asset-title {
   margin: 0;
   color: #1f2328;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: inherit;
   font-size: 17px;
   font-weight: 600;
   line-height: 1.35;
@@ -1198,14 +1198,14 @@ onMounted(async () => {
 }
 
 .permission-empty {
-  color: #909399;
+  color: var(--app-text-muted);
   font-size: 12px;
 }
 
 .asset-meta {
   display: flex;
   gap: 14px;
-  color: #8a95b8;
+  color: var(--app-text-secondary);
   font-size: 12px;
   flex-wrap: wrap;
 }
