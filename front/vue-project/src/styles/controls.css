@@ -1,0 +1,56 @@
+/* Radio buttons and checkboxes use the same simple blue states as GitHub. */
+.el-radio__inner,
+.el-checkbox__inner {
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border: 1.5px solid #8c959f;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.el-radio__inner {
+  border-radius: 50%;
+}
+
+.el-checkbox__inner {
+  border-radius: 4px;
+}
+
+.el-radio:not(.is-disabled):hover .el-radio__inner,
+.el-checkbox:not(.is-disabled):hover .el-checkbox__inner {
+  border-color: #0969da;
+}
+
+.el-radio__input.is-checked .el-radio__inner,
+.el-checkbox__input.is-checked .el-checkbox__inner,
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+  background: #0969da;
+  border-color: #0969da;
+}
+
+.el-radio__input.is-checked .el-radio__inner::after {
+  width: 7px;
+  height: 7px;
+  background: #fff;
+}
+
+.el-checkbox__input.is-checked .el-checkbox__inner::after {
+  width: 5px;
+  height: 9px;
+  border-color: #fff;
+  border-width: 0 2px 2px 0;
+  top: 2px;
+  left: 6px;
+}
+
+.el-radio__input.is-focus:not(.is-disabled) .el-radio__inner,
+.el-checkbox__input.is-focus:not(.is-disabled) .el-checkbox__inner {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
+}
+
+.el-radio__input.is-disabled .el-radio__inner,
+.el-checkbox__input.is-disabled .el-checkbox__inner {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+}

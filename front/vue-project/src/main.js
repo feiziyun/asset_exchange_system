@@ -7,6 +7,7 @@ import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import './styles/tables.css';
 import './styles/buttons.css';
+import './styles/controls.css';
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'virtual:svg-icons-register'
 
