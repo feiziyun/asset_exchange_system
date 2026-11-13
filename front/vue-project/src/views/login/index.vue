@@ -51,7 +51,7 @@
                       <span class="forget-password-button" @click="openForget">忘记密码</span>
                     </div>
                     <!-- 登陆按钮 -->
-                    <el-button type="success" class="login-button" native-type="submit"
+                    <el-button type="primary" class="login-button" native-type="submit"
                       >登 录</el-button
                     >
                     <!-- 转去注册 -->
@@ -83,7 +83,7 @@
                     </el-form-item>
                   </el-form>
                   <!-- 注册按钮 -->
-                  <el-button type="success" class="register-button" @click="Register"
+                  <el-button type="primary" class="register-button" @click="Register"
                     >注 册</el-button
                   >
                 </el-tab-pane>
@@ -372,13 +372,17 @@ const Login = async () => {
         }
 
         :deep(.el-tabs__item.is-active) {
-          color: #24292f;
+          color: #0969da;
           font-weight: 600;
+        }
+
+        :deep(.el-tabs__item:hover) {
+          color: #0550ae;
         }
 
         :deep(.el-tabs__active-bar) {
           height: 2px;
-          background: #2da44e;
+          background: #0969da;
         }
 
         :deep(.el-form-item) {
@@ -485,9 +489,9 @@ const Login = async () => {
           width: 100%;
           height: 40px;
           margin: 0;
-          border: 1px solid #2a9145;
+          border: 1px solid #0969da;
           border-radius: 6px;
-          background: #2da44e;
+          background: #0969da;
           color: #fff;
           font-size: 14px;
           font-weight: 600;
@@ -495,8 +499,15 @@ const Login = async () => {
 
         .login-button:hover,
         .register-button:hover {
-          border-color: #248a3e;
-          background: #2c974b;
+          border-color: #0550ae;
+          background: #0550ae;
+          color: #fff;
+        }
+
+        .login-button:active,
+        .register-button:active {
+          border-color: #033d8b;
+          background: #033d8b;
         }
       }
     }

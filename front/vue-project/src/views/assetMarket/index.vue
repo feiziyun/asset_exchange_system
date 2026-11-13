@@ -1076,8 +1076,8 @@ onMounted(async () => {
 }
 
 .result-count {
-  color: #3559b6;
-  font-weight: 700;
+  color: #57606a;
+  font-weight: 500;
   font-size: 13px;
 }
 
