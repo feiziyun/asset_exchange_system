@@ -73,20 +73,19 @@
           </article>
         </div>
         <el-empty v-else-if="!loading" description="暂无订单" />
-
-        <div v-if="pagination.total" class="pager">
-          <el-pagination
-            background
-            layout="total, prev, pager, next, sizes"
-            :total="pagination.total"
-            :current-page="pagination.page"
-            :page-size="pagination.page_size"
-            :page-sizes="[10, 20, 50]"
-            @current-change="onPageChange"
-            @size-change="onSizeChange"
-          />
-        </div>
       </section>
+      <div v-if="pagination.total" class="pager">
+        <el-pagination
+          background
+          layout="total, prev, pager, next, sizes"
+          :total="pagination.total"
+          :current-page="pagination.page"
+          :page-size="pagination.page_size"
+          :page-sizes="[10, 20, 50]"
+          @current-change="onPageChange"
+          @size-change="onSizeChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -438,8 +437,7 @@ onMounted(fetchOrders)
 .pager {
   display: flex;
   justify-content: flex-end;
-  padding: 16px 20px;
-  border-top: 1px solid #d8dee4;
+  padding: 16px 0 0;
 }
 
 .pager :deep(.el-pagination) {
@@ -465,7 +463,7 @@ onMounted(fetchOrders)
   }
 
   .pager {
-    padding: 14px 12px;
+    padding-top: 14px;
   }
 }
 </style>
