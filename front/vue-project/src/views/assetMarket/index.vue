@@ -1077,7 +1077,7 @@ onMounted(async () => {
 
 .asset-content {
   display: grid;
-  grid-template-columns: minmax(0, 200px) minmax(0, 1fr) minmax(0, 150px);
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr) max-content;
   gap: 14px;
   align-items: center;
   /* 内容区不超出卡片宽度 */
@@ -1203,6 +1203,7 @@ onMounted(async () => {
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: 8px;
+  white-space: nowrap;
 
   span {
     margin-left: 3px;
