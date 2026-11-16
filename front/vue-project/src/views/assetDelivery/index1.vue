@@ -1823,7 +1823,7 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-.delivery-filter-label { flex: none; color: #57606a; font-size: 14px; font-weight: 500; }
+.delivery-filter-label { flex: none; margin-inline: 4px; color: #57606a; font-size: 14px; font-weight: 500; }
 .delivery-filter-options { display: flex; align-items: center; gap: 6px; min-width: 0; overflow-x: auto; }
 .delivery-filter-option {
   flex: none;
