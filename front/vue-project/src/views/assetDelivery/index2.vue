@@ -1696,7 +1696,7 @@ onBeforeUnmount(() => {
 .delivery-filter-option:hover { background: #f6f8fa; }
 .delivery-filter-option.active {
   background: #f6f8fa;
-  color: #24292f;
+  color: #1d4f91;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1896,8 +1896,8 @@ onBeforeUnmount(() => {
 
 .styled-table th {
   background: #f8fafc;
-  color: #1f2328;
-  font-size: 15px;
+  color: #3d444d;
+  font-size: 16px;
   font-weight: 600;
   white-space: nowrap;
   border-bottom: 1px solid #dde4ee;
@@ -1981,10 +1981,10 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--app-text-primary);
+  color: #4b5563;
   font: inherit;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
   text-align: center;
   overflow: hidden;
@@ -1994,6 +1994,7 @@ onBeforeUnmount(() => {
 }
 
 .asset-name-link:hover {
+  color: #374151;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
