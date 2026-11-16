@@ -147,7 +147,7 @@
                         <th>购买数量</th>
                         <th>订单金额（元）</th>
                         <th>订单状态</th>
-                        <th>操作</th>
+                        <th>订单操作</th>
                       </tr>
                     </thead>
                     <tbody>

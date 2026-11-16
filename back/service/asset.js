@@ -4221,7 +4221,14 @@ exports.getOrderSummary = async (userId, identity = '') => {
   const from = seller
     ? 'FROM asset_order ao INNER JOIN asset_publish_record apr ON apr.id = ao.publish_id WHERE apr.publisher_id = ?'
     : 'FROM asset_order ao WHERE ao.buyer_id = ? AND ao.buyer_deleted_at IS NULL';
-  const [orderResult, assetResult] = await Promise.all([pool.query(`
+  const buyerRequested = `CASE COALESCE(dc.pc_type, ao.pc_type)
+    WHEN 'HE' THEN he.paillier_public_key_json IS NOT NULL AND he.elgamal_public_key_json IS NOT NULL
+    WHEN 'PRE' THEN pre.buyer_public_key IS NOT NULL
+    WHEN 'FL' THEN fl.pcp_contract_id IS NOT NULL
+    WHEN 'MPC' THEN mpc.remote_task_id IS NOT NULL AND LOWER(mpc.task_status) <> 'failed'
+    ELSE EXISTS (SELECT 1 FROM delivery_requests dr WHERE dr.order_no = ao.order_no)
+  END`;
+  const [orderResult, assetResult, buyerRequestResult] = await Promise.all([pool.query(`
     SELECT
       COUNT(*) AS total_orders,
       COALESCE(SUM(ao.order_status IN (1, 2, 3)), 0) AS paid_orders,
@@ -4231,10 +4238,25 @@ exports.getOrderSummary = async (userId, identity = '') => {
     ${from}
   `, [userId]), seller
     ? pool.query('SELECT COUNT(*) AS registered_assets FROM digital_asset WHERE user_id = ?', [userId])
-    : Promise.resolve(null)]);
+    : Promise.resolve(null), seller ? Promise.resolve(null) : pool.query(`
+      SELECT
+        COALESCE(SUM(NOT (${buyerRequested})), 0) AS awaiting_buyer_request,
+        COALESCE(SUM(${buyerRequested}), 0) AS awaiting_seller_delivery
+      FROM asset_order ao
+      LEFT JOIN transactions t ON t.order_no = ao.order_no
+      LEFT JOIN digital_contracts dc ON dc.order_no = ao.order_no
+      LEFT JOIN he_delivery_contracts he ON he.transaction_id = t.transaction_id
+      LEFT JOIN pre_delivery_contracts pre ON pre.transaction_id = t.transaction_id
+      LEFT JOIN fl_delivery_contracts fl ON fl.transaction_id = t.transaction_id
+      LEFT JOIN mpc_delivery_contracts mpc ON mpc.transaction_id = t.transaction_id
+      WHERE ao.buyer_id = ? AND ao.buyer_deleted_at IS NULL
+        AND ao.order_status = 1 AND t.status = '已确认'
+    `, [userId])]);
   return {
     ...orderResult[0][0],
     registered_assets: seller ? Number(assetResult[0][0].registered_assets || 0) : 0,
+    awaiting_buyer_request: seller ? 0 : Number(buyerRequestResult[0][0].awaiting_buyer_request || 0),
+    awaiting_seller_delivery: seller ? 0 : Number(buyerRequestResult[0][0].awaiting_seller_delivery || 0),
   };
 };
 

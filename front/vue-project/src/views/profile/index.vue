@@ -50,9 +50,10 @@
             <template #header>
               <div class="certificate-heading">
                 <span class="section-title">我的证书</span>
-                <span v-if="activeCertificate" class="cert-badge" :class="{ expired: certificateExpired }">
-                  {{ certificateExpired ? '已过期' : '有效' }}
+                <span v-if="!certLoading && !certLoadError" class="cert-status" :class="{ expired: certificateExpired, unapplied: !activeCertificate }">
+                  {{ !activeCertificate ? '未申请' : certificateExpired ? '已过期' : '有效' }}
                 </span>
+                <el-button v-if="!certLoading && !activeCertificate && !certLoadError" class="profile-action-button cert-apply-action" @click="openCertificateDialog('apply')">申请证书</el-button>
               </div>
             </template>
             <div class="certificate-section" v-loading="certLoading">
@@ -84,10 +85,7 @@
                 <el-button class="profile-action-button cert-action" @click="openCertificateDialog('renew')">证书续期</el-button>
               </div>
               <el-alert v-else-if="certLoadError" :title="certLoadError" type="error" :closable="false" />
-              <div v-else-if="!certLoading" class="certificate-empty">
-                <span>暂无证书</span>
-                <el-button class="profile-action-button" @click="openCertificateDialog('apply')">申请证书</el-button>
-              </div>
+            <div v-else-if="!certLoading" class="certificate-empty">尚未申请证书</div>
             </div>
           </el-card>
 
@@ -150,7 +148,7 @@
             <div class="section-title">交易信息</div>
           </template>
           <template v-if="roleKey === 'buyer' || roleKey === 'seller'">
-            <div class="role-tip">{{ roleKey === 'buyer' ? '已支付订单与交付概览' : '资产交易与交付概览' }}</div>
+            <div class="role-tip">{{ roleKey === 'buyer' ? '购买交易与交付概览' : '资产交易与交付概览' }}</div>
             <div v-if="summaryLoading" class="summary-message">正在加载订单数据…</div>
             <div v-else-if="summaryError" class="summary-message">{{ summaryError }}</div>
             <div v-else-if="roleKey === 'seller'" class="summary-grid seller-summary-grid">
@@ -160,13 +158,10 @@
               <div class="summary-item"><span>已完成订单</span><strong>{{ orderSummary.completed_orders }}</strong></div>
             </div>
             <div v-else class="summary-grid">
-              <div class="summary-item">
-                <span>购买次数</span>
-                <strong>{{ orderSummary.paid_orders }}</strong>
-              </div>
-              <div class="summary-item"><span>已完成订单</span><strong>{{ orderSummary.completed_orders }}</strong></div>
-              <div class="summary-item"><span>待交付</span><strong>{{ orderSummary.awaiting_delivery }}</strong></div>
-              <div class="summary-item"><span>待买方确认</span><strong>{{ orderSummary.awaiting_confirmation }}</strong></div>
+              <div class="summary-item"><span>我的购买数</span><strong>{{ orderSummary.paid_orders }}</strong></div>
+              <div class="summary-item"><span>已完成交易</span><strong>{{ orderSummary.completed_orders }}</strong></div>
+              <div class="summary-item"><span>待申请交付</span><strong>{{ orderSummary.awaiting_buyer_request }}</strong></div>
+              <div class="summary-item"><span>等待卖家交付</span><strong>{{ orderSummary.awaiting_seller_delivery }}</strong></div>
             </div>
           </template>
           <div v-else class="role-tip">当前角色：{{ roleLabel }}</div>
@@ -405,6 +400,8 @@ const orderSummary = reactive({
   paid_orders: 0,
   awaiting_delivery: 0,
   awaiting_confirmation: 0,
+  awaiting_buyer_request: 0,
+  awaiting_seller_delivery: 0,
   completed_orders: 0,
 })
 const summaryLoading = ref(false)
@@ -903,6 +900,8 @@ onMounted(() => {
   gap: 8px;
 }
 
+.certificate-heading :deep(.el-button.cert-apply-action) { margin-left: auto; }
+
 .certificate-layout {
   display: flex;
   align-items: center;
@@ -915,20 +914,29 @@ onMounted(() => {
   padding: 4px 0;
 }
 
-.cert-badge {
-  flex: none;
-  color: #1a7f37;
-  background: #dafbe1;
-  border: 1px solid #b7e4c7;
-  border-radius: 6px;
-  padding: 3px 8px;
+.cert-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #57606a;
   font-size: 12px;
+  white-space: nowrap;
 }
 
-.cert-badge.expired {
-  color: #cf222e;
-  background: #ffebe9;
-  border-color: #ffcecb;
+.cert-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1a7f37;
+}
+
+.cert-status.expired::before {
+  background: #cf222e;
+}
+
+.cert-status.unapplied::before {
+  background: #8c959f;
 }
 
 .cert-grid {
@@ -961,7 +969,7 @@ onMounted(() => {
 .cert-item .cert-name { color: #1f2328; font-weight: 600; }
 
 .cert-action { flex: none; }
-.certificate-empty { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: #57606a; font-size: 13px; }
+.certificate-empty { color: #57606a; font-size: 13px; }
 
 .mono {
   font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
