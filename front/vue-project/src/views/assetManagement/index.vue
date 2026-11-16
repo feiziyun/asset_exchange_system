@@ -1581,14 +1581,11 @@ onMounted(fetchCurrent)
   font-size: 13px;
 }
 
-.seller-table { min-width: 1100px; }
-.purchased-table { min-width: 780px; }
-
 .styled-table th,
 .styled-table td {
   border: 0;
   border-bottom: 1px solid #d8dee4;
-  padding: 14px 16px;
+  padding: 14px 8px;
   text-align: center;
   vertical-align: middle;
   word-wrap: break-word;
@@ -1606,7 +1603,7 @@ onMounted(fetchCurrent)
   color: #3d444d;
   font-size: 16px;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .styled-table td {
@@ -1616,14 +1613,14 @@ onMounted(fetchCurrent)
   line-height: 1.45;
 }
 
-.seller-table th:nth-child(1) { width: 150px; }
-.seller-table th:nth-child(2) { width: 96px; }
-.seller-table th:nth-child(3) { width: 326px; }
-.seller-table th:nth-child(4) { width: 96px; }
-.seller-table th:nth-child(5) { width: 100px; }
-.seller-table th:nth-child(6) { width: 116px; }
-.seller-table th:nth-child(7) { width: 110px; }
-.seller-table th:nth-child(8) { width: 106px; }
+.seller-table th:nth-child(1) { width: 14%; }
+.seller-table th:nth-child(2) { width: 9%; }
+.seller-table th:nth-child(3) { width: 26%; }
+.seller-table th:nth-child(4) { width: 9%; }
+.seller-table th:nth-child(5) { width: 9%; }
+.seller-table th:nth-child(6) { width: 12%; }
+.seller-table th:nth-child(7) { width: 10%; }
+.seller-table th:nth-child(8) { width: 11%; }
 
 .seller-table td:nth-child(3) {
   padding-top: 0;
@@ -1657,11 +1654,11 @@ onMounted(fetchCurrent)
 .trade-status-button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .trade-status-button:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 
-.purchased-table th:nth-child(1) { width: 31%; }
-.purchased-table th:nth-child(2) { width: 12%; }
-.purchased-table th:nth-child(3) { width: 14%; }
-.purchased-table th:nth-child(4) { width: 14%; }
-.purchased-table th:nth-child(5) { width: 29%; }
+.purchased-table th:nth-child(1) { width: 39%; }
+.purchased-table th:nth-child(2) { width: 10%; }
+.purchased-table th:nth-child(3) { width: 13%; }
+.purchased-table th:nth-child(4) { width: 11%; }
+.purchased-table th:nth-child(5) { width: 27%; }
 
 .order-status-text {
   color: var(--app-text-primary);
