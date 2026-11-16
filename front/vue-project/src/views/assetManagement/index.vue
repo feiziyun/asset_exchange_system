@@ -1499,6 +1499,22 @@ onMounted(fetchCurrent)
   line-height: 1.25;
 }
 
+.buyer-section .name-cell .cell-title {
+  color: #1f2328;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.buyer-section .name-cell .cell-minor {
+  margin-top: 4px;
+  color: #57606a;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
 .permission-list,
 .pricing-actions,
 .single-action-cell,

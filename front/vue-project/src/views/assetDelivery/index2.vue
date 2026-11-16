@@ -1908,9 +1908,9 @@ onBeforeUnmount(() => {
   background: none;
   color: var(--app-text-primary);
   font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.5;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1936,7 +1936,9 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--app-text-secondary);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
   text-align: center;
 }
 
