@@ -74,7 +74,7 @@
               <div class="order-actions">
                 <el-button
                   v-if="isPendingOrder(row)"
-                  class="confirm-order-button confirm-order-button--action"
+                  class="confirm-order-button app-primary-action"
                   type="primary"
                   :loading="actionLoadingNo === row.order_no"
                   @click="handleSellerConfirm(row)"
@@ -558,18 +558,6 @@ onMounted(fetchOrders)
 .order-actions :deep(.el-button.confirm-order-button) {
   width: 104px;
   margin: 0;
-}
-
-.order-actions :deep(.el-button.confirm-order-button--action) {
-  --el-button-bg-color: #1677e8;
-  --el-button-border-color: #1677e8;
-  --el-button-text-color: #fff;
-  --el-button-hover-bg-color: #0e69d3;
-  --el-button-hover-border-color: #0e69d3;
-  --el-button-hover-text-color: #fff;
-  --el-button-active-bg-color: #0b5dbd;
-  --el-button-active-border-color: #0b5dbd;
-  --el-button-active-text-color: #fff;
 }
 
 .delivery-link {

@@ -55,7 +55,7 @@
                     <el-button
                       v-if="isHeOrder(item)"
                       type="primary"
-                      class="delivery-action-button"
+                      class="delivery-action-button app-primary-action"
                       :loading="actionLoadingNo === `buyer-he-${item.order_no}`"
                       :disabled="isDeliveryExpired(item) || Boolean(item.he_record?.public_keys_ready) || actionLoadingNo === `buyer-he-${item.order_no}`"
                       @click="submitHeBuyerRequest(item)"
@@ -63,7 +63,7 @@
                     <el-button
                       v-if="isHeOrder(item)"
                       type="primary"
-                      class="delivery-action-button"
+                      class="delivery-action-button app-primary-action"
                       :loading="actionLoadingNo === `download-${item.order_no}`"
                       :disabled="!canDownloadHeResult(item) || actionLoadingNo === `download-${item.order_no}`"
                       @click="downloadBuyerResult(item)"
@@ -71,7 +71,7 @@
                     <el-button
                       v-if="isFlOrder(item)"
                       type="primary"
-                      class="delivery-action-button"
+                      class="delivery-action-button app-primary-action"
                       :loading="flBuyerDialog.submitting && flBuyerDialog.order?.order_no === item.order_no"
                       :disabled="isDeliveryExpired(item) || Boolean(item.fl_record?.pcp_contract_id)"
                       @click="openBuyerDelivery(item)"
@@ -79,7 +79,7 @@
                     <el-button
                       v-if="isFlOrder(item)"
                       type="primary"
-                      class="delivery-action-button"
+                      class="delivery-action-button app-primary-action"
                       :loading="actionLoadingNo === `download-${item.order_no}`"
                       :disabled="!canDownloadFlBuyerResult(item) || actionLoadingNo === `download-${item.order_no}`"
                       @click="downloadBuyerResult(item)"
@@ -87,7 +87,7 @@
                     <el-button
                       v-if="isPreOrder(item)"
                       type="primary"
-                      class="delivery-action-button"
+                      class="delivery-action-button app-primary-action"
                       :loading="actionLoadingNo === `buyer-pre-${item.order_no}`"
                       :disabled="isDeliveryExpired(item) || Boolean(item.pre_record?.buyer_public_key_ready) || actionLoadingNo === `buyer-pre-${item.order_no}`"
                       @click="submitPreBuyerRequest(item)"
@@ -95,7 +95,7 @@
                     <el-button
                       v-if="isPreOrder(item)"
                       type="primary"
-                      class="delivery-action-button"
+                      class="delivery-action-button app-primary-action"
                       :loading="actionLoadingNo === `download-${item.order_no}`"
                       :disabled="!canDownloadPreResult(item) || actionLoadingNo === `download-${item.order_no}`"
                       @click="downloadBuyerResult(item)"
@@ -103,7 +103,7 @@
                     <el-button
                       v-if="isMpcOrder(item)"
                       type="primary"
-                      class="delivery-action-button"
+                      class="delivery-action-button app-primary-action"
                       :loading="mpcBuyerDialog.submitting && mpcBuyerDialog.order?.order_no === item.order_no"
                       :disabled="!canTriggerMpcBuyerAction(item)"
                       @click="openBuyerDelivery(item)"
@@ -111,7 +111,7 @@
                     <el-button
                       v-if="isMpcOrder(item)"
                       type="primary"
-                      class="delivery-action-button"
+                      class="delivery-action-button app-primary-action"
                       :loading="actionLoadingNo === `download-${item.order_no}`"
                       :disabled="!canDownloadMpcResult(item) || actionLoadingNo === `download-${item.order_no}`"
                       @click="downloadBuyerResult(item)"
@@ -240,7 +240,7 @@
     </el-form>
     <template #footer>
       <el-button @click="flBuyerDialog.visible = false">取消</el-button>
-      <el-button type="primary" :loading="flBuyerDialog.submitting" :disabled="!flBuyerDialog.order || isDeliveryExpired(flBuyerDialog.order)" @click="submitFlBuyerRequest">请求交付</el-button>
+      <el-button type="primary" class="app-primary-action" :loading="flBuyerDialog.submitting" :disabled="!flBuyerDialog.order || isDeliveryExpired(flBuyerDialog.order)" @click="submitFlBuyerRequest">请求交付</el-button>
     </template>
   </el-dialog>
 
@@ -251,7 +251,7 @@
     </el-form>
     <template #footer>
       <el-button @click="mpcBuyerDialog.visible = false">取消</el-button>
-      <el-button type="primary" :loading="mpcBuyerDialog.submitting" :disabled="!mpcBuyerDialog.order || isDeliveryExpired(mpcBuyerDialog.order)" @click="submitMpcBuyerRequest">请求交付</el-button>
+      <el-button type="primary" class="app-primary-action" :loading="mpcBuyerDialog.submitting" :disabled="!mpcBuyerDialog.order || isDeliveryExpired(mpcBuyerDialog.order)" @click="submitMpcBuyerRequest">请求交付</el-button>
     </template>
   </el-dialog>
 

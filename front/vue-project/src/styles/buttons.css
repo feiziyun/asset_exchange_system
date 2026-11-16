@@ -29,6 +29,20 @@ body .el-button.el-button--info.is-plain {
   --el-button-active-text-color: #24292f;
 }
 
+/* Shared color for primary transaction actions; disabled buttons keep their page styles. */
+body .el-button.el-button--primary.app-primary-action.app-primary-action:not(.is-disabled),
+body .el-button.app-primary-action.app-primary-action:not(.is-disabled) {
+  --el-button-bg-color: #1677e8;
+  --el-button-border-color: #1677e8;
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: #0e69d3;
+  --el-button-hover-border-color: #0e69d3;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-bg-color: #0b5dbd;
+  --el-button-active-border-color: #0b5dbd;
+  --el-button-active-text-color: #fff;
+}
+
 body .el-button.el-button--success:not(.is-link):not(.is-text):not(.is-plain) {
   --el-button-bg-color: #1f883d;
   --el-button-border-color: #1a7f37;

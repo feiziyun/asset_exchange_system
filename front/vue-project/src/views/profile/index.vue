@@ -153,7 +153,7 @@
             <div class="role-tip">{{ roleKey === 'buyer' ? '已支付订单与交付概览' : '资产交易与交付概览' }}</div>
             <div v-if="summaryLoading" class="summary-message">正在加载订单数据…</div>
             <div v-else-if="summaryError" class="summary-message">{{ summaryError }}</div>
-            <div v-else-if="roleKey === 'seller'" class="summary-grid">
+            <div v-else-if="roleKey === 'seller'" class="summary-grid seller-summary-grid">
               <div class="summary-item"><span>已登记资产</span><strong>{{ orderSummary.registered_assets }}</strong></div>
               <div class="summary-item"><span>收到订单数</span><strong>{{ orderSummary.paid_orders }}</strong></div>
               <div class="summary-item"><span>待交付订单</span><strong>{{ orderSummary.awaiting_delivery }}</strong></div>
@@ -1011,6 +1011,13 @@ onMounted(() => {
 
 .summary-item span { color: #57606a; font-size: 12px; }
 .summary-item strong { color: #1f2328; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.seller-summary-grid .summary-item {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #fff;
+}
 
 .work-list {
   display: flex;

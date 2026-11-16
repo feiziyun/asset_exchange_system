@@ -247,7 +247,7 @@
 
         <div class="actions">
           <el-button v-if="uploadingSource" type="info" disabled>源文件哈希生成中</el-button>
-          <el-button type="primary" :loading="submitting" @click="submitForm">提交登记</el-button>
+          <el-button type="primary" class="app-primary-action" :loading="submitting" @click="submitForm">提交登记</el-button>
         </div>
       </div>
 
@@ -1627,6 +1627,10 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+}
+
+.actions :deep(.el-button.app-primary-action) {
+  width: 104px;
 }
 
 .valuation-panel {

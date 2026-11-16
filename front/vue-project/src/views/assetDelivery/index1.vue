@@ -48,7 +48,7 @@
                 <td>
                   <div class="seller-actions">
                     <el-button type="primary" class="delivery-action-button" @click="openHistoryDialog(item)">查看详情</el-button>
-                    <el-button type="primary" class="delivery-action-button"
+                    <el-button type="primary" class="delivery-action-button app-primary-action"
                       :loading="actionLoadingNo === item.order_no"
                       :disabled="!isPrivacyPc(item) || isSellerDeliveryDisabled(item) || actionLoadingNo === item.order_no"
                       @click="openSellerDelivery(item)">执行交付</el-button>
@@ -181,7 +181,7 @@
       <el-button v-if="selectedOrder?.order_status === 1 && selectedOrder?.wallet_payment_status === 'PAID' && selectedOrder?.transaction_status !== '已确认'"
         type="danger" :loading="actionLoadingNo === selectedOrder?.order_no"
         @click="rejectPaidOrder(selectedOrder)">拒绝并退款</el-button>
-      <el-button v-if="selectedOrder && isFlOrder(selectedOrder) && getLatestSellerGradientPackage(selectedOrder)"
+      <el-button v-if="selectedOrder && isFlOrder(selectedOrder) && getLatestSellerGradientPackage(selectedOrder)" class="app-primary-action"
         :loading="actionLoadingNo === `fl-download-${selectedOrder.order_no}`"
         :disabled="isDeliveryExpired(selectedOrder) || actionLoadingNo === `fl-download-${selectedOrder.order_no}`"
         @click="downloadFlSellerGradient(selectedOrder)">下载结果</el-button>
@@ -209,7 +209,7 @@
     </el-form>
     <template #footer>
       <el-button @click="heSellerDialog.visible = false">取消</el-button>
-      <el-button type="primary" :loading="heSellerDialog.submitting" :disabled="!heSellerDialog.order || isDeliveryExpired(heSellerDialog.order)" @click="submitHeSellerDelivery">执行交付</el-button>
+      <el-button type="primary" class="app-primary-action" :loading="heSellerDialog.submitting" :disabled="!heSellerDialog.order || isDeliveryExpired(heSellerDialog.order)" @click="submitHeSellerDelivery">执行交付</el-button>
     </template>
   </el-dialog>
 
@@ -223,7 +223,7 @@
     </el-form>
     <template #footer>
       <el-button @click="preSellerDialog.visible = false">取消</el-button>
-      <el-button type="primary" :loading="preSellerDialog.submitting" :disabled="!preSellerDialog.order || isDeliveryExpired(preSellerDialog.order)" @click="submitPreSellerDelivery">执行交付</el-button>
+      <el-button type="primary" class="app-primary-action" :loading="preSellerDialog.submitting" :disabled="!preSellerDialog.order || isDeliveryExpired(preSellerDialog.order)" @click="submitPreSellerDelivery">执行交付</el-button>
     </template>
   </el-dialog>
 
@@ -237,7 +237,7 @@
     </el-form>
     <template #footer>
       <el-button @click="flSellerDialog.visible = false">取消</el-button>
-      <el-button type="primary" :loading="flSellerDialog.submitting" :disabled="!flSellerDialog.order || isDeliveryExpired(flSellerDialog.order)" @click="submitFlSellerDelivery">执行交付</el-button>
+      <el-button type="primary" class="app-primary-action" :loading="flSellerDialog.submitting" :disabled="!flSellerDialog.order || isDeliveryExpired(flSellerDialog.order)" @click="submitFlSellerDelivery">执行交付</el-button>
     </template>
   </el-dialog>
 
@@ -251,7 +251,7 @@
     </el-form>
     <template #footer>
       <el-button @click="mpcSellerDialog.visible = false">取消</el-button>
-      <el-button type="primary" :loading="mpcSellerDialog.submitting" :disabled="!mpcSellerDialog.order || isDeliveryExpired(mpcSellerDialog.order)" @click="submitMpcSellerDelivery">执行交付</el-button>
+      <el-button type="primary" class="app-primary-action" :loading="mpcSellerDialog.submitting" :disabled="!mpcSellerDialog.order || isDeliveryExpired(mpcSellerDialog.order)" @click="submitMpcSellerDelivery">执行交付</el-button>
     </template>
   </el-dialog>
 
