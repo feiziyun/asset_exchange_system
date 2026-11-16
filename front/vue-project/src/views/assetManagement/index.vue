@@ -339,14 +339,7 @@
           </el-form-item>
         </div>
         <el-form-item label="交付方式">
-          <el-select v-model="editForm.pc_type" style="width: 100%">
-            <el-option
-              v-for="item in deliveryMethodOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
+          <DeliveryMethodSelect v-model="editForm.pc_type" />
         </el-form-item>
         <el-form-item label="出售权益">
           <div class="rights-group">
@@ -515,6 +508,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import AssetValuationDialog from '@/components/AssetValuationDialog.vue'
+import DeliveryMethodSelect from '@/components/DeliveryMethodSelect.vue'
 import AlipayPaymentDialog from '@/components/AlipayPaymentDialog.vue'
 import { startOrderPayment } from '@/utils/orderPayment'
 import {
@@ -726,12 +720,6 @@ const editForm = reactive({
   auction_status: '',
   status: 0,
 })
-const deliveryMethodOptions = [
-  { label: '同态加密 HE', value: 'HE' },
-  { label: '代理重加密 PRE', value: 'PRE' },
-  { label: '联邦学习 FL', value: 'FL' },
-  { label: '多方安全计算 MPC', value: 'MPC' },
-]
 
 const normalizeAuctionStartPrice = (value: number | string) => {
   const numericValue = Number(value)

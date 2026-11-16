@@ -222,14 +222,7 @@
               </el-form-item>
 
               <el-form-item label="交付方式" class="row-item trade-single-item">
-                <el-select v-model="form.pc_type" placeholder="请选择交付方式" style="width: 220px">
-                  <el-option
-                    v-for="item in deliveryMethodOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
+                <DeliveryMethodSelect v-model="form.pc_type" style="width: 252px" />
               </el-form-item>
 
               <el-form-item label="售卖权限" class="row-item trade-single-item trade-permission-item">
@@ -339,6 +332,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AssetValuationDialog from '@/components/AssetValuationDialog.vue'
+import DeliveryMethodSelect from '@/components/DeliveryMethodSelect.vue'
 import {
   classifyAsset,
   checkOmniPrintSimilarity,
@@ -504,13 +498,6 @@ const classificationMethodOptions = [
   { label: '数据敏感法', value: '数据敏感法' },
   { label: '数据脆弱性法', value: '数据脆弱性法' },
 ]
-const deliveryMethodOptions = [
-  { label: '同态加密 HE', value: 'HE' },
-  { label: '代理重加密 PRE', value: 'PRE' },
-  { label: '联邦学习 FL', value: 'FL' },
-  { label: '多方安全计算 MPC', value: 'MPC' },
-]
-
 const DRAFT_STORAGE_PREFIX = 'chain-register-draft'
 const CUSTOM_SUB_CATEGORY_STORAGE_KEY = 'chain-register-custom-sub-categories'
 const DRAFT_PICTURE_MAX_BYTES = 2 * 1024 * 1024
