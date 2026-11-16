@@ -33,7 +33,7 @@
                       @click="openAssetPreview(item)">{{ item.asset_name }}</button>
                     <span v-else class="asset-name-placeholder" aria-hidden="true"></span>
                     <span class="asset-transaction-id" :title="item.transaction?.transaction_id || ''">
-                      {{ item.transaction?.transaction_id ? `交易 ID：${item.transaction.transaction_id}` : '' }}
+                      交易 ID：{{ item.transaction?.transaction_id || '' }}
                     </span>
                   </div>
                 </td>
@@ -1885,12 +1885,11 @@ onBeforeUnmount(() => {
 .asset-info-cell {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 5px;
-  width: max-content;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: left;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
 }
 
 .asset-name-link {
@@ -1904,7 +1903,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
-  text-align: left;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1930,6 +1929,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   color: var(--app-text-secondary);
   font-size: 13px;
+  text-align: center;
 }
 
 .asset-name-placeholder {
