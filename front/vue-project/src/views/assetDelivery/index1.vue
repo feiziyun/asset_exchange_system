@@ -1930,7 +1930,7 @@ onBeforeUnmount(() => {
 }
 
 .styled-table th {
-  background: #f6f8fa;
+  background: #fff;
   color: #57606a;
   font-size: 12px;
   font-weight: 600;
