@@ -62,9 +62,7 @@
                     </td>
                     <td>{{ item.classification_data_level || '一般数据' }}</td>
                     <td>
-                      <div class="brief-cell">
-                        {{ item.description || item.brief || '暂无资产描述' }}
-                      </div>
+                      <div class="brief-cell">{{ item.description || item.brief || '暂无资产描述' }}</div>
                     </td>
                     <td>{{ item.is_proxy ? item.quantity_remaining : Number(item.remaining_qty || 0) + Number(item.available_qty || 0) }}</td>
                     <td>
@@ -1558,8 +1556,11 @@ onMounted(fetchCurrent)
 
 .seller-table .brief-cell {
   display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
   overflow: visible;
-  text-align: center;
+  text-align: left;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   -webkit-line-clamp: unset;
