@@ -320,16 +320,19 @@ onMounted(fetchOrders)
   grid-column: 3;
   grid-row: 2;
   justify-self: end;
+  z-index: 1;
   white-space: nowrap;
 }
 
 .order-filter-bar {
-  grid-column: 1 / 3;
+  grid-column: 1 / -1;
   grid-row: 2;
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
+  max-width: calc(100% - 120px);
+  justify-self: center;
   overflow-x: auto;
   white-space: nowrap;
 }
@@ -357,6 +360,23 @@ onMounted(fetchOrders)
   font-size: 12px;
 }
 
+.order-filter-bar :deep(.el-checkbox__input .el-checkbox__original) {
+  appearance: none;
+  border: 1px solid #8c959f;
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.order-filter-bar :deep(.el-checkbox__input .el-checkbox__original:checked) {
+  border-color: #0969da;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%230969da' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m3 8 3.2 3.2L13 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px 14px;
+}
+
 @media (max-width: 900px) {
   .orders-header {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -368,7 +388,7 @@ onMounted(fetchOrders)
   }
 
   .order-filter-bar {
-    grid-column: 1;
+    grid-column: 1 / -1;
     grid-row: 3;
   }
 
