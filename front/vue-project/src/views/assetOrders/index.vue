@@ -1,33 +1,35 @@
 <template>
   <div class="common-wrapped">
     <div class="orders-page">
-      <header class="orders-header toolbar-section app-search-layout">
-        <h2 class="page-title">订单列表</h2>
-        <div class="app-search-bar">
-          <el-input
-            v-model="searchInput"
-            class="app-search-input"
-            placeholder="搜索订单号或资产名称"
-            clearable
-            @keyup.enter="onSearch"
-            @clear="onSearch"
-          >
-            <template #prefix><el-icon><Search /></el-icon></template>
-          </el-input>
-          <el-button class="app-search-button" @click="onSearch">搜索</el-button>
-        </div>
-        <div class="order-filter-bar">
-          <span class="order-filter-label">订单状态</span>
-          <el-checkbox
-            :model-value="selectedStatuses.length === statusOptions.length"
-            class="order-filter-checkbox"
-            @change="toggleAllStatuses"
-          >全部</el-checkbox>
-          <el-checkbox-group v-model="selectedStatuses" class="order-filter-options" @change="selectStatus">
-            <el-checkbox v-for="option in statusOptions" :key="option.value" :label="option.value">
-              {{ option.label }}
-            </el-checkbox>
-          </el-checkbox-group>
+      <header class="orders-header toolbar-section">
+        <div class="orders-title"><h2 class="page-title">订单列表</h2></div>
+        <div class="orders-controls">
+          <div class="app-search-bar">
+            <el-input
+              v-model="searchInput"
+              class="app-search-input"
+              placeholder="搜索订单号或资产名称"
+              clearable
+              @keyup.enter="onSearch"
+              @clear="onSearch"
+            >
+              <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <el-button class="app-search-button" @click="onSearch">搜索</el-button>
+          </div>
+          <div class="order-filter-bar">
+            <span class="order-filter-label">订单状态</span>
+            <el-checkbox
+              :model-value="selectedStatuses.length === statusOptions.length"
+              class="order-filter-checkbox"
+              @change="toggleAllStatuses"
+            >全部</el-checkbox>
+            <el-checkbox-group v-model="selectedStatuses" class="order-filter-options" @change="selectStatus">
+              <el-checkbox v-for="option in statusOptions" :key="option.value" :label="option.value">
+                {{ option.label }}
+              </el-checkbox>
+            </el-checkbox-group>
+          </div>
         </div>
         <div class="header-actions">
           <span class="order-count">共 {{ pagination.total }} 笔订单</span>
@@ -69,18 +71,24 @@
               <div class="order-price">
                 <strong>{{ formatPrice(row.deal_price) }} <span>{{ row.price_unit || '人民币' }}</span></strong>
               </div>
-              <el-button
-                v-if="isPendingOrder(row)"
-                type="primary"
-                :loading="actionLoadingNo === row.order_no"
-                @click="handleSellerConfirm(row)"
-              >确认交易</el-button>
-              <el-button
-                v-else-if="row.delegation_id && row.chain_transfer_status !== 'SUCCESS' && ['已确认', '已完成'].includes(row.transaction?.status || '')"
-                type="primary"
-                :loading="actionLoadingNo === row.order_no"
-                @click="transferProxyOrder(row)"
-              >链上过户</el-button>
+              <div class="order-actions">
+                <el-button
+                  v-if="isPendingOrder(row)"
+                  type="primary"
+                  :loading="actionLoadingNo === row.order_no"
+                  @click="handleSellerConfirm(row)"
+                >确认交易</el-button>
+                <template v-if="isConfirmedOrder(row)">
+                  <el-button disabled>已确认</el-button>
+                  <button type="button" class="delivery-link" @click="goToDelivery(row)">前往交付工作台</button>
+                </template>
+                <el-button
+                  v-if="row.delegation_id && row.chain_transfer_status !== 'SUCCESS' && ['已确认', '已完成'].includes(row.transaction?.status || '')"
+                  type="primary"
+                  :loading="actionLoadingNo === row.order_no"
+                  @click="transferProxyOrder(row)"
+                >链上过户</el-button>
+              </div>
             </div>
           </article>
         </div>
@@ -105,6 +113,7 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { getOrderList, proxyTransfer, sellerConfirmOrder } from '@/api/asset'
 import { formatPrice } from '@/utils/price'
@@ -131,6 +140,7 @@ interface OrderItem {
 }
 
 const loading = ref(false)
+const router = useRouter()
 const actionLoadingNo = ref('')
 const orders = ref<OrderItem[]>([])
 const searchInput = ref('')
@@ -168,6 +178,15 @@ const transactionStatusText = (order?: OrderItem | null) => {
 
 const isPendingOrder = (order?: OrderItem | null) => {
   return Number(order?.order_status) === 1 && transactionStatusText(order) === '待确认'
+}
+
+const isConfirmedOrder = (order?: OrderItem | null) => {
+  const status = Number(order?.order_status)
+  return [1, 2, 3].includes(status) && (status >= 2 || ['已确认', '已完成'].includes(String(order?.transaction?.status || '')))
+}
+
+const goToDelivery = (order: OrderItem) => {
+  router.push({ path: '/assetDelivery/seller', query: { order_no: order.order_no } })
 }
 
 const statusTagType = (order: OrderItem) => {
@@ -303,6 +322,10 @@ onMounted(fetchOrders)
 }
 
 .orders-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 650px) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
   box-sizing: border-box;
   margin-bottom: 12px;
   padding: 10px 12px;
@@ -316,23 +339,37 @@ onMounted(fetchOrders)
   margin: 0;
 }
 
+.orders-title { grid-column: 1; min-width: 0; }
+
+.orders-controls {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.orders-controls .app-search-bar {
+  grid-column: auto;
+  grid-row: auto;
+  width: min(100%, 420px);
+}
+
 .header-actions {
   grid-column: 3;
-  grid-row: 2;
+  grid-row: 1;
   justify-self: end;
-  z-index: 1;
   white-space: nowrap;
 }
 
 .order-filter-bar {
-  grid-column: 1 / -1;
-  grid-row: 2;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   min-width: 0;
-  max-width: calc(100% - 120px);
-  justify-self: center;
+  max-width: 100%;
   overflow-x: auto;
   white-space: nowrap;
 }
@@ -377,24 +414,19 @@ onMounted(fetchOrders)
   background-size: 14px 14px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1150px) {
   .orders-header {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .orders-header .app-search-bar {
+  .orders-controls {
     grid-column: 1 / -1;
     grid-row: 2;
   }
 
-  .order-filter-bar {
-    grid-column: 1 / -1;
-    grid-row: 3;
-  }
-
   .header-actions {
     grid-column: 2;
-    grid-row: 3;
+    grid-row: 1;
     justify-self: end;
   }
 }
@@ -415,6 +447,7 @@ onMounted(fetchOrders)
 .order-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 180px;
+  align-items: center;
   gap: 24px;
   padding: 20px 24px;
 }
@@ -428,6 +461,9 @@ onMounted(fetchOrders)
 }
 
 .order-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-width: 0;
 }
 
@@ -510,8 +546,29 @@ onMounted(fetchOrders)
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 20px;
+  justify-content: center;
+  gap: 12px;
 }
+
+.order-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.delivery-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #0969da;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.delivery-link:hover { color: #0550ae; text-decoration: underline; }
+.delivery-link:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 
 .order-price {
   display: flex;
