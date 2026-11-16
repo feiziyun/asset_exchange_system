@@ -14,8 +14,8 @@
         </div>
       </section>
 
-      <section class="table-section app-workbench-panel" v-loading="loading">
-        <div class="table-wrap">
+      <section class="table-section" v-loading="loading">
+        <div class="table-wrap app-workbench-panel">
           <table class="styled-table table-hover-row seller-delivery-table">
             <thead>
               <tr>
@@ -1785,7 +1785,7 @@ onBeforeUnmount(() => {
 }
 
 .table-section {
-  padding: 10px 12px 12px;
+  padding: 0;
 }
 
 .toolbar-row {
@@ -1800,8 +1800,6 @@ onBeforeUnmount(() => {
 
 .table-wrap {
   overflow-x: auto;
-  border: 1px solid #d8dee4;
-  border-radius: 8px;
 }
 
 .current-order {

@@ -14,9 +14,9 @@
         </div>
       </section>
 
-      <section class="table-section app-workbench-panel" v-loading="loading">
-        <div v-if="buyerRows.length" class="table-wrap">
-          <table class="styled-table table-hover-row buyer-table">
+      <section class="table-section" v-loading="loading">
+        <div class="table-wrap app-workbench-panel">
+          <table v-if="buyerRows.length" class="styled-table table-hover-row buyer-table">
             <thead>
               <tr>
                 <th>资产信息</th>
@@ -121,9 +121,8 @@
               </tr>
             </tbody>
           </table>
+          <el-empty v-else description="暂无可用下载资源" />
         </div>
-
-        <el-empty v-else description="暂无可用下载资源" />
       </section>
       <div class="pager">
         <el-pagination
@@ -1642,7 +1641,7 @@ onBeforeUnmount(() => {
 }
 
 .table-section {
-  padding: 10px 12px 12px;
+  padding: 0;
 }
 
 .toolbar-row {
@@ -1657,6 +1656,24 @@ onBeforeUnmount(() => {
 
 .table-wrap {
   overflow-x: auto;
+}
+
+.buyer-table th:first-child,
+.buyer-table td:first-child {
+  border-left: 0;
+}
+
+.buyer-table th:last-child,
+.buyer-table td:last-child {
+  border-right: 0;
+}
+
+.buyer-table thead th {
+  border-top: 0;
+}
+
+.buyer-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .current-order {
