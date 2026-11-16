@@ -4213,6 +4213,26 @@ exports.downloadDeliveryResult = async (orderNo, buyerId, payload = {}) => {
   });
 };
 
+exports.getOrderSummary = async (userId, identity = '') => {
+  const role = normalizeIdentityRole(identity);
+  if (role !== 'buyer' && role !== 'seller') throw new Error('仅买家或卖家可查看订单概览');
+
+  const seller = role === 'seller';
+  const from = seller
+    ? 'FROM asset_order ao INNER JOIN asset_publish_record apr ON apr.id = ao.publish_id WHERE apr.publisher_id = ?'
+    : 'FROM asset_order ao WHERE ao.buyer_id = ? AND ao.buyer_deleted_at IS NULL';
+  const [rows] = await pool.query(`
+    SELECT
+      COUNT(*) AS total_orders,
+      COALESCE(SUM(ao.order_status IN (1, 2, 3)), 0) AS paid_orders,
+      COALESCE(SUM(ao.order_status = 1), 0) AS awaiting_delivery,
+      COALESCE(SUM(ao.order_status = 2), 0) AS awaiting_confirmation,
+      COALESCE(SUM(ao.order_status = 3), 0) AS completed_orders
+    ${from}
+  `, [userId]);
+  return rows[0];
+};
+
 exports.listOrders = async (query, userId, identity = '') => {
   const page = Number(query.page || 1);
   const pageSize = Number(query.page_size || 10);

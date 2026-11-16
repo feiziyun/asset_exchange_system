@@ -581,3 +581,15 @@ exports.listOrders = async (req, res) => {
     return res.cc(error);
   }
 };
+
+exports.getOrderSummary = async (req, res) => {
+  try {
+    const userId = req.auth?.id;
+    if (!userId) return res.cc('缺少用户身份信息');
+
+    const result = await assetService.getOrderSummary(userId, req.auth?.identity || '');
+    return res.send({ status: 0, message: '查询成功', data: result });
+  } catch (error) {
+    return res.cc(error);
+  }
+};

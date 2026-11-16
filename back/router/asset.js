@@ -109,5 +109,6 @@ router.post('/order/delivery/confirm/:order_no', expressJoi(confirmDelivery_limi
 
 // 订单列表（资产交付页展示）
 router.get('/order/list', expressJoi(listOrder_limit), assetHandler.listOrders);
+router.get('/order/summary', assetHandler.getOrderSummary);
 
 module.exports = router;

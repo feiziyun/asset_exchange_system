@@ -18,7 +18,7 @@
         <div class="base">
           <div class="title-row">
             <span class="name">{{ displayName }}</span>
-            <el-tag type="success">{{ roleLabel }}</el-tag>
+            <span class="profile-role">{{ roleLabel }}</span>
           </div>
           <div class="desc">
             <span>账号：{{ user.account || '-' }}</span>
@@ -149,11 +149,25 @@
       </el-col>
 
       <el-col :xs="24" :sm="24" :md="8">
-        <el-card shadow="never">
+        <el-card class="role-card" shadow="never">
           <template #header>
             <div class="section-title">角色工作台</div>
           </template>
-          <div class="role-tip">当前角色：{{ roleLabel }}</div>
+          <template v-if="roleKey === 'buyer' || roleKey === 'seller'">
+            <div class="role-tip">{{ roleKey === 'buyer' ? '已支付订单与交付概览' : '交易订单与交付概览' }}</div>
+            <div v-if="summaryLoading" class="summary-message">正在加载订单数据…</div>
+            <div v-else-if="summaryError" class="summary-message">{{ summaryError }}</div>
+            <div v-else class="summary-grid">
+              <div class="summary-item">
+                <span>{{ roleKey === 'buyer' ? '购买次数' : '交易订单' }}</span>
+                <strong>{{ roleKey === 'buyer' ? orderSummary.paid_orders : orderSummary.total_orders }}</strong>
+              </div>
+              <div class="summary-item"><span>已完成订单</span><strong>{{ orderSummary.completed_orders }}</strong></div>
+              <div class="summary-item"><span>待交付</span><strong>{{ orderSummary.awaiting_delivery }}</strong></div>
+              <div class="summary-item"><span>待买方确认</span><strong>{{ orderSummary.awaiting_confirmation }}</strong></div>
+            </div>
+          </template>
+          <div v-else class="role-tip">当前角色：{{ roleLabel }}</div>
           <div class="work-list">
             <div v-for="item in roleModules" :key="item.title" class="work-item">
               <div class="work-title">{{ item.title }}</div>
@@ -232,7 +246,7 @@ import {
   updateUserEmail,
   updatePassword,
 } from '@/api/userInfo'
-import { getDefaultCertificates, getCertificates, checkCertificateNameAvailable, generateCertificate, addCertificate, renewCertificate } from '@/api/asset'
+import { getDefaultCertificates, getCertificates, checkCertificateNameAvailable, generateCertificate, addCertificate, renewCertificate, getOrderSummary } from '@/api/asset'
 import { getWallet, getWalletLedger, createRecharge, getRechargeStatus } from '@/api/wallet'
 import alipaySquareLogo from '@/assets/img/支付宝logo-方形.png'
 
@@ -334,6 +348,31 @@ const defaultCertForm = reactive({
 const roleLabel = computed(() => getRoleLabel(user.identity || tokenPayload.identity || ''))
 const roleKey = computed(() => getRoleKey(user.identity || tokenPayload.identity || ''))
 const displayName = computed(() => user.name || user.account || '未命名用户')
+const orderSummary = reactive({
+  total_orders: 0,
+  paid_orders: 0,
+  awaiting_delivery: 0,
+  awaiting_confirmation: 0,
+  completed_orders: 0,
+})
+const summaryLoading = ref(false)
+const summaryError = ref('')
+const fetchOrderSummary = async () => {
+  if (roleKey.value !== 'buyer' && roleKey.value !== 'seller') return
+  summaryLoading.value = true
+  summaryError.value = ''
+  try {
+    const response = await getOrderSummary()
+    if (response.data.status !== 0) throw new Error(response.data.message || '订单概览加载失败')
+    for (const key of Object.keys(orderSummary) as Array<keyof typeof orderSummary>) {
+      orderSummary[key] = Number(response.data.data?.[key] || 0)
+    }
+  } catch (error: any) {
+    summaryError.value = error?.response?.data?.message || error?.message || '订单概览加载失败'
+  } finally {
+    summaryLoading.value = false
+  }
+}
 const activeCertificate = computed(() => {
   const preferred = defaultCertForm.defaultRegisterCert || defaultCertForm.defaultTradeCert
   return userCertificates.value.find((item) => item.cert_name === preferred) || userCertificates.value[0] || null
@@ -644,6 +683,7 @@ onMounted(() => {
   fetchUserInfo()
   fetchUserCertificates()
   refreshWallet()
+  fetchOrderSummary()
 })
 </script>
 
@@ -654,6 +694,17 @@ onMounted(() => {
   box-sizing: border-box;
   padding: 16px 20px;
   margin: 0 auto;
+  color: #1f2328;
+}
+
+.profile-page :deep(.el-card) {
+  border-color: #d0d7de;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.profile-page :deep(.el-card__header) {
+  border-bottom-color: #d8dee4;
 }
 
 .wallet-card { margin-bottom: 12px; }
@@ -692,18 +743,27 @@ onMounted(() => {
 
     .name {
       font-size: 22px;
-      color: #233f97;
-      font-weight: 700;
+      color: #1f2328;
+      font-weight: 600;
     }
   }
 
   .desc {
-    color: #6f7aa3;
+    color: #57606a;
     font-size: 13px;
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
   }
+}
+
+.profile-role {
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 12px;
+  padding: 3px 8px;
 }
 
 .main-row {
@@ -720,8 +780,9 @@ onMounted(() => {
   }
 
   .section-title {
-    color: #223e95;
-    font-weight: 700;
+    color: #1f2328;
+    font-size: 16px;
+    font-weight: 600;
   }
 }
 
@@ -737,69 +798,80 @@ onMounted(() => {
 }
 
 .cert-surface {
-  background: #f7f7f7;
+  background: #fff;
+  border: 1px solid #d8dee4;
   border-radius: 8px;
-  padding: 20px 22px;
+  padding: 0;
 }
 
 .cert-main {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #d8dee4;
+  background: #f6f8fa;
 }
 
 .cert-name {
-  color: #111827;
-  font-size: 18px;
+  color: #1f2328;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .cert-org {
   margin-top: 4px;
-  color: #6b7280;
+  color: #57606a;
   font-size: 12px;
 }
 
 .cert-badge {
   flex: none;
-  color: #047857;
-  background: #ecfdf5;
-  border-radius: 8px;
-  padding: 4px 10px;
+  color: #1a7f37;
+  background: #dafbe1;
+  border: 1px solid #b7e4c7;
+  border-radius: 6px;
+  padding: 3px 8px;
   font-size: 12px;
 }
 
 .cert-badge.expired {
-  color: #b91c1c;
-  background: #fef2f2;
+  color: #cf222e;
+  background: #ffebe9;
+  border-color: #ffcecb;
 }
 
 .cert-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 28px;
+  gap: 0;
+  padding: 0 18px;
 }
 
 .cert-item {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
   min-width: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid #d8dee4;
 }
+
+.cert-item:nth-last-child(-n + 2):not(.span-2) { border-bottom: 0; }
+.cert-item:not(.span-2):last-child { padding-left: 18px; }
 
 .cert-item.span-2 {
   grid-column: 1 / -1;
 }
 
 .cert-item span {
-  color: #6b7280;
+  color: #57606a;
   font-size: 12px;
 }
 
 .cert-item strong {
-  color: #111827;
+  color: #1f2328;
   font-size: 13px;
   font-weight: 500;
   overflow-wrap: anywhere;
@@ -818,12 +890,43 @@ onMounted(() => {
   .cert-item.span-2 {
     grid-column: auto;
   }
+
+  .cert-item:nth-last-child(2):not(.span-2) { border-bottom: 1px solid #d8dee4; }
+  .cert-item:not(.span-2):last-child { padding-left: 0; }
 }
 
 .role-tip {
   color: #57606a;
-  margin-bottom: 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
 }
+
+.summary-message {
+  color: #57606a;
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d8dee4;
+  border-radius: 6px;
+  background: #f6f8fa;
+}
+
+.summary-item span { color: #57606a; font-size: 12px; }
+.summary-item strong { color: #1f2328; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .work-list {
   display: flex;
@@ -831,21 +934,25 @@ onMounted(() => {
   gap: 10px;
 
   .work-item {
-    border: 1px solid #edf0f8;
-    border-radius: 8px;
-    padding: 10px;
+    border: 1px solid #d8dee4;
+    border-radius: 6px;
+    background: #fff;
+    padding: 12px;
 
     .work-title {
-      color: #29459c;
-      font-weight: 700;
+      color: #1f2328;
+      font-weight: 600;
       margin-bottom: 4px;
     }
 
     .work-desc {
-      color: #7a86aa;
+      color: #57606a;
       font-size: 12px;
       margin-bottom: 4px;
     }
   }
 }
+
+.role-card :deep(.el-button.is-link) { color: #57606a; }
+.role-card :deep(.el-button.is-link:hover) { color: #0969da; }
 </style>

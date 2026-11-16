@@ -34,7 +34,7 @@
                     <th>安全等级</th>
                     <th>资产介绍</th>
                     <th>可售数量</th>
-                    <th>上架状态</th>
+                    <th>交易状态</th>
                     <th>可出售权益</th>
                     <th>编辑资产</th>
                     <th>代理托管</th>
@@ -346,7 +346,7 @@
             <el-checkbox v-model="editForm.can_sell_process_right" :true-label="1" :false-label="0">加工权</el-checkbox>
           </div>
         </el-form-item>
-        <el-form-item label="上架状态">
+        <el-form-item label="交易状态">
           <el-switch
             v-model="editForm.status"
             :active-value="1"
@@ -378,7 +378,7 @@
 
   <el-dialog v-model="tradeStatusVisible" title="交易状态与上架数量" width="420px">
     <el-form label-width="96px">
-      <el-form-item label="上架状态">
+      <el-form-item label="交易状态">
         <el-radio-group v-model="tradeStatusTarget">
           <el-radio :value="0">未开放交易</el-radio>
           <el-radio :value="1" :disabled="!tradeStatusCanOpen">已开放交易</el-radio>

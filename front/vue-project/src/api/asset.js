@@ -195,6 +195,8 @@ export const getOrderList = (params) => {
   return instance.get('/asset/order/list', { params })
 }
 
+export const getOrderSummary = () => instance.get('/asset/order/summary')
+
 // 隐私交付状态同步
 export const getHeStatus = (transactionId, params = {}) => {
   return instance.get('/api/privacy/he/status', { params: { transactionId, ...params } })
