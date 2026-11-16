@@ -503,15 +503,15 @@ const normalizedDeliveryStatusText = (order: OrderItem) => {
             : order.latest_delivery_request?.status
   || '').toUpperCase()
 
-  if (['FAILED', 'AUDIT_FAILED', 'PAM_FAILED', 'REJECTED'].includes(status)) return '失败'
+  if (['FAILED', 'AUDIT_FAILED', 'PAM_FAILED', 'REJECTED'].includes(status)) return '交付失败'
   if (['PAMING'].includes(status)) return '审计中'
   if (['QUEUED', 'RUNNING', 'COMPUTED', 'READY', 'COMPUTING'].includes(status)) return '计算中'
   if (['COMPLETED', 'PAM_PASSED', 'DONE', 'SUCCESS'].includes(status) || Number(order.order_status) === 3) return '已完成'
   if (['CREATED', 'WAITING_INPUT', 'WAITING_EPOCH_INPUT', 'JOINED', 'PENDING', 'BUYER_REQUESTED'].includes(status)) return '待卖方交付'
-  if (Number(order.order_status) === 0) return '待买方操作'
+  if (Number(order.order_status) === 0) return '待买方申请'
   if (Number(order.order_status) === 1) return '待卖方交付'
-  if (Number(order.order_status) === 2) return '待买方操作'
-  return '待买方操作'
+  if (Number(order.order_status) === 2) return '待买方申请'
+  return '待买方申请'
 }
 
 const deliveryProgressText = (order: OrderItem) => {
@@ -524,10 +524,10 @@ const getBuyerDeliveryStatusText = (order: OrderItem) => {
 
 const buyerRequestStatusText = (order: OrderItem) => {
   const status = String(order.latest_delivery_request?.status || '').toUpperCase()
-  if (!status) return '待买方操作'
+  if (!status) return '待买方申请'
   if (status === 'PENDING' || status === 'BUYER_REQUESTED') return '待卖方交付'
   if (status === 'APPROVED') return '待卖方交付'
-  if (status === 'REJECTED' || status === 'FAILED') return '失败'
+  if (status === 'REJECTED' || status === 'FAILED') return '交付失败'
   if (status === 'RUNNING') return '计算中'
   if (status === 'COMPLETED') return '已完成'
   return normalizedDeliveryStatusText(order)
