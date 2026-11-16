@@ -93,8 +93,7 @@
                     <td>
                       <div class="single-action-cell">
                         <template v-if="!item.is_proxy">
-                          <el-button type="primary" link @click="openEdit(item)">编辑资产</el-button>
-                          <el-button v-if="canPublish(item)" type="success" link @click="openPublish(item)">上架</el-button>
+                          <el-button type="primary" class="seller-asset-action" @click="openEdit(item)">编辑资产</el-button>
                         </template>
                       </div>
                     </td>
@@ -108,7 +107,7 @@
                           <el-button type="danger" link @click="revokeProxy(item)">取消授权</el-button>
                         </template>
                         <span v-else :title="delegationUnavailableReason(item)">
-                          <el-button type="primary" link :disabled="!canDelegate(item)" @click="openProxyCustody(item)">代理托管</el-button>
+                          <el-button type="primary" class="seller-asset-action app-primary-action" :disabled="!canDelegate(item)" @click="openProxyCustody(item)">代理托管</el-button>
                         </span>
                       </div>
                     </td>
@@ -1613,14 +1612,14 @@ onMounted(fetchCurrent)
   line-height: 1.45;
 }
 
-.seller-table th:nth-child(1) { width: 20%; }
+.seller-table th:nth-child(1) { width: 22%; }
 .seller-table th:nth-child(2) { width: 8%; }
 .seller-table th:nth-child(3) { width: 26%; }
 .seller-table th:nth-child(4) { width: 8%; }
 .seller-table th:nth-child(5) { width: 8%; }
 .seller-table th:nth-child(6) { width: 9%; }
-.seller-table th:nth-child(7) { width: 10%; }
-.seller-table th:nth-child(8) { width: 11%; }
+.seller-table th:nth-child(7) { width: 9%; }
+.seller-table th:nth-child(8) { width: 10%; }
 
 .seller-table td:nth-child(3) {
   padding-top: 0;
@@ -1795,6 +1794,43 @@ onMounted(fetchCurrent)
 
 .single-action-cell {
   justify-content: center;
+}
+
+.seller-table .single-action-cell :deep(.el-button.seller-asset-action) {
+  --el-button-bg-color: #f6f8fa;
+  --el-button-border-color: #d0d7de;
+  --el-button-text-color: #0969da;
+  --el-button-hover-bg-color: #eef1f4;
+  --el-button-hover-border-color: #b7c1ca;
+  --el-button-hover-text-color: #0550ae;
+  --el-button-active-bg-color: #e7ebef;
+  --el-button-active-border-color: #aeb8c2;
+  --el-button-active-text-color: #0550ae;
+  min-width: 76px;
+  height: 30px;
+  margin: 0;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.seller-table .single-action-cell :deep(.el-button.seller-asset-action.app-primary-action:not(.is-disabled)) {
+  --el-button-bg-color: #1677e8;
+  --el-button-border-color: #1677e8;
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: #0e69d3;
+  --el-button-hover-border-color: #0e69d3;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-bg-color: #0b5dbd;
+  --el-button-active-border-color: #0b5dbd;
+  --el-button-active-text-color: #fff;
+}
+
+.seller-table .single-action-cell :deep(.el-button.seller-asset-action.is-disabled) {
+  --el-button-disabled-bg-color: #fafbfc;
+  --el-button-disabled-border-color: #eef0f2;
+  --el-button-disabled-text-color: #aeb5bd;
+  box-shadow: none;
+  opacity: 1;
 }
 
 .legacy-edit-dialog :deep(.el-form-item) {
