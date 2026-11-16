@@ -211,7 +211,7 @@ const currentUserRole = ref(getRoleLabel(tokenPayload.identity || ''))
 // 根据角色动态计算菜单文本
 const assetManageMenuText = computed(() => {
   if (currentRoleKey.value === 'seller') return '我的资产'
-  if (currentRoleKey.value === 'buyer') return '我的资产'
+  if (currentRoleKey.value === 'buyer') return '我的购买'
   if (currentRoleKey.value === 'auditor') return '我的资产'
   if (currentRoleKey.value === 'regulator') return '监管工作台'
   return '资产监管'

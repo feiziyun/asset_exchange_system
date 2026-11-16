@@ -116,14 +116,13 @@
             <div class="buyer-section">
               <template v-if="purchasedList.length">
                 <div class="table-wrap">
-                  <table class="styled-table table-hover-row">
+                  <table class="styled-table table-hover-row purchased-table">
                     <thead>
                       <tr>
                         <th>资产名称</th>
-                        <th>卖家</th>
-                        <th>数量</th>
-                        <th>金额</th>
-                        <th>状态</th>
+                        <th>购买数量</th>
+                        <th>金额（元）</th>
+                        <th>订单状态</th>
                         <th>操作</th>
                       </tr>
                     </thead>
@@ -133,12 +132,9 @@
                           <div class="cell-title">{{ item.asset_name || '-' }}</div>
                           <div class="cell-minor">订单：{{ item.order_no || '-' }}</div>
                         </td>
-                        <td>{{ item.seller_account || '-' }}</td>
                         <td>{{ item.buy_qty || 1 }}</td>
-                        <td>{{ formatPrice(item.deal_price) }} {{ item.price_unit || '人民币' }}</td>
-                        <td>
-                          <el-tag :type="orderStatusTag(item.order_status)">{{ orderStatusText(item.order_status) }}</el-tag>
-                        </td>
+                        <td>{{ formatPrice(item.deal_price) }}</td>
+                        <td><span class="order-status-text">{{ orderStatusText(item.order_status) }}</span></td>
                         <td>
                           <div class="row-actions">
                             <el-button type="primary" link @click="openOrderDetail(item)">查看订单详情</el-button>
@@ -751,13 +747,6 @@ const orderStatusText = (status?: number) => {
   if (status === 5) return '退款中'
   if (status === 6) return '已退款'
   return '其他'
-}
-
-const orderStatusTag = (status?: number) => {
-  if (status === 0) return 'warning'
-  if (status === 1 || status === 2) return 'primary'
-  if (status === 3) return 'success'
-  return 'info'
 }
 
 const resolveCover = (item: AssetItem) => {
@@ -1440,6 +1429,18 @@ onMounted(fetchCurrent)
 .seller-table th:nth-child(6) { width: 100px; }
 .seller-table th:nth-child(7) { width: 64px; }
 .seller-table th:nth-child(8) { width: 100px; }
+
+.purchased-table th:nth-child(1) { width: 31%; }
+.purchased-table th:nth-child(2) { width: 12%; }
+.purchased-table th:nth-child(3) { width: 14%; }
+.purchased-table th:nth-child(4) { width: 14%; }
+.purchased-table th:nth-child(5) { width: 29%; }
+
+.order-status-text {
+  color: var(--app-text-primary);
+  font-size: 13px;
+  font-weight: 400;
+}
 
 .styled-table tbody tr:not(:hover) td {
   background: #fff;

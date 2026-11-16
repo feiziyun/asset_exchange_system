@@ -353,7 +353,7 @@ const roleModuleMap: Record<string, Array<{ title: string; desc: string; path: s
   ],
   buyer: [
     { title: '交易市场', desc: '浏览并购买市场中的数字资产', path: '/assetMarket' },
-    { title: '我的资产', desc: '查看已购资产与购买记录', path: '/assetManagement' },
+    { title: '我的购买', desc: '查看已购资产与购买记录', path: '/assetManagement' },
     { title: '交付工作台', desc: '发起交付申请并下载交付结果', path: '/assetDelivery' },
   ],
   admin: [
