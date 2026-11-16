@@ -460,7 +460,7 @@ const actionLoadingNo = ref('')
 const statusPolling = ref(false)
 const pagination = reactive({ page: 1, page_size: 10, total: 0 })
 const query = reactive({ page: 1, page_size: 10 })
-const STATUS_POLL_INTERVAL_MS = 5000
+const STATUS_POLL_INTERVAL_MS = 30000
 let statusPollTimer: ReturnType<typeof window.setInterval> | null = null
 
 const selectedOrder = ref<OrderItem | null>(null)
@@ -572,13 +572,8 @@ const showSellerPanel = computed(() => false)
 const showBuyerPanel = computed(() => true)
 const showRoleTabs = computed(() => false)
 
-const isConfirmedTransaction = (order: OrderItem) => {
-  const txStatus = String(order.transaction?.status || '').trim()
-  return txStatus === '已确认' || Number(order.order_status) >= 2
-}
-
-const sellerRows = computed(() => orders.value.filter((item) => isConfirmedTransaction(item)))
-const buyerRows = computed(() => orders.value.filter((item) => isConfirmedTransaction(item)))
+const sellerRows = computed(() => orders.value)
+const buyerRows = computed(() => orders.value)
 
 const tradeModeText = (mode?: string) => ({ ownership: '所有权', view: '查阅权', process: '加工权' }[mode || ''] || mode || '-')
 const operationText = (mode?: string) => ({ ownership: '所有', view: '查阅权', process: '加工权' }[mode || ''] || mode || '-')
@@ -1177,54 +1172,49 @@ const submitMpcSellerDelivery = async () => {
   }
 }
 
+let fetchRequestId = 0
 const fetchOrders = async () => {
+  const requestId = ++fetchRequestId
   loading.value = true
   try {
     const order_role = roleKey === 'seller' ? 'seller' : roleKey === 'buyer' ? 'buyer' : 'both'
     const res = await getOrderList({
       ...query,
       order_role,
+      delivery_only: true,
       keyword: currentOrderNo.value || activeKeyword.value,
     })
+    if (requestId !== fetchRequestId) return
     if (res.data.status === 0) {
       const list = res.data.data?.list || []
       const filteredList = currentOrderNo.value ? list.filter((item: OrderItem) => item.order_no === currentOrderNo.value) : list
-      const hydrated = await Promise.all(filteredList.map(async (item: OrderItem) => {
-        await syncOrderPrivacyStatus(item, true)
-        if (roleKey === 'seller') return item
-        try {
-          const eligibleRes: any = await getDeliveryExportEligible(item.order_no)
-          return {
-            ...item,
-            transaction: {
-              ...(item.transaction || {}),
-              can_download: Boolean(eligibleRes?.data?.data?.can_download),
-              export_payload: eligibleRes?.data?.data?.item || null,
-            },
-          }
-        } catch (_error) {
-          return {
-            ...item,
-            transaction: {
-              ...(item.transaction || {}),
-              can_download: false,
-              export_payload: null,
-            },
-          }
-        }
-      }))
-      orders.value = hydrated
+      orders.value = filteredList
       const p = res.data.data?.pagination || {}
       pagination.page = p.page || 1
       pagination.page_size = p.page_size || query.page_size
-      pagination.total = currentOrderNo.value ? hydrated.length : p.total || 0
+      pagination.total = currentOrderNo.value ? filteredList.length : p.total || 0
+      // 列表和分页先显示；外部隐私服务状态及下载资格随后更新当前行。
+      void Promise.allSettled(filteredList.map(async (item: OrderItem) => {
+        await syncOrderPrivacyStatus(item, true)
+        if (isPrivacyPc(item)) return
+        try {
+          const eligibleRes: any = await getDeliveryExportEligible(item.order_no)
+          item.transaction = {
+            ...(item.transaction || {}),
+            can_download: Boolean(eligibleRes?.data?.data?.can_download),
+            export_payload: eligibleRes?.data?.data?.item || null,
+          }
+        } catch (_error) {
+          item.transaction = { ...(item.transaction || {}), can_download: false, export_payload: null }
+        }
+      }))
     } else {
       ElMessage.error(res.data.message || '获取订单失败')
     }
   } catch (error: any) {
-    ElMessage.error(error?.response?.data?.message || '获取订单失败')
+    if (requestId === fetchRequestId) ElMessage.error(error?.response?.data?.message || '获取订单失败')
   } finally {
-    loading.value = false
+    if (requestId === fetchRequestId) loading.value = false
   }
 }
 

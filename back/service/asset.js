@@ -4248,6 +4248,10 @@ exports.listOrders = async (query, userId, identity = '') => {
     params.push(Number(query.order_status));
   }
 
+  if (query.delivery_only === true || query.delivery_only === 'true') {
+    where.push("(ao.order_status >= 2 OR EXISTS (SELECT 1 FROM transactions t WHERE t.order_no = ao.order_no AND t.status = '已确认'))");
+  }
+
   if (query.keyword) {
     where.push('(ao.order_no LIKE ? OR da.asset_name LIKE ? OR bu.account LIKE ? OR su.account LIKE ?)');
     params.push(`%${query.keyword}%`, `%${query.keyword}%`, `%${query.keyword}%`, `%${query.keyword}%`);
