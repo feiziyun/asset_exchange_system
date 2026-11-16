@@ -37,6 +37,13 @@
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
+              <input
+                ref="menuAvatarInputRef"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleMenuAvatarSelected"
+              />
             </div>
           </div>
 
@@ -134,8 +141,9 @@
 import { useRoute } from 'vue-router'
 import { ref, reactive, toRefs, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { clearAuthData, parseTokenPayload, getRoleKey, getRoleLabel } from '@/utils/auth'
-import { getUserInfo } from '@/api/userInfo'
+import { getUserInfo, uploadAvatar } from '@/api/userInfo'
 import {
   Bell,
   ArrowDown,
@@ -176,6 +184,7 @@ onUnmounted(() => {
 })
 
 const router = useRouter()
+const menuAvatarInputRef = ref<HTMLInputElement | null>(null)
 const logout = () => {
   console.log('退出登录')
   clearAuthData()
@@ -188,11 +197,29 @@ const handleUserCommand = (command: string) => {
     return
   }
   if (command === 'avatar') {
-    router.push({ path: '/profile', query: { focus: 'avatar' } })
+    menuAvatarInputRef.value?.click()
     return
   }
   if (command === 'logout') {
     logout()
+  }
+}
+
+const handleMenuAvatarSelected = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  try {
+    const formData = new FormData()
+    formData.append('avatar_file', file)
+    const response = await uploadAvatar(formData)
+    if (response.data.status !== 0) throw new Error(response.data.message || '头像上传失败')
+    ElMessage.success('头像更新成功')
+    window.dispatchEvent(new Event('user-avatar-updated'))
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '头像上传失败')
+  } finally {
+    input.value = ''
   }
 }
 

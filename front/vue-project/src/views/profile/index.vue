@@ -55,12 +55,16 @@
           <div class="certificate-section" v-loading="certLoading">
             <div v-if="activeCertificate" class="certificate-layout">
               <div class="cert-surface">
-                <div class="cert-main">
-                  <div class="cert-name">{{ activeCertificate.cert_name }}</div>
-                  <div class="cert-org">{{ activeCertificate.org_code }}</div>
-                </div>
                 <div class="cert-grid">
-                  <div class="cert-item span-2">
+                  <div class="cert-item">
+                    <span>证书名称</span>
+                    <strong class="cert-name">{{ activeCertificate.cert_name }}</strong>
+                  </div>
+                  <div class="cert-item">
+                    <span>所属组织</span>
+                    <strong>{{ activeCertificate.org_code || '-' }}</strong>
+                  </div>
+                  <div class="cert-item">
                     <span>证书地址</span>
                     <strong class="mono">{{ activeCertificate.chain_address || '-' }}</strong>
                   </div>
@@ -606,7 +610,7 @@ const fetchUserCertificates = async () => {
         seen.add(key)
         merged.push({
           cert_name: certName,
-          org_code: orgCode,
+          org_code: orgCode === 'wx-org1' ? 'wx-org1.chainmaker.org' : orgCode,
           chain_address: item.address || item.chain_address || item.data?.chain_address || '',
           sign_cert_path: item.sign_cert_path || item.data?.cert_path || '',
           tls_cert_path: item.tls_cert_path || '',
@@ -619,7 +623,7 @@ const fetchUserCertificates = async () => {
     }
 
     if (org1Res.status === 'fulfilled' && org1Res.value.data?.status === 0) {
-      pushRows(org1Res.value.data?.certificates || [], 'wx-org1')
+      pushRows(org1Res.value.data?.certificates || [], 'wx-org1.chainmaker.org')
     } else {
       throw new Error('证书加载失败，请稍后重试')
     }
@@ -725,12 +729,13 @@ onMounted(() => {
 
 .profile-page :deep(.el-card__header) {
   border-bottom-color: #d8dee4;
+  padding-left: 28px;
 }
 
 .wallet-card { margin-bottom: 12px; }
 .account-fields { width: 100%; max-width: 420px; }
 .account-fields :deep(.el-form-item__content) { min-width: 0; }
-.wallet-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.wallet-content { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; padding: 0 8px; }
 .wallet-balance-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .wallet-amount { color: #1f2328; font-size: 28px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .wallet-content :deep(.el-button.wallet-detail-button) {
@@ -756,14 +761,16 @@ onMounted(() => {
 .recharge-title img { width: 24px; height: 24px; border-radius: 5px; object-fit: contain; }
 
 .profile-header {
+  width: calc(66.6667% - 12px);
+  margin-left: 6px;
   margin-bottom: 12px;
 
-  :deep(.el-card__body) { padding: 24px 28px; }
+  :deep(.el-card__body) { padding: 20px 24px; }
 
   .header-content {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 16px;
   }
 
   .avatar-block {
@@ -776,7 +783,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
 
     .name {
@@ -791,7 +798,7 @@ onMounted(() => {
     font-size: 13px;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px 20px;
+    gap: 6px 10px;
   }
 
   .desc span {
@@ -850,26 +857,7 @@ onMounted(() => {
 .cert-surface {
   flex: 1;
   min-width: 0;
-  padding: 16px 18px;
-  border: 1px solid #d8dee4;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.cert-main {
-  margin-bottom: 14px;
-}
-
-.cert-name {
-  color: #1f2328;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.cert-org {
-  margin-top: 4px;
-  color: #57606a;
-  font-size: 12px;
+  padding: 4px 0;
 }
 
 .cert-badge {
@@ -890,8 +878,8 @@ onMounted(() => {
 
 .cert-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 .cert-item {
@@ -900,10 +888,6 @@ onMounted(() => {
   min-width: 0;
   font-size: 12px;
   line-height: 1.6;
-}
-
-.cert-item.span-2 {
-  grid-column: 1 / -1;
 }
 
 .cert-item span {
@@ -919,6 +903,8 @@ onMounted(() => {
   overflow-wrap: anywhere;
 }
 
+.cert-item .cert-name { color: #1f2328; font-weight: 600; }
+
 .cert-action { flex: none; }
 .certificate-empty { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: #57606a; font-size: 13px; }
 
@@ -931,18 +917,14 @@ onMounted(() => {
   .certificate-layout { align-items: flex-start; flex-direction: column; }
   .cert-surface { width: 100%; box-sizing: border-box; }
   .cert-action { align-self: flex-end; }
-  .cert-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .cert-item.span-2 {
-    grid-column: auto;
-  }
-
 }
 
 @media (max-width: 900px) {
   .profile-header .desc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 991px) {
+  .profile-header { width: calc(100% - 12px); }
 }
 
 @media (max-width: 600px) {
