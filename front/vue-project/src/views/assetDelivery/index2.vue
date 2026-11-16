@@ -29,10 +29,11 @@
               <tr v-for="item in buyerRows" :key="`buyer-${item.order_no}`">
                 <td>
                   <div class="asset-info-cell">
-                    <button type="button" class="asset-name-link" :title="item.asset_name || '未命名资产'"
-                      @click="openAssetPreview(item)">{{ item.asset_name || '未命名资产' }}</button>
-                    <span class="asset-transaction-id" :title="item.transaction?.transaction_id || '-'">
-                      交易 ID：{{ item.transaction?.transaction_id || '-' }}
+                    <button v-if="item.asset_name" type="button" class="asset-name-link" :title="item.asset_name"
+                      @click="openAssetPreview(item)">{{ item.asset_name }}</button>
+                    <span v-else class="asset-name-placeholder" aria-hidden="true"></span>
+                    <span class="asset-transaction-id" :title="item.transaction?.transaction_id || ''">
+                      {{ item.transaction?.transaction_id ? `交易 ID：${item.transaction.transaction_id}` : '' }}
                     </span>
                   </div>
                 </td>
@@ -124,20 +125,19 @@
         </div>
 
         <el-empty v-else description="暂无可用下载资源" />
-
-        <div class="pager">
-          <el-pagination
-            background
-            layout="total, prev, pager, next, sizes"
-            :total="pagination.total"
-            :current-page="pagination.page"
-            :page-size="pagination.page_size"
-            :page-sizes="[10, 20, 50]"
-            @current-change="onPageChange"
-            @size-change="onSizeChange"
-          />
-        </div>
       </section>
+      <div class="pager">
+        <el-pagination
+          background
+          layout="total, prev, pager, next, sizes"
+          :total="pagination.total"
+          :current-page="pagination.page"
+          :page-size="pagination.page_size"
+          :page-sizes="[10, 20, 50]"
+          @current-change="onPageChange"
+          @size-change="onSizeChange"
+        />
+      </div>
     </div>
   </div>
 
@@ -1778,17 +1778,22 @@ onBeforeUnmount(() => {
 
 .buyer-table th:nth-child(2),
 .buyer-table td:nth-child(2) {
-  width: 12%;
+  width: 16%;
 }
 
 .buyer-table th:first-child,
 .buyer-table td:first-child {
-  width: 32%;
+  width: 30%;
+}
+
+.buyer-table th:nth-child(3),
+.buyer-table td:nth-child(3) {
+  width: 16%;
 }
 
 .buyer-table th:last-child,
 .buyer-table td:last-child {
-  width: 42%;
+  width: 38%;
 }
 
 .styled-table th,
@@ -1880,10 +1885,12 @@ onBeforeUnmount(() => {
 .asset-info-cell {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 5px;
-  min-width: 0;
-  text-align: center;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: left;
 }
 
 .asset-name-link {
@@ -1897,7 +1904,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
-  text-align: center;
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1917,11 +1924,16 @@ onBeforeUnmount(() => {
 .asset-transaction-id {
   display: block;
   max-width: 100%;
+  min-height: 20px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--app-text-secondary);
   font-size: 13px;
+}
+
+.asset-name-placeholder {
+  min-height: 20px;
 }
 
 .delivery-status-text {
