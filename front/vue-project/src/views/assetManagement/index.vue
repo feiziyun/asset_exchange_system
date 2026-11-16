@@ -1617,13 +1617,13 @@ onMounted(fetchCurrent)
 }
 
 .seller-table th:nth-child(1) { width: 150px; }
-.seller-table th:nth-child(2) { width: 105px; }
-.seller-table th:nth-child(3) { width: 270px; }
-.seller-table th:nth-child(4) { width: 105px; }
-.seller-table th:nth-child(5) { width: 110px; }
-.seller-table th:nth-child(6) { width: 130px; }
+.seller-table th:nth-child(2) { width: 96px; }
+.seller-table th:nth-child(3) { width: 326px; }
+.seller-table th:nth-child(4) { width: 96px; }
+.seller-table th:nth-child(5) { width: 100px; }
+.seller-table th:nth-child(6) { width: 116px; }
 .seller-table th:nth-child(7) { width: 110px; }
-.seller-table th:nth-child(8) { width: 120px; }
+.seller-table th:nth-child(8) { width: 106px; }
 
 .seller-table td:nth-child(3) {
   padding-top: 0;
