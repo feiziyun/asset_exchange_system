@@ -351,6 +351,7 @@ onMounted(fetchOrders)
   min-height: 48px;
   padding: 8px 24px;
   border-bottom: 1px solid #d8dee4;
+  background: #f8fafc;
 }
 
 .header-actions {
@@ -375,9 +376,9 @@ onMounted(fetchOrders)
 
 .order-filter-label {
   flex: none;
-  color: #6e7781;
+  color: #3d444d;
   line-height: 1.4;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   margin-left: 8px;
   margin-right: 12px;
@@ -481,7 +482,7 @@ onMounted(fetchOrders)
   align-items: center;
   gap: 6px;
   color: #57606a;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
@@ -511,7 +512,7 @@ onMounted(fetchOrders)
   display: flex;
   gap: 10px;
   min-width: 0;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -521,12 +522,12 @@ onMounted(fetchOrders)
 
 .meta-label {
   flex: 0 0 64px;
-  color: #6e7781;
+  color: #57606a;
 }
 
 .meta-value {
   min-width: 0;
-  color: #57606a;
+  color: #1f2328;
   overflow-wrap: anywhere;
 }
 
