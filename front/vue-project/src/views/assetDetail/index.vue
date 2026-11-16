@@ -24,7 +24,7 @@
                 <span class="asset-label">{{ detail.sub_category_name || '未分类' }}</span>
               </div>
 
-              <p class="desc">{{ detail.description || detail.brief || '暂无详细描述' }}</p>
+              <p class="desc">{{ detail.description || '暂无详细描述' }}</p>
 
               <div class="meta-row">
                 <span>登记主体：{{ detail.owner_account || detail.user_id || '-' }}</span>
@@ -283,7 +283,6 @@ interface AssetDetail {
   publish_id?: number
   remaining_qty?: number
   asset_name?: string
-  brief?: string
   description?: string
   picture?: string | null
   picture_mime_type?: string

@@ -117,7 +117,7 @@
                     <span>{{ item.region_name || '未知地区' }}</span>
                   </div>
                 </div>
-                <p v-if="item.description?.trim()" class="asset-brief">{{ item.description }}</p>
+                <p v-if="item.description?.trim()" class="asset-description">{{ item.description }}</p>
                 <div v-if="isRegulator" class="regulator-market-details">
                   <span>提供方：{{ item.seller_account || '暂无提供方信息' }}</span>
                   <span>产品类型：{{ item.classification_category_name || item.category_name || '未分类' }}</span>
@@ -394,7 +394,6 @@ interface AssetItem {
   classification_category_name?: string
   classification_data_level?: string
   classification_category_name?: string
-  brief?: string
   description?: string
   created_at?: string
   view_count?: number
@@ -1148,7 +1147,7 @@ onMounted(async () => {
   margin: 0 4px;
 }
 
-.asset-brief {
+.asset-description {
   margin: 7px 0;
   color: #57606a;
   font-size: 13px;

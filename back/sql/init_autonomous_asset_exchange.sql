@@ -135,7 +135,6 @@ CREATE TABLE `asset_sub_category` (
 CREATE TABLE `digital_asset` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `asset_name` VARCHAR(255) NOT NULL COMMENT '资产名称',
-  `brief` VARCHAR(500) DEFAULT NULL COMMENT '资产摘要',
   `description` TEXT DEFAULT NULL COMMENT '资产描述',
   `security_level` TINYINT NOT NULL DEFAULT 1 COMMENT '安全等级',
   `classification_category_name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '分类分级服务返回的资产类别名称',

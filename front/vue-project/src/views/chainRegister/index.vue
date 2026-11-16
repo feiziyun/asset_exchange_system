@@ -414,7 +414,6 @@ const initForm = () => ({
   user_id: '',
   asset_name: '',
   assetType: '',
-  brief: '',
   description: '',
   category_id: undefined as number | undefined,
   region_id: 0,
@@ -517,7 +516,6 @@ const CUSTOM_SUB_CATEGORY_STORAGE_KEY = 'chain-register-custom-sub-categories'
 const DRAFT_PICTURE_MAX_BYTES = 2 * 1024 * 1024
 const draftFieldKeys = [
   'asset_name',
-  'brief',
   'description',
   'category_id',
   'region_id',
@@ -1159,7 +1157,6 @@ const submitForm = async () => {
 
   const payload = new FormData()
   payload.append('asset_name', form.asset_name)
-  payload.append('brief', form.brief || '')
   payload.append('description', form.description || '')
   payload.append('classification_category_name', form.classification_category_name || '')
   payload.append('classification_data_level', form.classification_data_level || '一般数据')

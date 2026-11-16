@@ -164,7 +164,7 @@
         </p>
         <div class="asset-preview-description">
           <div class="asset-preview-label">详细描述</div>
-          <p>{{ assetPreviewDetail.description || assetPreviewDetail.brief || '暂无详细描述' }}</p>
+          <p>{{ assetPreviewDetail.description || '暂无详细描述' }}</p>
         </div>
       </template>
     </div>

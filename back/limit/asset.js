@@ -33,7 +33,6 @@ exports.saveValuationRecord_limit = {
 exports.registerAsset_limit = {
   body: {
     asset_name: joi.string().max(100).required(),
-    brief: joi.string().max(300).allow('').default(''),
     description: joi.string().allow('').default(''),
     category_id: joi.number().integer().positive(),
     sub_category_id: joi.number().integer().positive(),
@@ -159,7 +158,6 @@ exports.updateAsset_limit = {
   },
   body: {
     asset_name: joi.string().max(100),
-    brief: joi.string().max(300).allow(''),
     description: joi.string().allow(''),
     category_id: optionalId,
     sub_category_id: optionalId,

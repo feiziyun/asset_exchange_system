@@ -11,7 +11,7 @@
             <el-input
               v-model="keyword"
               class="search-input app-search-input"
-              placeholder="搜索资产名称/摘要/订单号"
+              placeholder="搜索资产名称/介绍/订单号"
               clearable
               @keyup.enter="onSearch"
               @clear="onSearch"
@@ -62,7 +62,7 @@
                     </td>
                     <td>{{ item.classification_data_level || '一般数据' }}</td>
                     <td>
-                      <div class="brief-cell">{{ item.description || item.brief || '暂无资产描述' }}</div>
+                      <div class="description-cell">{{ item.description || '暂无资产描述' }}</div>
                     </td>
                     <td>{{ item.is_proxy ? item.quantity_remaining : Number(item.remaining_qty || 0) + Number(item.available_qty || 0) }}</td>
                     <td>
@@ -296,9 +296,6 @@
         </el-form-item>
         <el-form-item label="资产名称">
           <el-input v-model="editForm.asset_name" />
-        </el-form-item>
-        <el-form-item label="资产摘要">
-          <el-input v-model="editForm.brief" />
         </el-form-item>
         <div class="edit-grid-row">
           <el-form-item :label="editForm.pricing_mode === 'auction' ? '起拍价' : '价格'">
@@ -543,7 +540,6 @@ import defaultCover from '@/assets/logo.svg'
 interface AssetItem {
   id: number
   asset_name: string
-  brief?: string
   description?: string
   file_hash?: string
   picture?: string | null
@@ -715,7 +711,6 @@ const editForm = reactive({
   file_hash: '',
   classification_data_level: '一般数据',
   asset_name: '',
-  brief: '',
   price: 0,
   price_unit: '人民币',
   total_qty: 1,
@@ -1160,7 +1155,6 @@ const openEdit = (row: AssetItem) => {
   editForm.file_hash = row.file_hash || ''
   editForm.classification_data_level = row.classification_data_level || '一般数据'
   editForm.asset_name = row.asset_name || ''
-  editForm.brief = row.brief || ''
   editForm.price = row.pricing_mode === 'auction'
     ? normalizeAuctionStartPrice(row.auction_start_price ?? row.price ?? 0)
     : roundPrice(row.price)
@@ -1626,7 +1620,7 @@ onMounted(fetchCurrent)
   padding-bottom: 0;
 }
 
-.seller-table .brief-cell {
+.seller-table .description-cell {
   display: block;
   width: fit-content;
   max-width: 100%;
@@ -1733,7 +1727,7 @@ onMounted(fetchCurrent)
   min-width: 0;
 }
 
-.brief-cell {
+.description-cell {
   width: 100%;
   box-sizing: border-box;
   color: #57606a;

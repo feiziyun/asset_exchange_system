@@ -790,7 +790,6 @@ const normalizeRegisterPayload = (payload = {}) => {
   const normalized = {
     ...payload,
     asset_name: payload.asset_name || payload.assetName || '',
-    brief: payload.brief || '',
     description: payload.description || '',
     price_unit: payload.price_unit || '人民币',
     file_hash: payload.file_hash || payload.fileHash || '',
@@ -1258,7 +1257,7 @@ exports.createAsset = async (assetData, userId, identity = '') => {
 
     const insertAssetSql = `
       INSERT INTO digital_asset (
-        asset_name, brief, description, classification_category_name, classification_data_level,
+        asset_name, description, classification_category_name, classification_data_level,
         category_id, category_key,
         sub_category_id, sub_category_key,
         region_id, region_key,
@@ -1271,7 +1270,7 @@ exports.createAsset = async (assetData, userId, identity = '') => {
         collect_time_start, collect_time_end, collect_location, sensor_type, data_volume,
         user_id, certificate_name, status
       ) VALUES (
-        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
         ?, ?,
         ?, ?,
         ?, ?,
@@ -1287,7 +1286,6 @@ exports.createAsset = async (assetData, userId, identity = '') => {
 
     const insertAssetParams = [
       registerData.asset_name,
-      registerData.brief,
       registerData.description,
       registerData.classification_category_name,
       registerData.classification_data_level,
@@ -1867,8 +1865,8 @@ exports.listAssets = async (query) => {
   const params = [];
 
   if (query.keyword) {
-    where.push('(da.asset_name LIKE ? OR da.brief LIKE ? OR da.description LIKE ?)');
-    params.push(`%${query.keyword}%`, `%${query.keyword}%`, `%${query.keyword}%`);
+    where.push('(da.asset_name LIKE ? OR da.description LIKE ?)');
+    params.push(`%${query.keyword}%`, `%${query.keyword}%`);
   }
   if (query.category_id) {
     where.push('da.category_id = ?');
@@ -1923,7 +1921,6 @@ exports.listAssets = async (query) => {
       SELECT
         da.id,
         da.asset_name,
-        da.brief,
         da.description,
         da.file_hash,
         da.picture_mime_type,
@@ -2110,7 +2107,6 @@ exports.getHomeStats = async () => {
       SELECT
         da.id,
         da.asset_name,
-        da.brief,
         da.description,
         da.picture,
         da.picture_mime_type,
@@ -2246,8 +2242,10 @@ exports.getAssetDetail = async (id, publishId = null) => {
 
   if (!rows.length) return null;
 
+  const asset = { ...rows[0] };
+  delete asset.brief; // 兼容已有数据库中尚未删除的旧字段，不再向前端返回资产摘要
   return {
-    ...rows[0],
+    ...asset,
     picture: toBase64Picture(rows[0].picture),
   };
 };
@@ -2271,8 +2269,8 @@ exports.listMyAssets = async (query, userId, identity = '') => {
   }
 
   if (query.keyword) {
-    where.push('(da.asset_name LIKE ? OR da.brief LIKE ? OR da.description LIKE ?)');
-    params.push(`%${query.keyword}%`, `%${query.keyword}%`, `%${query.keyword}%`);
+    where.push('(da.asset_name LIKE ? OR da.description LIKE ?)');
+    params.push(`%${query.keyword}%`, `%${query.keyword}%`);
   }
   if (query.category_id) {
     where.push('da.category_id = ?');
@@ -2324,7 +2322,6 @@ exports.listMyAssets = async (query, userId, identity = '') => {
       SELECT
         da.id,
         da.asset_name,
-        da.brief,
         da.description,
         da.file_hash,
         da.picture,
@@ -2387,7 +2384,6 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
 
   const editableFields = [
     'asset_name',
-    'brief',
     'description',
     'classification_category_name',
     'classification_data_level',
