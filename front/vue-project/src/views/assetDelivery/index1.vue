@@ -1758,9 +1758,9 @@ onBeforeUnmount(() => {
 }
 
 .delivery-page {
-  width: min(100%, 1240px);
-  min-height: calc(100vh - 112px);
-  padding: 24px 24px 48px;
+  width: 85%;
+  min-height: 100vh;
+  padding: 16px 20px;
   box-sizing: border-box;
 }
 

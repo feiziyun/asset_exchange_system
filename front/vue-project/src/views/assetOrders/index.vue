@@ -1,7 +1,7 @@
 <template>
   <div class="common-wrapped">
     <div class="orders-page">
-      <header class="orders-header app-search-layout">
+      <header class="orders-header toolbar-section app-search-layout">
         <h2 class="page-title">订单列表</h2>
         <div class="app-search-bar">
           <el-input
@@ -262,9 +262,9 @@ onMounted(fetchOrders)
 }
 
 .orders-page {
-  width: min(100%, 1240px);
-  min-height: calc(100vh - 112px);
-  padding: 24px 24px 48px;
+  width: 85%;
+  min-height: 100vh;
+  padding: 16px 20px;
   box-sizing: border-box;
   background: #f5f7fb;
 }
@@ -272,7 +272,8 @@ onMounted(fetchOrders)
 .orders-header {
   box-sizing: border-box;
   margin-bottom: 12px;
-  padding: 14px 18px;
+  padding: 10px 12px;
+  border: 1px solid #e4e8f0;
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);

@@ -2,7 +2,7 @@
   <div class="common-wrapped">
     <div class="market-page">
       <!-- 顶部搜索 -->
-      <section class="search-section">
+      <section class="search-section toolbar-section">
         <div class="search-row app-search-layout">
           <div class="search-title page-title"><span>{{ isRegulator ? '交易市场' : '自动驾驶数字资产' }}</span></div>
           <div class="app-search-bar">
@@ -961,8 +961,9 @@ onMounted(async () => {
 /* ── 搜索区 ── */
 .search-section {
   background: #fff;
+  border: 1px solid #e4e8f0;
   border-radius: 10px;
-  padding: 14px 18px;
+  padding: 10px 12px;
   box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
 
   .search-row {

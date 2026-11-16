@@ -1,6 +1,6 @@
 <template>
   <div class="common-wrapped">
-    <div class="manage-page" :class="{ 'delivery-width-page': roleKey === 'buyer' || roleKey === 'seller' }">
+    <div class="manage-page" :class="{ 'market-width-page': roleKey === 'buyer' || roleKey === 'seller' }">
       <section class="toolbar-section">
         <div class="toolbar-row app-search-layout">
           <div class="title-wrap">
@@ -1454,10 +1454,10 @@ onMounted(fetchCurrent)
     box-sizing: border-box;
   }
 
-  .delivery-width-page {
-    width: min(100%, 1240px);
-    min-height: calc(100vh - 112px);
-    padding: 24px 24px 48px;
+  .market-width-page {
+    width: 85%;
+    min-height: 100vh;
+    padding: 16px 20px;
   }
 }
 

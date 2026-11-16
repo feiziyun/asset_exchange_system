@@ -650,7 +650,10 @@ onMounted(() => {
 <style lang="scss" scoped>
 .profile-page {
   width: 85%;
-  margin: 14px auto;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  margin: 0 auto;
 }
 
 .wallet-card { margin-bottom: 12px; }
