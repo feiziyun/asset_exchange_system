@@ -5,7 +5,7 @@
         <div class="crumb-row">
           <el-breadcrumb separator=">">
             <el-breadcrumb-item>
-              <a href="javascript:;" @click="goUpper">资产市场</a>
+              <button type="button" class="breadcrumb-link" @click="goUpper">资产市场</button>
             </el-breadcrumb-item>
             <el-breadcrumb-item>资产详情</el-breadcrumb-item>
           </el-breadcrumb>
@@ -13,13 +13,6 @@
         </div>
 
         <el-card shadow="never" class="hero-card" v-loading="loading">
-          <div class="hero-top">
-            <div>
-              资产编号：<span class="asset-no">{{ detail.id || '-' }}</span>
-            </div>
-            <div>最近更新：{{ formatDateTime(detail.updated_at) }}</div>
-          </div>
-
           <div class="hero-main">
             <div class="cover-wrap">
               <img class="asset-cover" :src="coverImage" alt="asset-cover" @error="onCoverError" />
@@ -27,10 +20,8 @@
             <div class="main-left">
               <div class="title-row">
                 <h2 class="page-title">{{ detail.asset_name || '未命名资产' }}</h2>
-                <el-tag v-if="detail.delegation_id" type="success">代理</el-tag>
-                <el-tag type="primary" effect="plain">{{
-                  detail.sub_category_name || '未分类'
-                }}</el-tag>
+                <span v-if="detail.delegation_id" class="asset-label">代理</span>
+                <span class="asset-label">{{ detail.sub_category_name || '未分类' }}</span>
               </div>
 
               <p class="desc">{{ detail.description || detail.brief || '暂无详细描述' }}</p>
@@ -44,14 +35,12 @@
               </div>
 
               <div class="action-row">
-                <el-button type="primary" @click="fetchDetail">刷新详情</el-button>
                 <el-button v-if="canBidAuction" type="warning" @click="openBidDialog"
                   >参与竞拍</el-button
                 >
                 <el-button v-else-if="canBuyAsset && detail.pricing_mode !== 'auction'" type="success" @click="openBuyDialog"
                   >立即购买</el-button
                 >
-                <el-button type="warning" plain>收藏</el-button>
               </div>
             </div>
 
@@ -64,12 +53,6 @@
               </div>
               <div class="side-item">
                 库存：{{ detail.available_qty || 0 }}/{{ detail.total_qty || 0 }}
-              </div>
-              <div class="side-item">
-                链上状态：
-                <el-tag size="small" :type="chainTag(detail.chain_status)">
-                  {{ chainText(detail.chain_status) }}
-                </el-tag>
               </div>
               <div class="side-item">浏览量：{{ detail.view_count || 0 }}</div>
             </div>
@@ -134,30 +117,15 @@
                     </li>
                     <li>
                       <label>可售所有权：</label>
-                      <el-tag
-                        :type="detail.can_sell_ownership === 1 ? 'success' : 'info'"
-                        size="small"
-                      >
-                        {{ detail.can_sell_ownership === 1 ? '是' : '否' }}
-                      </el-tag>
+                      <span>{{ detail.can_sell_ownership === 1 ? '是' : '否' }}</span>
                     </li>
                     <li>
                       <label>可售查阅权：</label>
-                      <el-tag
-                        :type="detail.can_sell_view_right === 1 ? 'success' : 'info'"
-                        size="small"
-                      >
-                        {{ detail.can_sell_view_right === 1 ? '是' : '否' }}
-                      </el-tag>
+                      <span>{{ detail.can_sell_view_right === 1 ? '是' : '否' }}</span>
                     </li>
                     <li>
                       <label>可售加工权：</label>
-                      <el-tag
-                        :type="detail.can_sell_process_right === 1 ? 'success' : 'info'"
-                        size="small"
-                      >
-                        {{ detail.can_sell_process_right === 1 ? '是' : '否' }}
-                      </el-tag>
+                      <span>{{ detail.can_sell_process_right === 1 ? '是' : '否' }}</span>
                     </li>
                   </ul>
                 </div>
@@ -432,20 +400,6 @@ const statusText = (status?: number) => {
   return '未知'
 }
 
-const chainText = (status?: number) => {
-  if (status === 0) return '待上链'
-  if (status === 1) return '已上链'
-  if (status === 2) return '上链失败'
-  return '未知'
-}
-
-const chainTag = (status?: number) => {
-  if (status === 0) return 'info'
-  if (status === 1) return 'success'
-  if (status === 2) return 'danger'
-  return ''
-}
-
 const fetchDetail = async () => {
   const id = route.params.id
   if (!id) {
@@ -655,6 +609,21 @@ onMounted(fetchDetail)
   box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
 }
 
+.crumb-row :deep(.el-breadcrumb__inner),
+.crumb-row :deep(.el-breadcrumb__separator) { color: #57606a; }
+.crumb-row :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) { color: #24292f; }
+
+.breadcrumb-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #57606a;
+  font: inherit;
+  cursor: pointer;
+}
+.breadcrumb-link:hover { color: #24292f; text-decoration: underline; text-underline-offset: 3px; }
+.breadcrumb-link:focus-visible { outline: 2px solid #57606a; outline-offset: 3px; }
+
 .hero-card,
 .tabs-card {
   border-radius: 10px;
@@ -666,19 +635,6 @@ onMounted(fetchDetail)
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.hero-top {
-  display: flex;
-  justify-content: space-between;
-  color: #5f6c91;
-  margin-bottom: 16px;
-  font-size: 15px;
-}
-
-.asset-no {
-  color: #1f3f96;
-  font-weight: 700;
 }
 
 .hero-main {
@@ -706,11 +662,13 @@ onMounted(fetchDetail)
 
   h2 {
     margin: 0;
-    color: #233f8f;
+    color: #24292f;
     font-size: 32px;
     font-weight: 700;
   }
 }
+
+.asset-label { color: #6e7781; font-size: 13px; }
 
 .desc {
   margin: 16px 0;
@@ -722,7 +680,7 @@ onMounted(fetchDetail)
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  color: #4f6296;
+  color: #57606a;
 }
 
 .action-row {
@@ -737,13 +695,14 @@ onMounted(fetchDetail)
 }
 
 .price {
-  color: #1f3f96;
+  color: #3d444d;
   font-size: 40px;
   font-weight: 700;
   margin-bottom: 14px;
 
   span {
     margin-left: 6px;
+    color: #6e7781;
     font-size: 18px;
     font-weight: 500;
   }
@@ -751,11 +710,12 @@ onMounted(fetchDetail)
 
 .side-item {
   margin-bottom: 12px;
-  color: #4f6296;
+  color: #57606a;
 }
 
 .tabs-card {
   margin-top: 10px;
+  --el-color-primary: #3d444d;
 
   :deep(.el-card__body) {
     padding-top: 8px;
@@ -775,7 +735,7 @@ onMounted(fetchDetail)
 
   h3 {
     margin: 0 0 12px;
-    color: #233f8f;
+    color: #24292f;
   }
 
   ul {
@@ -787,7 +747,7 @@ onMounted(fetchDetail)
   li {
     display: flex;
     margin-bottom: 10px;
-    color: #314a89;
+    color: #3d444d;
     line-height: 1.5;
   }
 
