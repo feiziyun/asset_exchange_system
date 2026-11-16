@@ -50,7 +50,6 @@
                     <el-button
                       type="primary"
                       class="delivery-action-button"
-                      :disabled="!canOpenDeliveryDetail(item)"
                       @click="openDeliveryDetail(item)"
                     >查看详情</el-button>
                     <el-button
@@ -185,10 +184,12 @@
 
   <el-dialog v-model="genericDetailVisible" title="交付详情" width="min(560px, 92vw)">
     <div v-if="genericDetail" class="dialog-body">
+      <div class="dialog-row"><span class="dialog-label">订单号</span><span class="dialog-value">{{ genericDetail.orderNo }}</span></div>
+      <div class="dialog-row"><span class="dialog-label">资产名称</span><span class="dialog-value">{{ genericDetail.assetName }}</span></div>
       <div class="dialog-row"><span class="dialog-label">交易ID</span><span class="dialog-value">{{ genericDetail.transactionId }}</span></div>
       <div class="dialog-row"><span class="dialog-label">交付方式</span><span>{{ genericDetail.method }}</span></div>
       <div class="dialog-row"><span class="dialog-label">当前状态</span><span>{{ genericDetail.status }}</span></div>
-      <div v-if="genericDetail.reference" class="dialog-row"><span class="dialog-label">交付记录</span><span class="dialog-value">{{ genericDetail.reference }}</span></div>
+      <div class="dialog-row"><span class="dialog-label">交付记录</span><span class="dialog-value">{{ genericDetail.reference || '暂无交付记录' }}</span></div>
       <div v-if="genericDetail.error" class="dialog-row"><span class="dialog-label">异常说明</span><span class="dialog-value">{{ genericDetail.error }}</span></div>
     </div>
     <template #footer><el-button @click="genericDetailVisible = false">关闭</el-button></template>
@@ -470,6 +471,8 @@ const contractSubmitting = ref(false)
 const historyDialogVisible = ref(false)
 const genericDetailVisible = ref(false)
 const genericDetail = ref<{
+  orderNo: string
+  assetName: string
   transactionId: string
   method: string
   status: string
@@ -704,23 +707,13 @@ const deliveryDetailRecord = (order: OrderItem) => {
   if (pcType === 'MPC') return order.mpc_record
   return null
 }
-const canOpenDeliveryDetail = (order: OrderItem) => {
-  const pcType = getPcType(order)
-  if (pcType === 'TEE') return Boolean(order.latest_delivery_request)
-  const record = deliveryDetailRecord(order)
-  if (!record) return false
-  if (pcType === 'MPC') return Boolean(record.remote_task_id)
-  if (pcType === 'HE') return Boolean(record.has_record || record.pcp_contract_id || record.current_attempt_id || record.public_keys_ready)
-  if (pcType === 'FL') return Boolean(record.has_record || record.pcp_contract_id || record.current_attempt_id)
-  if (pcType === 'PRE') return Boolean(record.has_record || record.pcp_contract_id || record.current_attempt_id || record.buyer_public_key_ready)
-  return false
-}
 const openDeliveryDetail = (order: OrderItem) => {
-  if (!canOpenDeliveryDetail(order)) return
   if (getPcType(order) === 'TEE') return openHistoryDialog(order)
   const record = deliveryDetailRecord(order)
   genericDetail.value = {
-    transactionId: getTransactionId(order),
+    orderNo: order.order_no || '-',
+    assetName: order.asset_name || '-',
+    transactionId: getTransactionId(order) || '-',
     method: ({ HE: '同态加密', PRE: '代理重加密', FL: '联邦学习', MPC: '多方安全计算' } as Record<string, string>)[getPcType(order)] || pcTypeText(getPcType(order)),
     status: getBuyerDeliveryStatusText(order),
     reference: String(getPcType(order) === 'MPC' ? record?.remote_task_id || '' : record?.pcp_contract_id || record?.current_attempt_id || ''),
