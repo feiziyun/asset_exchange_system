@@ -19,10 +19,9 @@
         <div class="order-filter-bar">
           <span class="order-filter-label">订单状态</span>
           <el-checkbox
-            :model-value="selectedStatuses.length === 0"
-            :disabled="selectedStatuses.length > 0"
+            :model-value="selectedStatuses.length === statusOptions.length"
             class="order-filter-checkbox"
-            @change="clearStatusFilter"
+            @change="toggleAllStatuses"
           >全部</el-checkbox>
           <el-checkbox-group v-model="selectedStatuses" class="order-filter-options" @change="selectStatus">
             <el-checkbox v-for="option in statusOptions" :key="option.value" :label="option.value">
@@ -147,11 +146,11 @@ const query = reactive({
 
 const statusOptions = [
   { label: '已付款', value: 'paid' },
-  { label: '未付款', value: 'unpaid' },
+  { label: '待付款', value: 'unpaid' },
   { label: '已取消', value: 'cancelled' },
   { label: '已完成', value: 'completed' },
 ]
-const selectedStatuses = ref<string[]>([])
+const selectedStatuses = ref<string[]>(statusOptions.map((option) => option.value))
 
 const pagination = reactive({
   page: 1,
@@ -216,16 +215,14 @@ const onSearch = () => {
 }
 
 const selectStatus = (statuses: string[]) => {
-  query.payment_state = statuses.join(',')
+  query.payment_state = statuses.length === statusOptions.length ? '' : statuses.length ? statuses.join(',') : 'none'
   query.page = 1
   fetchOrders()
 }
 
-const clearStatusFilter = () => {
-  selectedStatuses.value = []
-  query.payment_state = ''
-  query.page = 1
-  fetchOrders()
+const toggleAllStatuses = (checked: boolean) => {
+  selectedStatuses.value = checked ? statusOptions.map((option) => option.value) : []
+  selectStatus(selectedStatuses.value)
 }
 
 const onPageChange = (page: number) => {
@@ -321,21 +318,24 @@ onMounted(fetchOrders)
 
 .header-actions {
   grid-column: 3;
+  grid-row: 2;
   justify-self: end;
   white-space: nowrap;
 }
 
 .order-filter-bar {
-  grid-column: 1 / -1;
+  grid-column: 1 / 3;
+  grid-row: 2;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding-top: 8px;
-  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .order-filter-label {
+  flex: none;
   color: #6e7781;
   line-height: 1.4;
   font-size: 12px;
@@ -345,7 +345,7 @@ onMounted(fetchOrders)
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex: none;
 }
 
 .order-filter-bar :deep(.el-checkbox) {
@@ -358,9 +358,24 @@ onMounted(fetchOrders)
 }
 
 @media (max-width: 900px) {
-  .header-actions {
+  .orders-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .orders-header .app-search-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .order-filter-bar {
     grid-column: 1;
-    justify-self: start;
+    grid-row: 3;
+  }
+
+  .header-actions {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: end;
   }
 }
 

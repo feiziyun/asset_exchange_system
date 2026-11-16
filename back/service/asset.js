@@ -4276,7 +4276,9 @@ exports.listOrders = async (query, userId, identity = '') => {
     completed: [3],
   };
   const selectedOrderStatuses = [...new Set(paymentStates.flatMap((state) => statusGroups[state] || []))];
-  if (selectedOrderStatuses.length) {
+  if (paymentStates.includes('none')) {
+    where.push('1 = 0');
+  } else if (selectedOrderStatuses.length) {
     where.push(`ao.order_status IN (${selectedOrderStatuses.map(() => '?').join(',')})`);
     params.push(...selectedOrderStatuses);
   }
