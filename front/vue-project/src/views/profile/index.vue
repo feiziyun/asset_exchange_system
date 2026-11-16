@@ -1,149 +1,150 @@
 <template>
   <div class="profile-page common-wrapped" v-loading="loading">
-    <el-card class="profile-header app-workbench-panel" shadow="never">
-      <div class="header-content">
-        <div class="avatar-block">
-          <el-avatar :size="72" :src="avatarUrl" />
-          <input
-            ref="avatarInputRef"
-            type="file"
-            accept="image/*"
-            style="display: none"
-            @change="handleAvatarSelected"
-          />
-        </div>
-        <div class="base">
-          <div class="title-row">
-            <span class="name">{{ displayName }}</span>
-            <span class="profile-role">{{ roleLabel }}</span>
-            <el-button class="avatar-action profile-action-button" @click="openAvatarPicker">更换头像</el-button>
-          </div>
-          <div class="desc">
-            <span>账号：{{ user.account || '-' }}</span>
-            <span>用户ID：{{ user.id || '-' }}</span>
-            <span>注册时间：{{ formatDateTime(user.create_time) }}</span>
-          </div>
-        </div>
-      </div>
-    </el-card>
-
     <el-row :gutter="12" class="main-row">
       <el-col :xs="24" :sm="24" :md="16">
-        <el-card shadow="never" class="wallet-card app-workbench-panel">
-          <template #header>
-            <div class="section-title">账户余额</div>
-          </template>
-          <div class="wallet-content">
-            <div class="wallet-balance-row">
-              <div class="wallet-amount">¥ {{ walletBalance }}</div>
-              <el-button class="wallet-detail-button" link @click="openLedgerDetails">查看详情</el-button>
-            </div>
-            <el-button class="recharge-entry-button profile-action-button" @click="rechargeVisible = true">
-              <img :src="alipaySquareLogo" alt="" />支付宝充值
-            </el-button>
-          </div>
-        </el-card>
-        <el-card shadow="never" class="certificate-card app-workbench-panel">
-          <template #header>
-            <div class="certificate-heading">
-              <span class="section-title">我的证书</span>
-              <span v-if="activeCertificate" class="cert-badge" :class="{ expired: certificateExpired }">
-                {{ certificateExpired ? '已过期' : '有效' }}
-              </span>
-            </div>
-          </template>
-          <div class="certificate-section" v-loading="certLoading">
-            <div v-if="activeCertificate" class="certificate-layout">
-              <div class="cert-surface">
-                <div class="cert-grid">
-                  <div class="cert-item">
-                    <span>证书名称</span>
-                    <strong class="cert-name">{{ activeCertificate.cert_name }}</strong>
-                  </div>
-                  <div class="cert-item">
-                    <span>所属组织</span>
-                    <strong>{{ activeCertificate.org_code || '-' }}</strong>
-                  </div>
-                  <div class="cert-item">
-                    <span>证书地址</span>
-                    <strong class="mono">{{ activeCertificate.chain_address || '-' }}</strong>
-                  </div>
-                  <div class="cert-item">
-                    <span>创建时间</span>
-                    <strong>{{ activeCertificate.created_at ? formatDateTime(activeCertificate.created_at) : '未知' }}</strong>
-                  </div>
-                  <div class="cert-item">
-                    <span>过期时间</span>
-                    <strong>{{ activeCertificate.expires_at ? formatDateTime(activeCertificate.expires_at) : '未知' }}</strong>
-                  </div>
+        <div class="account-column">
+          <el-card class="profile-header app-workbench-panel" shadow="never">
+            <div class="header-content">
+              <div class="avatar-block">
+                <el-avatar :size="72" :src="avatarUrl" />
+                <input
+                  ref="avatarInputRef"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  @change="handleAvatarSelected"
+                />
+              </div>
+              <div class="base">
+                <div class="title-row">
+                  <span class="name">{{ displayName }}</span>
+                  <span class="profile-role">{{ roleLabel }}</span>
+                  <el-button class="avatar-action profile-action-button" @click="openAvatarPicker">更换头像</el-button>
+                </div>
+                <div class="desc">
+                  <span>账号：{{ user.account || '-' }}</span>
+                  <span>用户ID：{{ user.id || '-' }}</span>
+                  <span>注册时间：{{ formatDateTime(user.create_time) }}</span>
                 </div>
               </div>
-              <el-button class="profile-action-button cert-action" @click="openCertificateDialog('renew')">续期证书</el-button>
             </div>
-            <el-alert v-else-if="certLoadError" :title="certLoadError" type="error" :closable="false" />
-            <div v-else-if="!certLoading" class="certificate-empty">
-              <span>暂无证书</span>
-              <el-button class="profile-action-button" @click="openCertificateDialog('apply')">申请证书</el-button>
+          </el-card>
+          <el-card shadow="never" class="wallet-card app-workbench-panel">
+            <template #header>
+              <div class="section-title">账户余额</div>
+            </template>
+            <div class="wallet-content">
+              <div class="wallet-balance-row">
+                <div class="wallet-amount">¥ {{ walletBalance }}</div>
+                <el-button class="wallet-detail-button" link @click="openLedgerDetails">查看详情</el-button>
+              </div>
+              <el-button class="recharge-entry-button profile-action-button" @click="rechargeVisible = true">
+                <img :src="alipaySquareLogo" alt="" />支付宝充值
+              </el-button>
             </div>
-          </div>
-        </el-card>
+          </el-card>
+          <el-card shadow="never" class="certificate-card app-workbench-panel">
+            <template #header>
+              <div class="certificate-heading">
+                <span class="section-title">我的证书</span>
+                <span v-if="activeCertificate" class="cert-badge" :class="{ expired: certificateExpired }">
+                  {{ certificateExpired ? '已过期' : '有效' }}
+                </span>
+              </div>
+            </template>
+            <div class="certificate-section" v-loading="certLoading">
+              <div v-if="activeCertificate" class="certificate-layout">
+                <div class="cert-surface">
+                  <div class="cert-grid">
+                    <div class="cert-item">
+                      <span>证书名称</span>
+                      <strong class="cert-name">{{ activeCertificate.cert_name }}</strong>
+                    </div>
+                    <div class="cert-item">
+                      <span>所属组织</span>
+                      <strong>{{ activeCertificate.org_code || '-' }}</strong>
+                    </div>
+                    <div class="cert-item">
+                      <span>证书地址</span>
+                      <strong class="mono">{{ activeCertificate.chain_address || '-' }}</strong>
+                    </div>
+                    <div class="cert-item">
+                      <span>创建时间</span>
+                      <strong>{{ activeCertificate.created_at ? formatDateTime(activeCertificate.created_at) : '未知' }}</strong>
+                    </div>
+                    <div class="cert-item">
+                      <span>过期时间</span>
+                      <strong>{{ activeCertificate.expires_at ? formatDateTime(activeCertificate.expires_at) : '未知' }}</strong>
+                    </div>
+                  </div>
+                </div>
+                <el-button class="profile-action-button cert-action" @click="openCertificateDialog('renew')">续期证书</el-button>
+              </div>
+              <el-alert v-else-if="certLoadError" :title="certLoadError" type="error" :closable="false" />
+              <div v-else-if="!certLoading" class="certificate-empty">
+                <span>暂无证书</span>
+                <el-button class="profile-action-button" @click="openCertificateDialog('apply')">申请证书</el-button>
+              </div>
+            </div>
+          </el-card>
 
-        <el-card shadow="never" class="profile-card app-workbench-panel">
-          <template #header>
-            <div class="section-title">个人资料管理</div>
-          </template>
-          <el-form :model="profileForm" label-width="88px" class="profile-form account-fields">
-            <el-form-item label="账号">
-              <el-input v-model="profileForm.account" disabled />
-            </el-form-item>
-            <el-form-item label="角色">
-              <el-input :model-value="roleLabel" disabled />
-            </el-form-item>
-            <el-form-item label="姓名">
-              <el-input v-model="profileForm.name" placeholder="请输入姓名" />
-            </el-form-item>
-            <el-form-item label="邮箱">
-              <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
-            </el-form-item>
-            <el-form-item label="性别">
-              <el-select v-model="profileForm.gender" style="width: 100%">
-                <el-option label="未知" value="未知" />
-                <el-option label="男" value="男" />
-                <el-option label="女" value="女" />
-              </el-select>
-            </el-form-item>
+          <el-card shadow="never" class="profile-card app-workbench-panel">
+            <template #header>
+              <div class="section-title">个人资料管理</div>
+            </template>
+            <el-form :model="profileForm" label-width="88px" class="profile-form account-fields">
+              <el-form-item label="账号">
+                <el-input v-model="profileForm.account" disabled />
+              </el-form-item>
+              <el-form-item label="角色">
+                <el-input :model-value="roleLabel" disabled />
+              </el-form-item>
+              <el-form-item label="姓名">
+                <el-input v-model="profileForm.name" placeholder="请输入姓名" />
+              </el-form-item>
+              <el-form-item label="邮箱">
+                <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
+              </el-form-item>
+              <el-form-item label="性别">
+                <el-select v-model="profileForm.gender" style="width: 100%">
+                  <el-option label="未知" value="未知" />
+                  <el-option label="男" value="男" />
+                  <el-option label="女" value="女" />
+                </el-select>
+              </el-form-item>
 
-            <el-form-item>
-              <el-button type="primary" @click="saveProfile">保存资料</el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
+              <el-form-item>
+                <el-button type="primary" @click="saveProfile">保存资料</el-button>
+              </el-form-item>
+            </el-form>
+          </el-card>
 
-        <el-card class="password-card app-workbench-panel" shadow="never" style="margin-top: 12px">
-          <template #header>
-            <div class="section-title">密码管理</div>
-          </template>
-          <el-form :model="passwordForm" label-width="88px" class="profile-form account-fields">
-            <el-form-item label="旧密码">
-              <el-input v-model="passwordForm.oldPassword" type="password" show-password />
-            </el-form-item>
-            <el-form-item label="新密码">
-              <el-input v-model="passwordForm.newPassword" type="password" show-password />
-            </el-form-item>
-            <el-form-item label="确认密码">
-              <el-input v-model="passwordForm.confirmPassword" type="password" show-password />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="warning" @click="savePassword">修改密码</el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
+          <el-card class="password-card app-workbench-panel" shadow="never" style="margin-top: 12px">
+            <template #header>
+              <div class="section-title">密码管理</div>
+            </template>
+            <el-form :model="passwordForm" label-width="88px" class="profile-form account-fields">
+              <el-form-item label="旧密码">
+                <el-input v-model="passwordForm.oldPassword" type="password" show-password />
+              </el-form-item>
+              <el-form-item label="新密码">
+                <el-input v-model="passwordForm.newPassword" type="password" show-password />
+              </el-form-item>
+              <el-form-item label="确认密码">
+                <el-input v-model="passwordForm.confirmPassword" type="password" show-password />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="warning" @click="savePassword">修改密码</el-button>
+              </el-form-item>
+            </el-form>
+          </el-card>
+        </div>
       </el-col>
 
       <el-col :xs="24" :sm="24" :md="8">
         <el-card class="role-card app-workbench-panel" shadow="never">
           <template #header>
-            <div class="section-title">角色工作台</div>
+            <div class="section-title">交易信息</div>
           </template>
           <template v-if="roleKey === 'buyer' || roleKey === 'seller'">
             <div class="role-tip">{{ roleKey === 'buyer' ? '已支付订单与交付概览' : '交易订单与交付概览' }}</div>
@@ -735,14 +736,15 @@ onMounted(() => {
 .wallet-card { margin-bottom: 12px; }
 .account-fields { width: 100%; max-width: 420px; }
 .account-fields :deep(.el-form-item__content) { min-width: 0; }
-.wallet-content { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; padding: 0 8px; }
-.wallet-balance-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.wallet-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 0 8px; }
+.wallet-balance-row { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; }
 .wallet-amount { color: #1f2328; font-size: 28px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .wallet-content :deep(.el-button.wallet-detail-button) {
   --el-button-text-color: #0969da;
   --el-button-hover-text-color: #0550ae;
   font-size: 13px;
 }
+.wallet-content :deep(.el-button.recharge-entry-button) { margin-left: auto; }
 .recharge-content { display: flex; align-items: center; flex-direction: column; gap: 10px; }
 .ledger-pages { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 16px 0 0; }
 .profile-page :deep(.el-button.profile-action-button) {
@@ -761,8 +763,7 @@ onMounted(() => {
 .recharge-title img { width: 24px; height: 24px; border-radius: 5px; object-fit: contain; }
 
 .profile-header {
-  width: calc(66.6667% - 12px);
-  margin-left: 6px;
+  width: 100%;
   margin-bottom: 12px;
 
   :deep(.el-card__body) { padding: 20px 24px; }
@@ -806,6 +807,8 @@ onMounted(() => {
     overflow-wrap: anywhere;
   }
 }
+
+.account-column { min-width: 0; }
 
 .avatar-action { margin-left: auto; }
 
@@ -921,10 +924,6 @@ onMounted(() => {
 
 @media (max-width: 900px) {
   .profile-header .desc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 991px) {
-  .profile-header { width: calc(100% - 12px); }
 }
 
 @media (max-width: 600px) {
