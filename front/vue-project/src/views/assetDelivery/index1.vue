@@ -1839,7 +1839,7 @@ onBeforeUnmount(() => {
 .delivery-filter-option:hover { background: #f6f8fa; }
 .delivery-filter-option.active {
   background: #f6f8fa;
-  color: #0969da;
+  color: #2b75c7;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
