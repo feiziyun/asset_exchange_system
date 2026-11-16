@@ -16,7 +16,7 @@
           <div class="title-row">
             <span class="name">{{ displayName }}</span>
             <span class="profile-role">{{ roleLabel }}</span>
-            <el-button class="avatar-action" size="small" @click="openAvatarPicker">更换头像</el-button>
+            <el-button class="avatar-action profile-action-button" @click="openAvatarPicker">更换头像</el-button>
           </div>
           <div class="desc">
             <span>账号：{{ user.account || '-' }}</span>
@@ -38,7 +38,7 @@
               <div class="wallet-amount">¥ {{ walletBalance }}</div>
               <el-button class="wallet-detail-button" link @click="openLedgerDetails">查看详情</el-button>
             </div>
-            <el-button class="recharge-entry-button" @click="rechargeVisible = true">
+            <el-button class="recharge-entry-button profile-action-button" @click="rechargeVisible = true">
               <img :src="alipaySquareLogo" alt="" />支付宝充值
             </el-button>
           </div>
@@ -47,38 +47,40 @@
           <template #header>
             <div class="certificate-heading">
               <span class="section-title">我的证书</span>
-              <el-button v-if="activeCertificate" size="small" plain @click="openCertificateDialog('renew')">续期证书</el-button>
-              <el-button v-else size="small" type="primary" plain :disabled="certLoading || Boolean(certLoadError)" @click="openCertificateDialog('apply')">申请证书</el-button>
+              <span v-if="activeCertificate" class="cert-badge" :class="{ expired: certificateExpired }">
+                {{ certificateExpired ? '已过期' : '有效' }}
+              </span>
             </div>
           </template>
           <div class="certificate-section" v-loading="certLoading">
-            <div v-if="activeCertificate" class="cert-surface">
-              <div class="cert-main">
-                <div>
+            <div v-if="activeCertificate" class="certificate-layout">
+              <div class="cert-surface">
+                <div class="cert-main">
                   <div class="cert-name">{{ activeCertificate.cert_name }}</div>
                   <div class="cert-org">{{ activeCertificate.org_code }}</div>
                 </div>
-                <span class="cert-badge" :class="{ expired: certificateExpired }">
-                  {{ certificateExpired ? '已过期' : '有效' }}
-                </span>
-              </div>
-              <div class="cert-grid">
-                <div class="cert-item span-2">
-                  <span>证书地址</span>
-                  <strong class="mono">{{ activeCertificate.chain_address || '-' }}</strong>
-                </div>
-                <div class="cert-item">
-                  <span>创建时间</span>
-                  <strong>{{ activeCertificate.created_at ? formatDateTime(activeCertificate.created_at) : '未知' }}</strong>
-                </div>
-                <div class="cert-item">
-                  <span>过期时间</span>
-                  <strong>{{ activeCertificate.expires_at ? formatDateTime(activeCertificate.expires_at) : '未知' }}</strong>
+                <div class="cert-grid">
+                  <div class="cert-item span-2">
+                    <span>证书地址</span>
+                    <strong class="mono">{{ activeCertificate.chain_address || '-' }}</strong>
+                  </div>
+                  <div class="cert-item">
+                    <span>创建时间</span>
+                    <strong>{{ activeCertificate.created_at ? formatDateTime(activeCertificate.created_at) : '未知' }}</strong>
+                  </div>
+                  <div class="cert-item">
+                    <span>过期时间</span>
+                    <strong>{{ activeCertificate.expires_at ? formatDateTime(activeCertificate.expires_at) : '未知' }}</strong>
+                  </div>
                 </div>
               </div>
+              <el-button class="profile-action-button cert-action" @click="openCertificateDialog('renew')">续期证书</el-button>
             </div>
             <el-alert v-else-if="certLoadError" :title="certLoadError" type="error" :closable="false" />
-            <el-empty v-else-if="!certLoading" description="暂无证书" />
+            <div v-else-if="!certLoading" class="certificate-empty">
+              <span>暂无证书</span>
+              <el-button class="profile-action-button" @click="openCertificateDialog('apply')">申请证书</el-button>
+            </div>
           </div>
         </el-card>
 
@@ -728,7 +730,7 @@ onMounted(() => {
 .wallet-card { margin-bottom: 12px; }
 .account-fields { width: 100%; max-width: 420px; }
 .account-fields :deep(.el-form-item__content) { min-width: 0; }
-.wallet-content { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+.wallet-content { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .wallet-balance-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 .wallet-amount { color: #1f2328; font-size: 28px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .wallet-content :deep(.el-button.wallet-detail-button) {
@@ -738,7 +740,7 @@ onMounted(() => {
 }
 .recharge-content { display: flex; align-items: center; flex-direction: column; gap: 10px; }
 .ledger-pages { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 16px 0 0; }
-.wallet-content :deep(.el-button.recharge-entry-button) {
+.profile-page :deep(.el-button.profile-action-button) {
   --el-button-bg-color: #f6f8fa;
   --el-button-border-color: #d0d7de;
   --el-button-text-color: #1f2328;
@@ -836,20 +838,26 @@ onMounted(() => {
 .certificate-heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+}
+
+.certificate-layout {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 
 .cert-surface {
-  background: transparent;
+  flex: 1;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .cert-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .cert-name {
@@ -883,14 +891,15 @@ onMounted(() => {
 .cert-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 24px;
+  gap: 8px 20px;
 }
 
 .cert-item {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  gap: 10px;
   min-width: 0;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .cert-item.span-2 {
@@ -898,16 +907,20 @@ onMounted(() => {
 }
 
 .cert-item span {
-  color: #57606a;
-  font-size: 12px;
+  flex: 0 0 64px;
+  color: #6e7781;
 }
 
 .cert-item strong {
-  color: #1f2328;
-  font-size: 13px;
-  font-weight: 500;
+  min-width: 0;
+  color: #57606a;
+  font-size: 12px;
+  font-weight: 400;
   overflow-wrap: anywhere;
 }
+
+.cert-action { flex: none; }
+.certificate-empty { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: #57606a; font-size: 13px; }
 
 .mono {
   font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
@@ -915,6 +928,9 @@ onMounted(() => {
 }
 
 @media (max-width: 600px) {
+  .certificate-layout { align-items: flex-start; flex-direction: column; }
+  .cert-surface { width: 100%; box-sizing: border-box; }
+  .cert-action { align-self: flex-end; }
   .cert-grid {
     grid-template-columns: minmax(0, 1fr);
   }
