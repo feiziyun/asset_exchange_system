@@ -15,6 +15,17 @@
       </section>
 
       <section class="table-section app-workbench-panel" v-loading="loading">
+        <div class="delivery-filter-row">
+          <span class="delivery-filter-label">交付状态</span>
+          <div class="delivery-filter-options" role="group" aria-label="交付状态筛选">
+            <button v-for="option in deliveryFilterOptions" :key="option.value" type="button"
+              class="delivery-filter-option" :class="{ active: selectedDeliveryState === option.value }"
+              :aria-pressed="selectedDeliveryState === option.value" @click="onDeliveryFilterChange(option.value)">
+              {{ option.label }}
+            </button>
+          </div>
+          <span class="delivery-filter-count">共 {{ pagination.total }} 笔订单</span>
+        </div>
         <div class="table-wrap">
           <table v-if="buyerRows.length" class="styled-table table-hover-row buyer-table">
             <thead>
@@ -460,6 +471,19 @@ const actionLoadingNo = ref('')
 const statusPolling = ref(false)
 const pagination = reactive({ page: 1, page_size: 10, total: 0 })
 const query = reactive({ page: 1, page_size: 10 })
+const deliveryFilterOptions = [
+  { label: '全部', value: 'all' },
+  { label: '待申请交付', value: 'buyer_request' },
+  { label: '等待卖家交付', value: 'buyer_waiting' },
+  { label: '结果可下载', value: 'buyer_download' },
+]
+const selectedDeliveryState = ref('all')
+const onDeliveryFilterChange = (state: string) => {
+  if (selectedDeliveryState.value === state) return
+  selectedDeliveryState.value = state
+  query.page = 1
+  fetchOrders()
+}
 const STATUS_POLL_INTERVAL_MS = 30000
 let statusPollTimer: ReturnType<typeof window.setInterval> | null = null
 
@@ -1174,6 +1198,7 @@ const fetchOrders = async () => {
       ...query,
       order_role,
       delivery_only: true,
+      delivery_state: selectedDeliveryState.value === 'all' ? undefined : selectedDeliveryState.value,
       keyword: currentOrderNo.value || activeKeyword.value,
     })
     if (requestId !== fetchRequestId) return
@@ -1643,6 +1668,35 @@ onBeforeUnmount(() => {
 .table-section {
   padding: 10px 12px;
 }
+
+.delivery-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  margin: -10px -12px 10px;
+  padding: 8px 24px;
+  border-bottom: 1px solid #d8dee4;
+  box-sizing: border-box;
+}
+
+.delivery-filter-label { flex: none; color: #6e7781; font-size: 12px; }
+.delivery-filter-options { display: flex; align-items: center; gap: 6px; min-width: 0; overflow-x: auto; }
+.delivery-filter-option {
+  flex: none;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #57606a;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.delivery-filter-option:hover { background: #f6f8fa; }
+.delivery-filter-option.active { background: #eaf2fb; color: #0969da; font-weight: 600; }
+.delivery-filter-option:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
+.delivery-filter-count { margin-left: auto; color: #57606a; font-size: 12px; white-space: nowrap; }
 
 .toolbar-row {
   min-width: 0;

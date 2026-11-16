@@ -4331,6 +4331,64 @@ exports.listOrders = async (query, userId, identity = '') => {
     where.push("(ao.order_status >= 2 OR EXISTS (SELECT 1 FROM transactions t WHERE t.order_no = ao.order_no AND t.status = '已确认'))");
   }
 
+  if (query.delivery_state) {
+    const requestStateSql = `EXISTS (
+      SELECT 1 FROM transactions dt
+      LEFT JOIN digital_contracts dc ON dc.order_no = ao.order_no
+      LEFT JOIN he_delivery_contracts he ON he.transaction_id = dt.transaction_id
+      LEFT JOIN pre_delivery_contracts pre ON pre.transaction_id = dt.transaction_id
+      LEFT JOIN fl_delivery_contracts fl ON fl.transaction_id = dt.transaction_id
+      LEFT JOIN mpc_delivery_contracts mpc ON mpc.transaction_id = dt.transaction_id
+      WHERE dt.order_no = ao.order_no AND CASE COALESCE(dc.pc_type, ao.pc_type)
+        WHEN 'HE' THEN he.paillier_public_key_json IS NOT NULL AND he.elgamal_public_key_json IS NOT NULL
+        WHEN 'PRE' THEN pre.buyer_public_key IS NOT NULL
+        WHEN 'FL' THEN fl.pcp_contract_id IS NOT NULL
+        WHEN 'MPC' THEN mpc.remote_task_id IS NOT NULL AND LOWER(mpc.task_status) <> 'failed'
+        ELSE EXISTS (SELECT 1 FROM delivery_requests dr WHERE dr.order_no = ao.order_no)
+      END
+    )`;
+    const resultReadySql = `EXISTS (
+      SELECT 1 FROM transactions dt
+      LEFT JOIN digital_contracts dc ON dc.order_no = ao.order_no
+      LEFT JOIN he_delivery_contracts he ON he.transaction_id = dt.transaction_id
+      LEFT JOIN pre_delivery_contracts pre ON pre.transaction_id = dt.transaction_id
+      LEFT JOIN fl_delivery_contracts fl ON fl.transaction_id = dt.transaction_id
+      LEFT JOIN mpc_delivery_contracts mpc ON mpc.transaction_id = dt.transaction_id
+      WHERE dt.order_no = ao.order_no AND CASE COALESCE(dc.pc_type, ao.pc_type)
+        WHEN 'HE' THEN he.result_storage_path IS NOT NULL OR UPPER(he.pcp_status) IN ('PAM_PASSED', 'COMPLETED')
+        WHEN 'PRE' THEN pre.result_storage_path IS NOT NULL OR UPPER(pre.pcp_status) IN ('PAM_PASSED', 'COMPLETED')
+        WHEN 'FL' THEN fl.buyer_result_storage_path IS NOT NULL OR UPPER(fl.pcp_status) IN ('PAM_PASSED', 'COMPLETED')
+        WHEN 'MPC' THEN LOWER(mpc.task_status) = 'done'
+        ELSE EXISTS (SELECT 1 FROM delivery_records rec WHERE rec.transaction_id = dt.transaction_id AND rec.result_status = 'DELIVERED')
+      END
+    )`;
+    const contractActiveSql = `NOT EXISTS (
+      SELECT 1 FROM transactions dt
+      LEFT JOIN digital_contracts dc ON dc.order_no = ao.order_no
+      WHERE dt.order_no = ao.order_no
+        AND COALESCE(dt.expiration_time, dc.expiration_time) <= NOW()
+    )`;
+    const deliveryState = String(query.delivery_state);
+    if (deliveryState === 'seller_waiting_request' && role === 'seller') {
+      where.push('ao.order_status = 1', `NOT ${requestStateSql}`);
+    } else if (deliveryState === 'seller_ready' && role === 'seller') {
+      where.push('ao.order_status = 1', requestStateSql, `NOT ${resultReadySql}`, contractActiveSql);
+      where.push(`NOT EXISTS (
+        SELECT 1 FROM transactions dt
+        INNER JOIN mpc_delivery_contracts mpc ON mpc.transaction_id = dt.transaction_id
+        WHERE dt.order_no = ao.order_no AND LOWER(mpc.task_status) IN ('ready', 'computing', 'done')
+      )`);
+    } else if (deliveryState === 'buyer_request' && role === 'buyer') {
+      where.push('ao.order_status = 1', `NOT ${requestStateSql}`, contractActiveSql);
+    } else if (deliveryState === 'buyer_waiting' && role === 'buyer') {
+      where.push('ao.order_status = 1', requestStateSql, `NOT ${resultReadySql}`);
+    } else if (deliveryState === 'buyer_download' && role === 'buyer') {
+      where.push(resultReadySql, contractActiveSql);
+    } else {
+      where.push('1 = 0');
+    }
+  }
+
   if (query.keyword) {
     where.push('(ao.order_no LIKE ? OR da.asset_name LIKE ? OR bu.account LIKE ? OR su.account LIKE ?)');
     params.push(`%${query.keyword}%`, `%${query.keyword}%`, `%${query.keyword}%`, `%${query.keyword}%`);
