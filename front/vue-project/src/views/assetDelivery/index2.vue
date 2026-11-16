@@ -9,7 +9,7 @@
               clearable @keyup.enter="onSearch" @clear="onSearch">
               <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
-            <el-button class="app-search-button" @click="onSearch">搜索</el-button>
+            <el-button class="app-search-button app-search-button--delivery" @click="onSearch">搜索</el-button>
           </div>
         </div>
       </section>

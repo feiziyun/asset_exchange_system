@@ -63,6 +63,23 @@ body .el-button.app-search-button:focus-visible {
   outline-offset: 2px;
 }
 
+body .el-button.app-search-button.app-search-button--delivery {
+  --el-button-bg-color: #24517d;
+  --el-button-border-color: #1d466e;
+  --el-button-text-color: #fff;
+  --el-button-hover-bg-color: #1d466e;
+  --el-button-hover-border-color: #173a5d;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-bg-color: #173a5d;
+  --el-button-active-border-color: #12314f;
+  --el-button-active-text-color: #fff;
+  border-radius: 6px;
+}
+
+body .el-button.app-search-button.app-search-button--delivery:focus-visible {
+  outline-color: #24517d;
+}
+
 @media (max-width: 900px) {
   .app-search-layout {
     grid-template-columns: minmax(0, 1fr);
