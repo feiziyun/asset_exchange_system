@@ -1656,6 +1656,7 @@ onBeforeUnmount(() => {
 
 .table-wrap {
   overflow-x: auto;
+  border-radius: 10px;
 }
 
 .buyer-table th:first-child,
@@ -1732,7 +1733,7 @@ onBeforeUnmount(() => {
   height: 30px;
   margin: 0;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .buyer-actions :deep(.el-button.delivery-action-button.is-disabled) {
@@ -1828,10 +1829,14 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
+.buyer-table td:not(:first-child) {
+  font-size: 14px;
+}
+
 .styled-table th {
-  background: #fff;
+  background: #f8fafc;
   color: #1f2328;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
   border-bottom: 1px solid #dde4ee;
@@ -1957,7 +1962,7 @@ onBeforeUnmount(() => {
 
 .delivery-status-text {
   color: var(--app-text-primary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .asset-preview {
@@ -2022,7 +2027,7 @@ onBeforeUnmount(() => {
 .single-action-cell :deep(.el-button) {
   margin-left: 0;
   padding: 0 4px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .empty-cell {

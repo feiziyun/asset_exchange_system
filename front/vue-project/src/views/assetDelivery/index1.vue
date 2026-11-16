@@ -1800,6 +1800,7 @@ onBeforeUnmount(() => {
 
 .table-wrap {
   overflow-x: auto;
+  border-radius: 10px;
 }
 
 .current-order {
@@ -1930,11 +1931,15 @@ onBeforeUnmount(() => {
 }
 
 .styled-table th {
-  background: #fff;
+  background: #f8fafc;
   color: #57606a;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.styled-table td:not(:first-child) {
+  font-size: 14px;
 }
 
 .styled-table tbody tr:not(:hover) td {
@@ -2065,7 +2070,7 @@ body button.upload-btn:disabled {
 
 .delivery-status-text {
   color: var(--app-text-primary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .seller-actions {
@@ -2090,7 +2095,7 @@ body button.upload-btn:disabled {
   height: 30px;
   margin: 0;
   padding: 0 10px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .seller-actions :deep(.el-button.delivery-action-button.is-disabled) {
@@ -2163,7 +2168,7 @@ body button.upload-btn:disabled {
 .single-action-cell :deep(.el-button) {
   margin-left: 0;
   padding: 0 4px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .empty-cell {
