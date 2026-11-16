@@ -152,16 +152,14 @@ const query = reactive({
   page_size: 10,
   keyword: '',
   order_role: 'seller',
-  payment_state: 'paid',
-  exclude_cancelled: true,
+  seller_confirm_state: 'pending',
 })
 
 const statusOptions = [
-  { label: '已付款', value: 'paid' },
-  { label: '待付款', value: 'unpaid' },
-  { label: '已完成', value: 'completed' },
+  { label: '待确认', value: 'pending' },
+  { label: '已确认', value: 'confirmed' },
 ]
-const selectedStatuses = ref<string[]>(['paid'])
+const selectedStatuses = ref<string[]>(['pending'])
 
 const pagination = reactive({
   page: 1,
@@ -235,7 +233,7 @@ const onSearch = () => {
 }
 
 const selectStatus = (statuses: string[]) => {
-  query.payment_state = statuses.length === statusOptions.length ? '' : statuses.length ? statuses.join(',') : 'none'
+  query.seller_confirm_state = statuses.length === statusOptions.length ? 'all' : statuses.length ? statuses[0] : 'none'
   query.page = 1
   fetchOrders()
 }

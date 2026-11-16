@@ -328,6 +328,7 @@ exports.listOrder_limit = {
     delivery_only: joi.boolean().default(false),
     exclude_cancelled: joi.boolean().default(false),
     payment_state: joi.string().pattern(/^(none|(paid|unpaid|cancelled|completed)(,(paid|unpaid|cancelled|completed))*)$/).allow('').default(''),
+    seller_confirm_state: joi.string().valid('all', 'pending', 'confirmed', 'none'),
     order_status: joi.number().integer().valid(0, 1, 2, 3, 4, 5, 6),
     order_role: joi.string().valid('buyer', 'seller', 'both').default('both'),
   },

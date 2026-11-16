@@ -4263,6 +4263,19 @@ exports.listOrders = async (query, userId, identity = '') => {
     }
   }
 
+  if (role === 'seller') {
+    // Seller views only include paid orders that have not been cancelled or refunded.
+    where.push('ao.order_status IN (1, 2, 3)');
+    const confirmState = String(query.seller_confirm_state || 'all');
+    const pendingConfirmation = `ao.order_status = 1 AND COALESCE(
+      (SELECT t.status FROM transactions t WHERE t.order_no = ao.order_no LIMIT 1),
+      '待确认'
+    ) = '待确认'`;
+    if (confirmState === 'pending') where.push(`(${pendingConfirmation})`);
+    else if (confirmState === 'confirmed') where.push(`NOT (${pendingConfirmation})`);
+    else if (confirmState === 'none') where.push('1 = 0');
+  }
+
   if (query.order_status !== undefined && query.order_status !== null && query.order_status !== '') {
     where.push('ao.order_status = ?');
     params.push(Number(query.order_status));
