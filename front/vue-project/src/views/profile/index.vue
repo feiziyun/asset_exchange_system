@@ -773,6 +773,7 @@ onMounted(() => {
   font-weight: 600;
 }
 .profile-page :deep(.el-button.recharge-entry-button),
+.profile-page :deep(.el-button.cert-apply-action),
 .profile-page :deep(.el-button.cert-action) {
   width: 136px;
   justify-content: center;
@@ -892,6 +893,7 @@ onMounted(() => {
   min-height: 120px;
 }
 
+.certificate-card :deep(.el-card__header) { padding-right: 28px; }
 .certificate-card--empty :deep(.el-card__header) { border-bottom: 0; }
 .certificate-card--empty :deep(.el-card__body) { display: none; }
 
@@ -908,6 +910,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 18px;
+  padding-right: 8px;
 }
 
 .cert-surface {
