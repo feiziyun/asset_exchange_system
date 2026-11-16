@@ -14,8 +14,8 @@
         </div>
       </section>
 
-      <section class="table-section" v-loading="loading">
-        <div class="table-wrap app-workbench-panel">
+      <section class="table-section app-workbench-panel" v-loading="loading">
+        <div class="table-wrap">
           <table v-if="buyerRows.length" class="styled-table table-hover-row buyer-table">
             <thead>
               <tr>
@@ -1641,7 +1641,7 @@ onBeforeUnmount(() => {
 }
 
 .table-section {
-  padding: 0;
+  padding: 10px 12px;
 }
 
 .toolbar-row {
@@ -1656,7 +1656,8 @@ onBeforeUnmount(() => {
 
 .table-wrap {
   overflow-x: auto;
-  border-radius: 10px;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
 }
 
 .buyer-table th:first-child,
