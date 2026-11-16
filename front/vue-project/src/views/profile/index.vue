@@ -46,7 +46,7 @@
               </el-button>
             </div>
           </el-card>
-          <el-card shadow="never" class="certificate-card app-workbench-panel">
+          <el-card shadow="never" class="certificate-card app-workbench-panel" :class="{ 'certificate-card--empty': !certLoading && !activeCertificate && !certLoadError }">
             <template #header>
               <div class="certificate-heading">
                 <span class="section-title">我的证书</span>
@@ -85,7 +85,6 @@
                 <el-button class="profile-action-button cert-action" @click="openCertificateDialog('renew')">证书续期</el-button>
               </div>
               <el-alert v-else-if="certLoadError" :title="certLoadError" type="error" :closable="false" />
-            <div v-else-if="!certLoading" class="certificate-empty">尚未申请证书</div>
             </div>
           </el-card>
 
@@ -893,6 +892,9 @@ onMounted(() => {
   min-height: 120px;
 }
 
+.certificate-card--empty :deep(.el-card__header) { border-bottom: 0; }
+.certificate-card--empty :deep(.el-card__body) { display: none; }
+
 .certificate-heading {
   display: flex;
   align-items: center;
@@ -969,7 +971,6 @@ onMounted(() => {
 .cert-item .cert-name { color: #1f2328; font-weight: 600; }
 
 .cert-action { flex: none; }
-.certificate-empty { color: #57606a; font-size: 13px; }
 
 .mono {
   font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
