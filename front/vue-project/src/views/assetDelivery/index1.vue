@@ -19,8 +19,7 @@
           <table class="styled-table table-hover-row seller-delivery-table">
             <thead>
               <tr>
-                <th>交易ID</th>
-                <th>资产名称</th>
+                <th>资产信息</th>
                 <th>数字合约</th>
                 <th>交付状态</th>
                 <th>操作</th>
@@ -29,50 +28,35 @@
             <tbody>
               <tr v-for="item in sellerRows" :key="`seller-${item.order_no}`">
                 <td>
-                  <div class="truncate-cell" :title="item.transaction?.transaction_id || '-'">
-                    {{ item.transaction?.transaction_id || '-' }}
-                  </div>
-                </td>
-                <td>
-                  <div class="truncate-cell" :title="item.asset_name || '-'">
-                    {{ item.asset_name || '-' }}
+                  <div class="asset-info-cell">
+                    <button v-if="item.asset_name" type="button" class="asset-name-link" :title="item.asset_name"
+                      @click="openAssetPreview(item)">{{ item.asset_name }}</button>
+                    <span v-else class="asset-name-placeholder" aria-hidden="true"></span>
+                    <span class="asset-transaction-id" :title="item.transaction?.transaction_id || ''">
+                      交易 ID：{{ item.transaction?.transaction_id || '' }}
+                    </span>
                   </div>
                 </td>
                 <td>
                   <div class="single-action-cell">
-                    <el-button type="primary" link @click="openContractPreview(item)">查看</el-button>
+                    <el-button type="primary" link @click="openContractPreview(item)">查看合约</el-button>
                   </div>
                 </td>
                 <td>
-                  <button class="delivery-status-btn" @click="openHistoryDialog(item)">
-                    {{ deliveryProgressText(item) }}
-                  </button>
+                  <span class="delivery-status-text">{{ deliveryProgressText(item) }}</span>
                 </td>
                 <td>
-                  <div class="upload-section">
-                    <el-button v-if="item.order_status === 1 && item.wallet_payment_status === 'PAID' && item.transaction_status !== '已确认'"
-                      type="danger" link :loading="actionLoadingNo === item.order_no" @click="rejectPaidOrder(item)">拒绝并退款</el-button>
-                    <button
-                      v-if="isHeOrder(item) || isPreOrder(item) || isFlOrder(item) || isMpcOrder(item)"
-                      class="upload-btn"
-                      :disabled="isSellerDeliveryDisabled(item) || actionLoadingNo === item.order_no"
-                      @click="openSellerDelivery(item)"
-                    >
-                      {{ actionLoadingNo === item.order_no ? '处理中...' : getSellerDeliveryActionText(item) }}
-                    </button>
-                    <button
-                      v-if="isFlOrder(item) && getLatestSellerGradientPackage(item)"
-                      class="upload-btn secondary"
-                      :disabled="isDeliveryExpired(item) || !getLatestSellerGradientPackage(item) || actionLoadingNo === `fl-download-${item.order_no}`"
-                      @click="downloadFlSellerGradient(item)"
-                    >
-                      {{ actionLoadingNo === `fl-download-${item.order_no}` ? '下载中...' : '下载结果' }}
-                    </button>
+                  <div class="seller-actions">
+                    <el-button type="primary" class="delivery-action-button" @click="openHistoryDialog(item)">查看详情</el-button>
+                    <el-button type="primary" class="delivery-action-button"
+                      :loading="actionLoadingNo === item.order_no"
+                      :disabled="!isPrivacyPc(item) || isSellerDeliveryDisabled(item) || actionLoadingNo === item.order_no"
+                      @click="openSellerDelivery(item)">请求交付</el-button>
                   </div>
                 </td>
               </tr>
               <tr v-if="sellerRows.length === 0 && !loading">
-                <td colspan="5" class="empty-cell">暂无交易记录</td>
+                <td colspan="4" class="empty-cell">暂无交易记录</td>
               </tr>
             </tbody>
           </table>
@@ -93,6 +77,27 @@
       </section>
     </div>
   </div>
+
+  <el-dialog v-model="assetPreviewVisible" title="资产信息" width="min(640px, 92vw)">
+    <div v-loading="assetPreviewLoading" class="asset-preview">
+      <el-alert v-if="assetPreviewError" :title="assetPreviewError" type="error" :closable="false" />
+      <template v-else-if="assetPreviewDetail">
+        <img class="asset-preview-cover" :src="assetPreviewCover" :alt="assetPreviewDetail.asset_name || '资产图片'"
+          @error="assetPreviewCover = defaultCover" />
+        <h3 class="asset-preview-name">{{ assetPreviewDetail.asset_name || '未命名资产' }}</h3>
+        <p class="asset-preview-meta">
+          {{ assetPreviewDetail.category_name || '未分类' }}
+          <span aria-hidden="true">/</span>
+          {{ assetPreviewDetail.classification_data_level || '一般数据' }}
+        </p>
+        <div class="asset-preview-description">
+          <div class="asset-preview-label">详细描述</div>
+          <p>{{ assetPreviewDetail.description || assetPreviewDetail.brief || '暂无详细描述' }}</p>
+        </div>
+      </template>
+    </div>
+    <template #footer><el-button @click="assetPreviewVisible = false">关闭</el-button></template>
+  </el-dialog>
 
   <el-dialog v-model="contractPreviewVisible" title="数字合约信息" width="720px">
     <DigitalContractPreview v-if="selectedOrder && contractPreviewVisible" :key="selectedOrder.order_no" :order-no="selectedOrder.order_no" role="seller" />
@@ -148,6 +153,7 @@
     <div v-if="selectedOrder" class="dialog-block">
       <div class="dialog-grid">
         <div class="dialog-item"><span>订单号</span><strong>{{ selectedOrder.order_no }}</strong></div>
+        <div class="dialog-item"><span>资产名称</span><strong>{{ selectedOrder.asset_name || '-' }}</strong></div>
         <div class="dialog-item"><span>交易ID</span><strong>{{ selectedOrder.transaction?.transaction_id || '-' }}</strong></div>
         <div class="dialog-item"><span>交付状态</span><strong>{{ deliveryProgressText(selectedOrder) }}</strong></div>
         <div class="dialog-item"><span>隐私状态</span><strong>{{ privacyStatusText(selectedOrder) }}</strong></div>
@@ -172,6 +178,13 @@
       </div>
     </div>
     <template #footer>
+      <el-button v-if="selectedOrder?.order_status === 1 && selectedOrder?.wallet_payment_status === 'PAID' && selectedOrder?.transaction_status !== '已确认'"
+        type="danger" :loading="actionLoadingNo === selectedOrder?.order_no"
+        @click="rejectPaidOrder(selectedOrder)">拒绝并退款</el-button>
+      <el-button v-if="selectedOrder && isFlOrder(selectedOrder) && getLatestSellerGradientPackage(selectedOrder)"
+        :loading="actionLoadingNo === `fl-download-${selectedOrder.order_no}`"
+        :disabled="isDeliveryExpired(selectedOrder) || actionLoadingNo === `fl-download-${selectedOrder.order_no}`"
+        @click="downloadFlSellerGradient(selectedOrder)">下载结果</el-button>
       <el-button @click="historyDialogVisible = false">关闭</el-button>
     </template>
   </el-dialog>
@@ -284,6 +297,7 @@ import {
   downloadFlPrivacyResult,
   downloadHePrivacyResult,
   downloadPrePrivacyResult,
+  getAssetDetail,
   getDeliveryExportEligible,
   getFlStatus,
   getHePublicKeyStatus,
@@ -305,6 +319,7 @@ import {
   uploadPreBuyerPublicKey,
 } from '@/api/asset'
 import { getRoleKey, parseTokenPayload } from '@/utils/auth'
+import defaultCover from '@/assets/logo.svg'
 import * as heCryptoModule from '@/utils/heCrypto.js'
 import * as flCryptoModule from '@/utils/flCrypto.js'
 import * as preCryptoModule from '@/utils/preCrypto.js'
@@ -319,6 +334,7 @@ interface NestedRecord { [key: string]: any }
 interface OrderItem {
   id: number
   order_no: string
+  asset_id?: number
   asset_name?: string
   buyer_account?: string
   buyer_address?: string
@@ -343,6 +359,40 @@ const route = useRoute()
 const tokenPayload = parseTokenPayload() || {}
 const roleKey = 'seller'
 const currentOrderNo = ref(String(route.query.order_no || ''))
+const assetPreviewVisible = ref(false)
+const assetPreviewLoading = ref(false)
+const assetPreviewError = ref('')
+const assetPreviewDetail = ref<NestedRecord | null>(null)
+const assetPreviewCover = ref(defaultCover)
+let assetPreviewRequestId = 0
+
+const openAssetPreview = async (order: OrderItem) => {
+  const requestId = ++assetPreviewRequestId
+  assetPreviewVisible.value = true
+  assetPreviewLoading.value = true
+  assetPreviewError.value = ''
+  assetPreviewDetail.value = null
+  assetPreviewCover.value = defaultCover
+  try {
+    if (!order.asset_id) throw new Error('订单缺少资产 ID')
+    const res = await getAssetDetail(order.asset_id)
+    if (res.data.status !== 0 || !res.data.data) throw new Error(res.data.message || '获取资产信息失败')
+    if (requestId !== assetPreviewRequestId || !assetPreviewVisible.value) return
+    const detail = res.data.data
+    assetPreviewDetail.value = detail
+    if (detail.file_hash && /^[A-Za-z0-9._~-]{1,255}$/.test(detail.file_hash)) {
+      assetPreviewCover.value = `/api/asset-picture/${encodeURIComponent(detail.file_hash)}`
+    } else if (detail.picture) {
+      assetPreviewCover.value = `data:${detail.picture_mime_type || 'image/jpeg'};base64,${detail.picture}`
+    }
+  } catch (error: any) {
+    if (requestId === assetPreviewRequestId && assetPreviewVisible.value) {
+      assetPreviewError.value = error?.response?.data?.message || error?.message || '获取资产信息失败'
+    }
+  } finally {
+    if (requestId === assetPreviewRequestId) assetPreviewLoading.value = false
+  }
+}
 const searchInput = ref('')
 const activeKeyword = ref('')
 const activeTab = ref('assetUpload')
@@ -504,7 +554,7 @@ const normalizedDeliveryStatusText = (order: OrderItem) => {
   if (['COMPLETED', 'PAM_PASSED', 'DONE', 'SUCCESS'].includes(status) || Number(order.order_status) === 3) return '已完成'
   if (['CREATED', 'WAITING_INPUT', 'WAITING_EPOCH_INPUT', 'JOINED', 'PENDING', 'BUYER_REQUESTED'].includes(status)) return '待卖方交付'
   if (Number(order.order_status) === 0) return '待买方申请'
-  if (Number(order.order_status) === 1) return '待卖方交付'
+  if (Number(order.order_status) === 1) return '待买方申请'
   if (Number(order.order_status) === 2) return '待买方申请'
   return '待买方申请'
 }
@@ -1852,14 +1902,21 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
+.seller-delivery-table th:first-child,
+.seller-delivery-table td:first-child {
+  width: 30%;
+}
+
+.seller-delivery-table th:nth-child(2),
+.seller-delivery-table td:nth-child(2),
 .seller-delivery-table th:nth-child(3),
 .seller-delivery-table td:nth-child(3) {
-  width: 10%;
+  width: 16%;
 }
 
 .seller-delivery-table th:last-child,
 .seller-delivery-table td:last-child {
-  width: 27%;
+  width: 38%;
 }
 
 .styled-table th,
@@ -1950,6 +2007,146 @@ body button.upload-btn:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+}
+
+.asset-info-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  text-align: center;
+}
+
+.asset-name-link {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--app-text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.asset-name-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.asset-name-link:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
+}
+
+.asset-transaction-id {
+  display: block;
+  max-width: 100%;
+  min-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+
+.asset-name-placeholder {
+  min-height: 20px;
+}
+
+.delivery-status-text {
+  color: var(--app-text-primary);
+  font-size: 13px;
+}
+
+.seller-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.seller-actions :deep(.el-button.delivery-action-button) {
+  --el-button-bg-color: #f6f8fa;
+  --el-button-border-color: #d0d7de;
+  --el-button-text-color: #0969da;
+  --el-button-hover-bg-color: #eef1f4;
+  --el-button-hover-border-color: #b7c1ca;
+  --el-button-hover-text-color: #0550ae;
+  --el-button-active-bg-color: #e7ebef;
+  --el-button-active-border-color: #aeb8c2;
+  --el-button-active-text-color: #0550ae;
+  min-width: 76px;
+  height: 30px;
+  margin: 0;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.seller-actions :deep(.el-button.delivery-action-button.is-disabled) {
+  --el-button-disabled-bg-color: #fafbfc;
+  --el-button-disabled-border-color: #eef0f2;
+  --el-button-disabled-text-color: #aeb5bd;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.asset-preview {
+  min-height: 120px;
+}
+
+.asset-preview-cover {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #f6f8fa;
+}
+
+.asset-preview-name {
+  margin: 18px 0 4px;
+  color: var(--app-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.asset-preview-meta {
+  margin: 0;
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+
+.asset-preview-meta span {
+  margin: 0 6px;
+  color: var(--app-text-muted);
+}
+
+.asset-preview-description {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #d8dee4;
+}
+
+.asset-preview-label {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.asset-preview-description p {
+  margin: 8px 0 0;
+  color: var(--app-text-primary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .single-action-cell {
@@ -2096,8 +2293,7 @@ body button.upload-btn:disabled {
     min-width: 760px;
   }
 
-  .upload-section,
-  .buyer-actions--inline {
+  .seller-actions {
     flex-wrap: wrap;
   }
 }
