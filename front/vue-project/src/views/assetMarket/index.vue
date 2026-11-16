@@ -1199,7 +1199,7 @@ onMounted(async () => {
 }
 
 .price {
-  color: #3d444d;
+  color: #4b5057;
   font-size: 30px;
   font-weight: 700;
   line-height: 1.2;
@@ -1208,6 +1208,7 @@ onMounted(async () => {
 
   span {
     margin-left: 3px;
+    color: #6e7781;
     font-size: 14px;
     font-weight: 500;
   }
