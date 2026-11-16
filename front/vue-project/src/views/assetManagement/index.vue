@@ -30,7 +30,7 @@
               <table class="styled-table table-hover-row seller-table">
                 <thead>
                   <tr>
-                    <th>资产信息</th>
+                    <th>资产</th>
                     <th>安全等级</th>
                     <th>资产介绍</th>
                     <th>可售数量</th>
@@ -1613,12 +1613,12 @@ onMounted(fetchCurrent)
   line-height: 1.45;
 }
 
-.seller-table th:nth-child(1) { width: 14%; }
-.seller-table th:nth-child(2) { width: 9%; }
+.seller-table th:nth-child(1) { width: 20%; }
+.seller-table th:nth-child(2) { width: 8%; }
 .seller-table th:nth-child(3) { width: 26%; }
-.seller-table th:nth-child(4) { width: 9%; }
-.seller-table th:nth-child(5) { width: 9%; }
-.seller-table th:nth-child(6) { width: 12%; }
+.seller-table th:nth-child(4) { width: 8%; }
+.seller-table th:nth-child(5) { width: 8%; }
+.seller-table th:nth-child(6) { width: 9%; }
 .seller-table th:nth-child(7) { width: 10%; }
 .seller-table th:nth-child(8) { width: 11%; }
 
