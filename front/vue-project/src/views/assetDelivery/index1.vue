@@ -1934,6 +1934,11 @@ onBeforeUnmount(() => {
   color: #1f2328;
 }
 
+.styled-table th:not(:last-child),
+.styled-table td:not(:last-child) {
+  border-right: 1px solid #d8dee4;
+}
+
 .styled-table th {
   background: #f6f8fa;
   color: #57606a;
