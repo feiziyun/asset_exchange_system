@@ -123,6 +123,21 @@
 
           <template v-else>
             <div class="buyer-section">
+              <div class="purchase-filter-row">
+                <div class="purchase-filter-bar">
+                  <span class="purchase-filter-label">订单状态</span>
+                  <el-checkbox
+                    :model-value="selectedPurchaseStatuses.length === purchaseStatusOptions.length"
+                    @change="toggleAllPurchaseStatuses"
+                  >全部</el-checkbox>
+                  <el-checkbox-group v-model="selectedPurchaseStatuses" class="purchase-filter-options" @change="onPurchaseStatusChange">
+                    <el-checkbox v-for="option in purchaseStatusOptions" :key="option.value" :label="option.value">
+                      {{ option.label }}
+                    </el-checkbox>
+                  </el-checkbox-group>
+                </div>
+                <span class="purchase-count">共 {{ purchasedPagination.total }} 笔订单</span>
+              </div>
               <template v-if="purchasedList.length">
                 <div class="table-wrap">
                   <table class="styled-table table-hover-row purchased-table">
@@ -678,6 +693,22 @@ const purchasedQuery = reactive({
   keyword: '',
 })
 
+const purchaseStatusOptions = [
+  { label: '待付款', value: 'unpaid' },
+  { label: '已付款', value: 'paid' },
+]
+const selectedPurchaseStatuses = ref<string[]>(purchaseStatusOptions.map((option) => option.value))
+
+const onPurchaseStatusChange = () => {
+  purchasedQuery.page = 1
+  fetchPurchasedAssets()
+}
+
+const toggleAllPurchaseStatuses = (checked: boolean) => {
+  selectedPurchaseStatuses.value = checked ? purchaseStatusOptions.map((option) => option.value) : []
+  onPurchaseStatusChange()
+}
+
 const purchasedPagination = reactive({
   total: 0,
 })
@@ -879,6 +910,10 @@ const fetchPurchasedAssets = async (silent = false) => {
     const res = await getOrderList({
       ...purchasedQuery,
       order_role: 'buyer',
+      exclude_cancelled: true,
+      payment_state: selectedPurchaseStatuses.value.length
+        ? selectedPurchaseStatuses.value.join(',')
+        : 'none',
     })
     if (res.data.status === 0) {
       purchasedList.value = res.data.data?.list || []
@@ -1473,6 +1508,32 @@ onMounted(fetchCurrent)
 .table-section {
   margin-top: 8px;
 }
+
+.purchase-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  margin: -10px -12px 10px;
+  padding: 8px 24px;
+  border-bottom: 1px solid #d8dee4;
+  box-sizing: border-box;
+}
+
+.purchase-filter-bar,
+.purchase-filter-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.purchase-filter-bar { min-width: 0; overflow-x: auto; }
+.purchase-filter-label { color: #6e7781; font-size: 12px; }
+.purchase-count { flex: none; color: #57606a; font-size: 13px; }
+.purchase-filter-bar :deep(.el-checkbox) { margin-right: 0; }
+.purchase-filter-bar :deep(.el-checkbox__label) { color: #57606a; font-size: 12px; }
 
 .toolbar-row {
   .title-wrap {

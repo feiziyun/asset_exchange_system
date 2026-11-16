@@ -176,13 +176,13 @@
                   <span>{{ auctionStatusText(item) }}</span>
                   <span>出价 {{ item.auction_bid_count || 0 }} 次</span>
                 </div>
-                <el-tag
+                <el-button
                   v-if="item.pricing_mode !== 'auction' && (Number(item.publish_status) === 2 || Number(item.remaining_qty || 0) <= 0)"
-                  type="info"
-                  effect="plain"
+                  class="market-order-button"
+                  disabled
                 >
                   已售罄
-                </el-tag>
+                </el-button>
                 <el-button
                   v-else-if="item.pricing_mode === 'auction' && isAuctionOpen(item) && canBuyAsset"
                   type="warning"
@@ -193,8 +193,8 @@
                 </el-button>
                 <el-button
                   v-else-if="canBuyAsset"
-                  type="success"
-                  link
+                  type="primary"
+                  class="market-order-button app-primary-action"
                   @click.stop="openBuyDialog(item)"
                 >
                   立即购买
@@ -1199,7 +1199,7 @@ onMounted(async () => {
 }
 
 .price {
-  color: #1e3f96;
+  color: #3d444d;
   font-size: 30px;
   font-weight: 700;
   line-height: 1.2;
@@ -1211,6 +1211,11 @@ onMounted(async () => {
     font-size: 14px;
     font-weight: 500;
   }
+}
+
+.asset-side :deep(.el-button.market-order-button) {
+  min-width: 104px;
+  margin: 0;
 }
 
 .pager {
