@@ -1726,6 +1726,14 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
+.buyer-actions :deep(.el-button.delivery-action-button.is-disabled) {
+  --el-button-disabled-bg-color: #f4f4f5;
+  --el-button-disabled-border-color: #e9e9eb;
+  --el-button-disabled-text-color: #909399;
+  box-shadow: none;
+  opacity: 1;
+}
+
 .request-status-pill {
   display: inline-flex;
   align-items: center;

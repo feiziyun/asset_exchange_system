@@ -1925,6 +1925,14 @@ onBeforeUnmount(() => {
   opacity: 0.6;
 }
 
+body button.upload-btn:disabled {
+  background: #f4f4f5 !important;
+  border-color: #e9e9eb !important;
+  color: #909399 !important;
+  box-shadow: none;
+  opacity: 1;
+}
+
 .upload-btn.secondary {
   color: #57606a;
   border-color: #d9e1ee;
