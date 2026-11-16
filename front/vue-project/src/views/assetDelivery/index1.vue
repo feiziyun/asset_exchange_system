@@ -1,7 +1,7 @@
 <template>
   <div class="common-wrapped">
     <div class="delivery-page">
-      <section class="toolbar-section">
+      <section class="toolbar-section app-workbench-panel">
         <div class="toolbar-row app-search-layout">
           <div class="list-title page-title">交付工作台</div>
           <div class="app-search-bar">
@@ -14,7 +14,7 @@
         </div>
       </section>
 
-      <section class="table-section" v-loading="loading">
+      <section class="table-section app-workbench-panel" v-loading="loading">
         <div class="table-wrap">
           <table class="styled-table table-hover-row seller-delivery-table">
             <thead>
@@ -1777,14 +1777,6 @@ onBeforeUnmount(() => {
   font-size: 16px;
   color: #1f2328;
   font-weight: 700;
-}
-
-.toolbar-section,
-.table-section {
-  border: 1px solid #e4e8f0;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(18, 41, 79, 0.06);
 }
 
 .toolbar-section {

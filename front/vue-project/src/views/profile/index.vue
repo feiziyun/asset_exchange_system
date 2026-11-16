@@ -1,6 +1,6 @@
 <template>
   <div class="profile-page common-wrapped" v-loading="loading">
-    <el-card class="profile-header" shadow="never">
+    <el-card class="profile-header app-workbench-panel" shadow="never">
       <div class="header-content">
         <div class="avatar-block">
           <el-avatar :size="72" :src="avatarUrl" />
@@ -11,14 +11,12 @@
             style="display: none"
             @change="handleAvatarSelected"
           />
-          <el-button size="small" type="primary" plain @click="openAvatarPicker"
-            >更换头像</el-button
-          >
         </div>
         <div class="base">
           <div class="title-row">
             <span class="name">{{ displayName }}</span>
             <span class="profile-role">{{ roleLabel }}</span>
+            <el-button class="avatar-action" size="small" @click="openAvatarPicker">更换头像</el-button>
           </div>
           <div class="desc">
             <span>账号：{{ user.account || '-' }}</span>
@@ -31,33 +29,21 @@
 
     <el-row :gutter="12" class="main-row">
       <el-col :xs="24" :sm="24" :md="16">
-        <el-card shadow="never" class="wallet-card">
+        <el-card shadow="never" class="wallet-card app-workbench-panel">
           <template #header>
-            <div class="certificate-heading">
-              <span class="section-title">账户余额</span>
-              <el-button type="primary" size="small" class="recharge-entry-button" @click="rechargeVisible = true">
-                <img :src="alipaySquareLogo" alt="" />支付宝充值
-              </el-button>
-            </div>
+            <div class="section-title">账户余额</div>
           </template>
-          <div class="wallet-amount">¥ {{ walletBalance }}</div>
-          <el-table :data="walletLedger" size="small" empty-text="暂无流水">
-            <el-table-column label="时间" min-width="145">
-              <template #default="scope">{{ formatDateTime(scope.row.created_at) }}</template>
-            </el-table-column>
-            <el-table-column label="类型" min-width="85">
-              <template #default="scope">{{ ({ RECHARGE: '充值', PAY: '支付', REFUND: '退款' } as Record<string, string>)[scope.row.event_type] || scope.row.event_type }}</template>
-            </el-table-column>
-            <el-table-column prop="amount" label="金额（元）" min-width="90" />
-            <el-table-column prop="balance_after" label="余额（元）" min-width="90" />
-          </el-table>
+          <div class="wallet-content">
+            <div class="wallet-balance-row">
+              <div class="wallet-amount">¥ {{ walletBalance }}</div>
+              <el-button class="wallet-detail-button" link @click="openLedgerDetails">查看详情</el-button>
+            </div>
+            <el-button class="recharge-entry-button" @click="rechargeVisible = true">
+              <img :src="alipaySquareLogo" alt="" />支付宝充值
+            </el-button>
+          </div>
         </el-card>
-        <div class="ledger-pages">
-          <el-button :disabled="ledgerPage === 1" @click="changeLedgerPage(-1)">上一页</el-button>
-          <span>第 {{ ledgerPage }} 页</span>
-          <el-button :disabled="walletLedger.length < 20" @click="changeLedgerPage(1)">下一页</el-button>
-        </div>
-        <el-card shadow="never" class="certificate-card">
+        <el-card shadow="never" class="certificate-card app-workbench-panel">
           <template #header>
             <div class="certificate-heading">
               <span class="section-title">我的证书</span>
@@ -96,7 +82,7 @@
           </div>
         </el-card>
 
-        <el-card shadow="never" class="profile-card">
+        <el-card shadow="never" class="profile-card app-workbench-panel">
           <template #header>
             <div class="section-title">个人资料管理</div>
           </template>
@@ -127,7 +113,7 @@
           </el-form>
         </el-card>
 
-        <el-card class="password-card" shadow="never" style="margin-top: 12px">
+        <el-card class="password-card app-workbench-panel" shadow="never" style="margin-top: 12px">
           <template #header>
             <div class="section-title">密码管理</div>
           </template>
@@ -149,7 +135,7 @@
       </el-col>
 
       <el-col :xs="24" :sm="24" :md="8">
-        <el-card class="role-card" shadow="never">
+        <el-card class="role-card app-workbench-panel" shadow="never">
           <template #header>
             <div class="section-title">角色工作台</div>
           </template>
@@ -178,6 +164,26 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <el-dialog v-model="ledgerVisible" title="余额明细" width="min(700px, 92vw)">
+      <div v-loading="ledgerLoading">
+        <el-table :data="walletLedger" size="small" empty-text="暂无流水">
+          <el-table-column label="时间" min-width="145">
+            <template #default="scope">{{ formatDateTime(scope.row.created_at) }}</template>
+          </el-table-column>
+          <el-table-column label="类型" min-width="85">
+            <template #default="scope">{{ ({ RECHARGE: '充值', PAY: '支付', REFUND: '退款' } as Record<string, string>)[scope.row.event_type] || scope.row.event_type }}</template>
+          </el-table-column>
+          <el-table-column prop="amount" label="金额（元）" min-width="90" />
+          <el-table-column prop="balance_after" label="余额（元）" min-width="90" />
+        </el-table>
+        <div class="ledger-pages">
+          <el-button :disabled="ledgerLoading || ledgerPage === 1" @click="changeLedgerPage(-1)">上一页</el-button>
+          <span>第 {{ ledgerPage }} 页</span>
+          <el-button :disabled="ledgerLoading || walletLedger.length < 20" @click="changeLedgerPage(1)">下一页</el-button>
+        </div>
+      </div>
+    </el-dialog>
 
     <el-dialog v-model="rechargeVisible" width="360px" @closed="stopRechargePolling">
       <template #header>
@@ -253,6 +259,8 @@ import alipaySquareLogo from '@/assets/img/支付宝logo-方形.png'
 const walletBalance = ref('0.00')
 const walletLedger = ref<any[]>([])
 const ledgerPage = ref(1)
+const ledgerVisible = ref(false)
+const ledgerLoading = ref(false)
 const rechargeVisible = ref(false)
 const rechargeAmount = ref('')
 const rechargeQr = ref('')
@@ -261,14 +269,30 @@ let rechargeTimer: ReturnType<typeof setInterval> | undefined
 const stopRechargePolling = () => { if (rechargeTimer) clearInterval(rechargeTimer); rechargeTimer = undefined }
 const refreshWallet = async () => {
   try {
-    const [balance, ledger] = await Promise.all([getWallet(), getWalletLedger(ledgerPage.value)])
+    const balance = await getWallet()
     if (balance.data.status === 0) walletBalance.value = balance.data.data.balance
-    if (ledger.data.status === 0) walletLedger.value = ledger.data.data
   } catch (error: any) { ElMessage.error(error?.response?.data?.message || '余额加载失败') }
+}
+const loadLedger = async () => {
+  ledgerLoading.value = true
+  try {
+    const response = await getWalletLedger(ledgerPage.value)
+    if (response.data.status !== 0) throw new Error(response.data.message || '余额明细加载失败')
+    walletLedger.value = response.data.data || []
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error?.message || '余额明细加载失败')
+  } finally {
+    ledgerLoading.value = false
+  }
+}
+const openLedgerDetails = () => {
+  ledgerPage.value = 1
+  ledgerVisible.value = true
+  void loadLedger()
 }
 const changeLedgerPage = (offset: number) => {
   ledgerPage.value = Math.max(1, ledgerPage.value + offset)
-  void refreshWallet()
+  void loadLedger()
 }
 const startRecharge = async () => {
   rechargeLoading.value = true
@@ -697,12 +721,6 @@ onMounted(() => {
   color: #1f2328;
 }
 
-.profile-page :deep(.el-card) {
-  border-color: #d0d7de;
-  border-radius: 10px;
-  background: #fff;
-}
-
 .profile-page :deep(.el-card__header) {
   border-bottom-color: #d8dee4;
 }
@@ -710,36 +728,54 @@ onMounted(() => {
 .wallet-card { margin-bottom: 12px; }
 .account-fields { width: 100%; max-width: 420px; }
 .account-fields :deep(.el-form-item__content) { min-width: 0; }
-.wallet-amount { font-size: 24px; font-weight: 600; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
+.wallet-content { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+.wallet-balance-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.wallet-amount { color: #1f2328; font-size: 28px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.wallet-content :deep(.el-button.wallet-detail-button) {
+  --el-button-text-color: #0969da;
+  --el-button-hover-text-color: #0550ae;
+  font-size: 13px;
+}
 .recharge-content { display: flex; align-items: center; flex-direction: column; gap: 10px; }
-.ledger-pages { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 12px 0 16px; }
-.recharge-entry-button { display: inline-flex; align-items: center; gap: 5px; }
-.recharge-entry-button img { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; }
+.ledger-pages { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 16px 0 0; }
+.wallet-content :deep(.el-button.recharge-entry-button) {
+  --el-button-bg-color: #f6f8fa;
+  --el-button-border-color: #d0d7de;
+  --el-button-text-color: #1f2328;
+  --el-button-hover-bg-color: #eef6ff;
+  --el-button-hover-border-color: #8cbaec;
+  --el-button-hover-text-color: #0969da;
+  height: 36px;
+  padding: 0 14px;
+  font-weight: 600;
+}
+.recharge-entry-button img { width: 18px; height: 18px; margin-right: 6px; border-radius: 4px; object-fit: contain; }
 .recharge-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .recharge-title img { width: 24px; height: 24px; border-radius: 5px; object-fit: contain; }
 
 .profile-header {
   margin-bottom: 12px;
-  border-radius: 10px;
+
+  :deep(.el-card__body) { padding: 24px 28px; }
 
   .header-content {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 24px;
   }
 
   .avatar-block {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+    flex: none;
   }
+
+  .base { flex: 1; min-width: 0; }
 
   .title-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 6px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
 
     .name {
       font-size: 22px;
@@ -751,11 +787,18 @@ onMounted(() => {
   .desc {
     color: #57606a;
     font-size: 13px;
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 20px;
+  }
+
+  .desc span {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 }
+
+.avatar-action { margin-left: auto; }
 
 .profile-role {
   border: 1px solid #d0d7de;
@@ -798,10 +841,7 @@ onMounted(() => {
 }
 
 .cert-surface {
-  background: #fff;
-  border: 1px solid #d8dee4;
-  border-radius: 8px;
-  padding: 0;
+  background: transparent;
 }
 
 .cert-main {
@@ -809,9 +849,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 18px;
-  border-bottom: 1px solid #d8dee4;
-  background: #f6f8fa;
+  margin-bottom: 20px;
 }
 
 .cert-name {
@@ -845,8 +883,7 @@ onMounted(() => {
 .cert-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  padding: 0 18px;
+  gap: 18px 24px;
 }
 
 .cert-item {
@@ -854,12 +891,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 5px;
   min-width: 0;
-  padding: 14px 0;
-  border-bottom: 1px solid #d8dee4;
 }
-
-.cert-item:nth-last-child(-n + 2):not(.span-2) { border-bottom: 0; }
-.cert-item:not(.span-2):last-child { padding-left: 18px; }
 
 .cert-item.span-2 {
   grid-column: 1 / -1;
@@ -891,8 +923,17 @@ onMounted(() => {
     grid-column: auto;
   }
 
-  .cert-item:nth-last-child(2):not(.span-2) { border-bottom: 1px solid #d8dee4; }
-  .cert-item:not(.span-2):last-child { padding-left: 0; }
+}
+
+@media (max-width: 900px) {
+  .profile-header .desc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .profile-header :deep(.el-card__body) { padding: 20px; }
+  .profile-header .header-content { align-items: flex-start; gap: 16px; }
+  .profile-header .desc { grid-template-columns: minmax(0, 1fr); }
+  .avatar-action { margin-left: 0; }
 }
 
 .role-tip {
