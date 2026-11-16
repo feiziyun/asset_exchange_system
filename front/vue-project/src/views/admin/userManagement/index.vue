@@ -46,8 +46,8 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <el-pagination
+    </el-card>
+    <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :total="total"
@@ -57,8 +57,6 @@
         @current-change="fetchUserList"
         style="margin-top: 20px; justify-content: center"
       />
-    </el-card>
-
     <!-- 详情对话框 -->
     <el-dialog v-model="detailDialogVisible" title="用户详情" width="600px">
       <el-descriptions :column="1" border v-if="currentDetail">

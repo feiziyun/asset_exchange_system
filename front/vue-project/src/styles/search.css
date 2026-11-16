@@ -73,7 +73,7 @@ body .el-button.app-search-button.app-search-button--delivery {
   --el-button-active-bg-color: #064fa6;
   --el-button-active-border-color: #064fa6;
   --el-button-active-text-color: #fff;
-  border-radius: 6px;
+  border-radius: 20px;
 }
 
 body .el-button.app-search-button.app-search-button--delivery:focus-visible {

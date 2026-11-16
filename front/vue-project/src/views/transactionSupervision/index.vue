@@ -228,15 +228,15 @@
           </el-table-column>
         </el-table>
 
-        <footer class="cursor-pagination">
-          <span>{{ paginationSummary }}</span>
-          <el-select v-model="pageSize" class="page-size" @change="changePageSize">
-            <el-option v-for="size in [20, 50, 100, 200]" :key="size" :label="`${size} 条/页`" :value="size" />
-          </el-select>
-          <el-button :disabled="tableLoading || cursorHistory.length === 0" @click="previousPage">上一页</el-button>
-          <el-button :disabled="tableLoading || !hasMore" @click="nextPage">下一页</el-button>
-        </footer>
       </section>
+      <footer class="cursor-pagination">
+        <span>{{ paginationSummary }}</span>
+        <el-select v-model="pageSize" class="page-size" @change="changePageSize">
+          <el-option v-for="size in [20, 50, 100, 200]" :key="size" :label="`${size} 条/页`" :value="size" />
+        </el-select>
+        <el-button :disabled="tableLoading || cursorHistory.length === 0" @click="previousPage">上一页</el-button>
+        <el-button :disabled="tableLoading || !hasMore" @click="nextPage">下一页</el-button>
+      </footer>
 
       <el-drawer v-model="detailVisible" size="min(960px, 96vw)" title="交易详情" :destroy-on-close="true" @closed="closeDetail">
         <div v-loading="detailLoading" class="detail-body">
@@ -882,7 +882,7 @@ export default {
 }
 
 .cursor-pagination {
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 12px;
 }
 

@@ -51,12 +51,12 @@
             <el-table-column prop="amount" label="金额（元）" min-width="90" />
             <el-table-column prop="balance_after" label="余额（元）" min-width="90" />
           </el-table>
-          <div class="ledger-pages">
-            <el-button :disabled="ledgerPage === 1" @click="changeLedgerPage(-1)">上一页</el-button>
-            <span>第 {{ ledgerPage }} 页</span>
-            <el-button :disabled="walletLedger.length < 20" @click="changeLedgerPage(1)">下一页</el-button>
-          </div>
         </el-card>
+        <div class="ledger-pages">
+          <el-button :disabled="ledgerPage === 1" @click="changeLedgerPage(-1)">上一页</el-button>
+          <span>第 {{ ledgerPage }} 页</span>
+          <el-button :disabled="walletLedger.length < 20" @click="changeLedgerPage(1)">下一页</el-button>
+        </div>
         <el-card shadow="never" class="certificate-card">
           <template #header>
             <div class="certificate-heading">
@@ -658,7 +658,7 @@ onMounted(() => {
 .account-fields :deep(.el-form-item__content) { min-width: 0; }
 .wallet-amount { font-size: 24px; font-weight: 600; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
 .recharge-content { display: flex; align-items: center; flex-direction: column; gap: 10px; }
-.ledger-pages { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 12px; }
+.ledger-pages { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 12px 0 16px; }
 .recharge-entry-button { display: inline-flex; align-items: center; gap: 5px; }
 .recharge-entry-button img { width: 18px; height: 18px; border-radius: 4px; object-fit: contain; }
 .recharge-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }

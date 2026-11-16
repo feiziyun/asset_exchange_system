@@ -51,7 +51,7 @@
                     <el-button type="primary" class="delivery-action-button"
                       :loading="actionLoadingNo === item.order_no"
                       :disabled="!isPrivacyPc(item) || isSellerDeliveryDisabled(item) || actionLoadingNo === item.order_no"
-                      @click="openSellerDelivery(item)">请求交付</el-button>
+                      @click="openSellerDelivery(item)">执行交付</el-button>
                   </div>
                 </td>
               </tr>
@@ -62,19 +62,19 @@
           </table>
         </div>
 
-        <div class="pager">
-          <el-pagination
-            background
-            layout="total, prev, pager, next, sizes"
-            :total="pagination.total"
-            :current-page="pagination.page"
-            :page-size="pagination.page_size"
-            :page-sizes="[10, 20, 50]"
-            @current-change="onPageChange"
-            @size-change="onSizeChange"
-          />
-        </div>
       </section>
+      <div class="pager">
+        <el-pagination
+          background
+          layout="total, prev, pager, next, sizes"
+          :total="pagination.total"
+          :current-page="pagination.page"
+          :page-size="pagination.page_size"
+          :page-sizes="[10, 20, 50]"
+          @current-change="onPageChange"
+          @size-change="onSizeChange"
+        />
+      </div>
     </div>
   </div>
 

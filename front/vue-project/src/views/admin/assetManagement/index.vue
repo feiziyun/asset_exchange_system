@@ -75,8 +75,8 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <el-pagination
+    </el-card>
+    <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :total="total"
@@ -85,8 +85,7 @@
         @size-change="handleSearch"
         @current-change="fetchAssetList"
         style="margin-top: 20px; justify-content: center"
-      />
-    </el-card>
+    />
     <el-dialog v-model="detailVisible" title="资产及区块链信息" width="680px">
       <el-descriptions v-if="currentAsset" :column="1" border>
         <el-descriptions-item label="资产名称">{{ currentAsset.asset_name }}</el-descriptions-item>

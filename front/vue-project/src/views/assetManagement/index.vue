@@ -110,18 +110,6 @@
 
             <el-empty v-else description="暂无资产" />
 
-            <div class="pager">
-              <el-pagination
-                background
-                layout="total, prev, pager, next, sizes"
-                :total="ownedPagination.total"
-                :current-page="ownedQuery.page"
-                :page-size="ownedQuery.page_size"
-                :page-sizes="[10, 20, 50]"
-                @current-change="onOwnedPageChange"
-                @size-change="onOwnedSizeChange"
-              />
-            </div>
           </template>
 
           <template v-else>
@@ -203,18 +191,6 @@
               </template>
               <el-empty v-else description="暂无购买记录" />
 
-              <div class="pager">
-                <el-pagination
-                  background
-                  layout="total, prev, pager, next, sizes"
-                  :total="purchasedPagination.total"
-                  :current-page="purchasedQuery.page"
-                  :page-size="purchasedQuery.page_size"
-                  :page-sizes="[10, 20, 50]"
-                  @current-change="onPurchasedPageChange"
-                  @size-change="onPurchasedSizeChange"
-                />
-              </div>
             </div>
           </template>
         </template>
@@ -256,20 +232,32 @@
             </el-table-column>
           </el-table>
 
-          <div class="pager">
-            <el-pagination
-              background
-              layout="total, prev, pager, next, sizes"
-              :total="ownedPagination.total"
-              :current-page="ownedQuery.page"
-              :page-size="ownedQuery.page_size"
-              :page-sizes="[10, 20, 50]"
-              @current-change="onOwnedPageChange"
-              @size-change="onOwnedSizeChange"
-            />
-          </div>
         </template>
       </section>
+      <div v-if="!isAdmin && !isSeller" class="pager">
+        <el-pagination
+          background
+          layout="total, prev, pager, next, sizes"
+          :total="purchasedPagination.total"
+          :current-page="purchasedQuery.page"
+          :page-size="purchasedQuery.page_size"
+          :page-sizes="[10, 20, 50]"
+          @current-change="onPurchasedPageChange"
+          @size-change="onPurchasedSizeChange"
+        />
+      </div>
+      <div v-else class="pager">
+        <el-pagination
+          background
+          layout="total, prev, pager, next, sizes"
+          :total="ownedPagination.total"
+          :current-page="ownedQuery.page"
+          :page-size="ownedQuery.page_size"
+          :page-sizes="[10, 20, 50]"
+          @current-change="onOwnedPageChange"
+          @size-change="onOwnedSizeChange"
+        />
+      </div>
     </div>
   </div>
 

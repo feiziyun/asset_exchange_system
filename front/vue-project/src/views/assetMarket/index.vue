@@ -206,19 +206,19 @@
 
         <el-empty v-else-if="!loading && !listError" description="暂无符合条件的资产" />
 
-        <div class="pager">
-          <el-pagination
-            background
-            layout="total, prev, pager, next, sizes"
-            :total="pagination.total"
-            :current-page="pagination.page"
-            :page-size="pagination.page_size"
-            :page-sizes="[10, 20, 50]"
-            @current-change="onPageChange"
-            @size-change="onSizeChange"
-          />
-        </div>
       </section>
+      <div class="pager">
+        <el-pagination
+          background
+          layout="total, prev, pager, next, sizes"
+          :total="pagination.total"
+          :current-page="pagination.page"
+          :page-size="pagination.page_size"
+          :page-sizes="[10, 20, 50]"
+          @current-change="onPageChange"
+          @size-change="onSizeChange"
+        />
+      </div>
     </div>
   </div>
 
