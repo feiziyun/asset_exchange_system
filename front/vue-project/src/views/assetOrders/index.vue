@@ -16,6 +16,9 @@
           </el-input>
           <el-button class="app-search-button" @click="onSearch">搜索</el-button>
         </div>
+      </header>
+
+      <section class="orders-panel" v-loading="loading">
         <div class="orders-filter-row">
           <div class="order-filter-bar">
             <span class="order-filter-label">订单状态</span>
@@ -34,9 +37,6 @@
             <span class="order-count">共 {{ pagination.total }} 笔订单</span>
           </div>
         </div>
-      </header>
-
-      <section class="orders-panel" v-loading="loading">
         <div v-if="orders.length" class="order-list">
           <article v-for="row in orders" :key="row.id" class="order-item">
             <div class="order-main">
@@ -152,7 +152,7 @@ const query = reactive({
   page_size: 10,
   keyword: '',
   order_role: 'seller',
-  payment_state: '',
+  payment_state: 'paid',
   exclude_cancelled: true,
 })
 
@@ -161,7 +161,7 @@ const statusOptions = [
   { label: '待付款', value: 'unpaid' },
   { label: '已完成', value: 'completed' },
 ]
-const selectedStatuses = ref<string[]>(statusOptions.map((option) => option.value))
+const selectedStatuses = ref<string[]>(['paid'])
 
 const pagination = reactive({
   page: 1,
@@ -350,13 +350,14 @@ onMounted(fetchOrders)
 }
 
 .orders-filter-row {
-  grid-column: 1 / -1;
-  grid-row: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 650px) minmax(0, 1fr);
   align-items: center;
   gap: 16px;
   min-width: 0;
+  min-height: 48px;
+  padding: 8px 24px;
+  border-bottom: 1px solid #d8dee4;
 }
 
 .header-actions {
@@ -430,7 +431,6 @@ onMounted(fetchOrders)
   }
 
   .orders-filter-row {
-    grid-row: 3;
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
@@ -565,7 +565,7 @@ onMounted(fetchOrders)
 .order-actions {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 5px;
 }
 
@@ -581,6 +581,8 @@ onMounted(fetchOrders)
   color: #0969da;
   font: inherit;
   font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   cursor: pointer;
 }
 
