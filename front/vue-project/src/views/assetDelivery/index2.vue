@@ -19,7 +19,7 @@
           <table class="styled-table table-hover-row buyer-table">
             <thead>
               <tr>
-                <th>交易ID</th>
+                <th>资产信息</th>
                 <th class="col-contract">数字合约</th>
                 <th class="col-status">交付状态</th>
                 <th class="col-actions">操作</th>
@@ -28,8 +28,12 @@
             <tbody>
               <tr v-for="item in buyerRows" :key="`buyer-${item.order_no}`">
                 <td>
-                  <div class="truncate-cell" :title="item.transaction?.transaction_id || '-'">
-                    {{ item.transaction?.transaction_id || '-' }}
+                  <div class="asset-info-cell">
+                    <button type="button" class="asset-name-link" :title="item.asset_name || '未命名资产'"
+                      @click="openAssetPreview(item)">{{ item.asset_name || '未命名资产' }}</button>
+                    <span class="asset-transaction-id" :title="item.transaction?.transaction_id || '-'">
+                      交易 ID：{{ item.transaction?.transaction_id || '-' }}
+                    </span>
                   </div>
                 </td>
                 <td>
@@ -138,6 +142,27 @@
       </section>
     </div>
   </div>
+
+  <el-dialog v-model="assetPreviewVisible" title="资产信息" width="min(640px, 92vw)">
+    <div v-loading="assetPreviewLoading" class="asset-preview">
+      <el-alert v-if="assetPreviewError" :title="assetPreviewError" type="error" :closable="false" />
+      <template v-else-if="assetPreviewDetail">
+        <img class="asset-preview-cover" :src="assetPreviewCover" :alt="assetPreviewDetail.asset_name || '资产图片'"
+          @error="assetPreviewCover = defaultCover" />
+        <h3 class="asset-preview-name">{{ assetPreviewDetail.asset_name || '未命名资产' }}</h3>
+        <p class="asset-preview-meta">
+          {{ assetPreviewDetail.category_name || '未分类' }}
+          <span aria-hidden="true">/</span>
+          {{ assetPreviewDetail.classification_data_level || '一般数据' }}
+        </p>
+        <div class="asset-preview-description">
+          <div class="asset-preview-label">详细描述</div>
+          <p>{{ assetPreviewDetail.description || assetPreviewDetail.brief || '暂无详细描述' }}</p>
+        </div>
+      </template>
+    </div>
+    <template #footer><el-button @click="assetPreviewVisible = false">关闭</el-button></template>
+  </el-dialog>
 
   <el-dialog v-model="contractPreviewVisible" title="数字合约信息" width="720px">
     <DigitalContractPreview v-if="selectedOrder && contractPreviewVisible" :key="selectedOrder.order_no" :order-no="selectedOrder.order_no" role="buyer" />
@@ -332,6 +357,7 @@ import {
   downloadFlPrivacyResult,
   downloadHePrivacyResult,
   downloadPrePrivacyResult,
+  getAssetDetail,
   getDeliveryExportEligible,
   getFlStatus,
   getHePublicKeyStatus,
@@ -352,6 +378,7 @@ import {
   uploadPreBuyerPublicKey,
 } from '@/api/asset'
 import { getRoleKey, parseTokenPayload } from '@/utils/auth'
+import defaultCover from '@/assets/logo.svg'
 import * as heCryptoModule from '@/utils/heCrypto.js'
 import * as flCryptoModule from '@/utils/flCrypto.js'
 import * as preCryptoModule from '@/utils/preCrypto.js'
@@ -366,6 +393,7 @@ interface NestedRecord { [key: string]: any }
 interface OrderItem {
   id: number
   order_no: string
+  asset_id?: number
   asset_name?: string
   buyer_account?: string
   buyer_address?: string
@@ -388,6 +416,42 @@ const route = useRoute()
 const tokenPayload = parseTokenPayload() || {}
 const roleKey = 'buyer'
 const currentOrderNo = ref(String(route.query.order_no || ''))
+const assetPreviewVisible = ref(false)
+const assetPreviewLoading = ref(false)
+const assetPreviewError = ref('')
+const assetPreviewDetail = ref<NestedRecord | null>(null)
+const assetPreviewCover = ref(defaultCover)
+let assetPreviewRequestId = 0
+
+const openAssetPreview = async (order: OrderItem) => {
+  const requestId = ++assetPreviewRequestId
+  assetPreviewVisible.value = true
+  assetPreviewLoading.value = true
+  assetPreviewError.value = ''
+  assetPreviewDetail.value = null
+  assetPreviewCover.value = defaultCover
+  try {
+    if (!order.asset_id) throw new Error('订单缺少资产 ID')
+    const res = await getAssetDetail(order.asset_id)
+    if (res.data.status !== 0 || !res.data.data) {
+      throw new Error(res.data.message || '获取资产信息失败')
+    }
+    if (requestId !== assetPreviewRequestId || !assetPreviewVisible.value) return
+    const detail = res.data.data
+    assetPreviewDetail.value = detail
+    if (detail.file_hash && /^[A-Za-z0-9._~-]{1,255}$/.test(detail.file_hash)) {
+      assetPreviewCover.value = `/api/asset-picture/${encodeURIComponent(detail.file_hash)}`
+    } else if (detail.picture) {
+      assetPreviewCover.value = `data:${detail.picture_mime_type || 'image/jpeg'};base64,${detail.picture}`
+    }
+  } catch (error: any) {
+    if (requestId === assetPreviewRequestId && assetPreviewVisible.value) {
+      assetPreviewError.value = error?.response?.data?.message || error?.message || '获取资产信息失败'
+    }
+  } finally {
+    if (requestId === assetPreviewRequestId) assetPreviewLoading.value = false
+  }
+}
 const searchInput = ref('')
 const activeKeyword = ref('')
 const activeTab = ref('assetDownload')
@@ -1719,6 +1783,11 @@ onBeforeUnmount(() => {
   width: 12%;
 }
 
+.buyer-table th:first-child,
+.buyer-table td:first-child {
+  width: 32%;
+}
+
 .buyer-table th:last-child,
 .buyer-table td:last-child {
   width: 42%;
@@ -1804,6 +1873,104 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+}
+
+.asset-info-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+  text-align: left;
+}
+
+.asset-name-link {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #0969da;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.asset-name-link:hover {
+  color: #0550ae;
+}
+
+.asset-name-link:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
+}
+
+.asset-transaction-id {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text-secondary);
+  font-size: 12px;
+}
+
+.asset-preview {
+  min-height: 120px;
+}
+
+.asset-preview-cover {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #f6f8fa;
+}
+
+.asset-preview-name {
+  margin: 18px 0 4px;
+  color: var(--app-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.asset-preview-meta {
+  margin: 0;
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+
+.asset-preview-meta span {
+  margin: 0 6px;
+  color: var(--app-text-muted);
+}
+
+.asset-preview-description {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #d8dee4;
+}
+
+.asset-preview-label {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.asset-preview-description p {
+  margin: 8px 0 0;
+  color: var(--app-text-primary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .single-action-cell {
