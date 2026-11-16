@@ -1,6 +1,6 @@
 <template>
   <div class="common-wrapped">
-    <div class="manage-page">
+    <div class="manage-page" :class="{ 'buyer-manage-page': roleKey === 'buyer' }">
       <section class="toolbar-section">
         <div class="toolbar-row app-search-layout">
           <div class="title-wrap">
@@ -121,7 +121,7 @@
                       <tr>
                         <th>资产名称</th>
                         <th>购买数量</th>
-                        <th>金额（元）</th>
+                        <th>订单金额（元）</th>
                         <th>订单状态</th>
                         <th>操作</th>
                       </tr>
@@ -1339,6 +1339,12 @@ onMounted(fetchCurrent)
     width: 96%;
     min-height: 100vh;
     box-sizing: border-box;
+  }
+
+  .buyer-manage-page {
+    width: min(100%, 1240px);
+    min-height: calc(100vh - 112px);
+    padding: 24px 24px 48px;
   }
 }
 
