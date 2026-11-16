@@ -64,20 +64,20 @@ body .el-button.app-search-button:focus-visible {
 }
 
 body .el-button.app-search-button.app-search-button--delivery {
-  --el-button-bg-color: #24517d;
-  --el-button-border-color: #1d466e;
+  --el-button-bg-color: #356b9b;
+  --el-button-border-color: #2d5d87;
   --el-button-text-color: #fff;
-  --el-button-hover-bg-color: #1d466e;
-  --el-button-hover-border-color: #173a5d;
+  --el-button-hover-bg-color: #2d5d87;
+  --el-button-hover-border-color: #254f74;
   --el-button-hover-text-color: #fff;
-  --el-button-active-bg-color: #173a5d;
-  --el-button-active-border-color: #12314f;
+  --el-button-active-bg-color: #254f74;
+  --el-button-active-border-color: #1f4464;
   --el-button-active-text-color: #fff;
   border-radius: 6px;
 }
 
 body .el-button.app-search-button.app-search-button--delivery:focus-visible {
-  outline-color: #24517d;
+  outline-color: #356b9b;
 }
 
 @media (max-width: 900px) {
