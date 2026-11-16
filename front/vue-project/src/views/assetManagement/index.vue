@@ -33,10 +33,10 @@
                     <th>资产信息</th>
                     <th>安全等级</th>
                     <th>资产介绍</th>
-                    <th>数量</th>
-                    <th>状态</th>
+                    <th>可售数量</th>
+                    <th>上架状态</th>
                     <th>可出售权益</th>
-                    <th>编辑</th>
+                    <th>编辑资产</th>
                     <th>代理托管</th>
                   </tr>
                 </thead>
@@ -48,7 +48,14 @@
                           <img class="table-cover" :src="resolveCover(item)" alt="asset-cover" />
                         </div>
                         <div class="asset-name-wrap">
-                          <div class="cell-title">{{ item.asset_name || '-' }}</div>
+                          <button
+                            v-if="!item.is_proxy && item.asset_name"
+                            type="button"
+                            class="asset-name-link"
+                            :title="item.asset_name"
+                            @click="openEdit(item)"
+                          >{{ item.asset_name }}</button>
+                          <span v-else class="asset-name-static">{{ item.asset_name || '-' }}</span>
                           <el-tag v-if="item.is_proxy" size="small">代理</el-tag>
                         </div>
                       </div>
@@ -84,7 +91,7 @@
                     <td>
                       <div class="single-action-cell">
                         <template v-if="!item.is_proxy">
-                          <el-button type="primary" link @click="openEdit(item)">编辑</el-button>
+                          <el-button type="primary" link @click="openEdit(item)">编辑资产</el-button>
                           <el-button v-if="canPublish(item)" type="success" link @click="openPublish(item)">上架</el-button>
                         </template>
                       </div>
@@ -1430,10 +1437,10 @@ onMounted(fetchCurrent)
 .seller-table th:nth-child(1) { width: 120px; }
 .seller-table th:nth-child(2) { width: 76px; }
 .seller-table th:nth-child(3) { width: 180px; }
-.seller-table th:nth-child(4) { width: 50px; }
+.seller-table th:nth-child(4) { width: 76px; }
 .seller-table th:nth-child(5) { width: 82px; }
 .seller-table th:nth-child(6) { width: 100px; }
-.seller-table th:nth-child(7) { width: 64px; }
+.seller-table th:nth-child(7) { width: 88px; }
 .seller-table th:nth-child(8) { width: 100px; }
 
 .purchased-table th:nth-child(1) { width: 31%; }
@@ -1471,6 +1478,28 @@ onMounted(fetchCurrent)
   gap: 4px;
   width: 100%;
 }
+
+.asset-name-link,
+.asset-name-static {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--app-text-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-name-link { cursor: pointer; }
+.asset-name-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.asset-name-link:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 
 .asset-cover-wrap,
 .asset-name-wrap {
