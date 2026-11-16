@@ -1388,19 +1388,23 @@ onMounted(fetchCurrent)
 
 .table-wrap {
   overflow-x: auto;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
 }
 
 .styled-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: fixed;
   font-size: 13px;
 }
 
 .styled-table th,
 .styled-table td {
-  border: 1px solid #e1e6ef;
-  padding: 5px 4px;
+  border: 0;
+  border-bottom: 1px solid #d8dee4;
+  padding: 10px 8px;
   text-align: center;
   vertical-align: middle;
   word-wrap: break-word;
@@ -1408,20 +1412,24 @@ onMounted(fetchCurrent)
   position: relative;
 }
 
+.styled-table th:not(:last-child),
+.styled-table td:not(:last-child) {
+  border-right: 1px solid #d8dee4;
+}
+
 .styled-table th {
-  background: #f8fafc;
-  color: #1f2328;
+  background: #f6f8fa;
+  color: #57606a;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
-  border-bottom: 2px solid #dde4ee;
 }
 
 .styled-table td {
   background: #fff;
   color: #1f2328;
   font-size: 12px;
-  line-height: 1.3;
+  line-height: 1.45;
 }
 
 .seller-table th:nth-child(1) { width: 120px; }
@@ -1433,17 +1441,16 @@ onMounted(fetchCurrent)
 .seller-table th:nth-child(7) { width: 64px; }
 .seller-table th:nth-child(8) { width: 100px; }
 
-.styled-table tbody tr:nth-of-type(odd) td {
+.styled-table tbody tr:not(:hover) td {
   background: #fff;
 }
 
-.styled-table tbody tr:nth-of-type(even) td {
-  background: #ffffff;
+.styled-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .table-hover-row tbody tr:hover td {
-  background: #f5f7fa;
-  transition: background-color 0.2s ease;
+  background: #f6f8fa;
 }
 
 .asset-info-cell {

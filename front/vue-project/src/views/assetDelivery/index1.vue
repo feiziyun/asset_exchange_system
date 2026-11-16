@@ -1947,7 +1947,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.styled-table td {
+.styled-table tbody tr:not(:hover) td {
   background: #fff;
 }
 
