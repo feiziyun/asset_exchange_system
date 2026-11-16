@@ -1808,6 +1808,8 @@ onBeforeUnmount(() => {
 
 .table-wrap {
   overflow-x: auto;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
 }
 
 .current-order {
@@ -1897,7 +1899,8 @@ onBeforeUnmount(() => {
 .styled-table {
   width: 100%;
   min-width: 920px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   table-layout: fixed;
   font-size: 13px;
 }
@@ -1921,31 +1924,34 @@ onBeforeUnmount(() => {
 
 .styled-table th,
 .styled-table td {
-  border: 1px solid #e1e6ef;
-  padding: 10px 8px;
+  border: 0;
+  border-bottom: 1px solid #d8dee4;
+  padding: 14px 16px;
   text-align: center;
   vertical-align: middle;
   line-height: 1.45;
-  font-size: 12px;
+  font-size: 13px;
   color: #1f2328;
 }
 
 .styled-table th {
-  background: #f8fafc;
-  color: #1f2328;
+  background: #f6f8fa;
+  color: #57606a;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
-  border-bottom: 1px solid #dde4ee;
 }
 
 .styled-table td {
   background: #fff;
 }
 
+.styled-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .table-hover-row tbody tr:hover td {
-  background: #eef3f8;
-  transition: background-color 0.2s ease;
+  background: #f6f8fa;
 }
 
 .upload-section,
