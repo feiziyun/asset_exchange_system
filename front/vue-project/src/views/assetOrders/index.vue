@@ -18,14 +18,17 @@
         </div>
         <div class="order-filter-bar">
           <span class="order-filter-label">订单状态</span>
-          <button
-            v-for="option in statusOptions"
-            :key="option.value || 'all'"
-            type="button"
-            class="order-filter-option"
-            :class="{ active: query.payment_state === option.value }"
-            @click="selectStatus(option.value)"
-          >{{ option.label }}</button>
+          <el-checkbox
+            :model-value="selectedStatuses.length === 0"
+            :disabled="selectedStatuses.length > 0"
+            class="order-filter-checkbox"
+            @change="clearStatusFilter"
+          >全部</el-checkbox>
+          <el-checkbox-group v-model="selectedStatuses" class="order-filter-options" @change="selectStatus">
+            <el-checkbox v-for="option in statusOptions" :key="option.value" :label="option.value">
+              {{ option.label }}
+            </el-checkbox>
+          </el-checkbox-group>
         </div>
         <div class="header-actions">
           <span class="order-count">共 {{ pagination.total }} 笔订单</span>
@@ -143,12 +146,12 @@ const query = reactive({
 })
 
 const statusOptions = [
-  { label: '全部', value: '' },
   { label: '已付款', value: 'paid' },
   { label: '未付款', value: 'unpaid' },
   { label: '已取消', value: 'cancelled' },
   { label: '已完成', value: 'completed' },
 ]
+const selectedStatuses = ref<string[]>([])
 
 const pagination = reactive({
   page: 1,
@@ -212,8 +215,15 @@ const onSearch = () => {
   fetchOrders()
 }
 
-const selectStatus = (status: string) => {
-  query.payment_state = status
+const selectStatus = (statuses: string[]) => {
+  query.payment_state = statuses.join(',')
+  query.page = 1
+  fetchOrders()
+}
+
+const clearStatusFilter = () => {
+  selectedStatuses.value = []
+  query.payment_state = ''
   query.page = 1
   fetchOrders()
 }
@@ -312,39 +322,39 @@ onMounted(fetchOrders)
 .header-actions {
   grid-column: 3;
   justify-self: end;
+  white-space: nowrap;
 }
 
 .order-filter-bar {
   grid-column: 1 / -1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
   padding-top: 8px;
-  border-top: 1px solid #d8dee4;
   flex-wrap: wrap;
 }
 
 .order-filter-label {
-  margin-right: 4px;
   color: #6e7781;
+  line-height: 1.4;
   font-size: 12px;
 }
 
-.order-filter-option {
-  border: 0;
-  border-radius: 6px;
-  padding: 4px 9px;
-  background: transparent;
+.order-filter-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.order-filter-bar :deep(.el-checkbox) {
+  margin-right: 0;
+}
+
+.order-filter-bar :deep(.el-checkbox__label) {
   color: #57606a;
-  font: inherit;
   font-size: 12px;
-  cursor: pointer;
-}
-
-.order-filter-option:hover,
-.order-filter-option.active {
-  background: #f0f6fc;
-  color: #0969da;
 }
 
 @media (max-width: 900px) {

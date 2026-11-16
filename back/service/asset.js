@@ -4268,15 +4268,17 @@ exports.listOrders = async (query, userId, identity = '') => {
     params.push(Number(query.order_status));
   }
 
-  const paymentState = String(query.payment_state || '').toLowerCase();
-  if (paymentState === 'paid') {
-    where.push('ao.order_status IN (1, 2, 3)');
-  } else if (paymentState === 'unpaid') {
-    where.push('ao.order_status = 0');
-  } else if (paymentState === 'cancelled') {
-    where.push('ao.order_status IN (4, 6)');
-  } else if (paymentState === 'completed') {
-    where.push('ao.order_status = 3');
+  const paymentStates = String(query.payment_state || '').toLowerCase().split(',').filter(Boolean);
+  const statusGroups = {
+    paid: [1, 2, 3],
+    unpaid: [0],
+    cancelled: [4, 6],
+    completed: [3],
+  };
+  const selectedOrderStatuses = [...new Set(paymentStates.flatMap((state) => statusGroups[state] || []))];
+  if (selectedOrderStatuses.length) {
+    where.push(`ao.order_status IN (${selectedOrderStatuses.map(() => '?').join(',')})`);
+    params.push(...selectedOrderStatuses);
   }
 
   if (query.delivery_only === true || query.delivery_only === 'true') {
