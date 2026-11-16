@@ -1823,7 +1823,7 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
 }
 
-.delivery-filter-label { flex: none; color: #6e7781; font-size: 12px; }
+.delivery-filter-label { flex: none; color: #57606a; font-size: 14px; font-weight: 500; }
 .delivery-filter-options { display: flex; align-items: center; gap: 6px; min-width: 0; overflow-x: auto; }
 .delivery-filter-option {
   flex: none;
@@ -1839,8 +1839,8 @@ onBeforeUnmount(() => {
 .delivery-filter-option:hover { background: #f6f8fa; }
 .delivery-filter-option.active {
   background: #f6f8fa;
-  color: #0969da;
-  font-weight: 500;
+  color: #24292f;
+  font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
