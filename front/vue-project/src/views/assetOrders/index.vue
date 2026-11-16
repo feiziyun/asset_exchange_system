@@ -22,16 +22,13 @@
         <div class="orders-filter-row">
           <div class="order-filter-bar">
             <span class="order-filter-label">订单状态</span>
-            <el-checkbox
-              :model-value="selectedStatuses.length === statusOptions.length"
-              class="order-filter-checkbox"
-              @change="toggleAllStatuses"
-            >全部</el-checkbox>
-            <el-checkbox-group v-model="selectedStatuses" class="order-filter-options" @change="selectStatus">
-              <el-checkbox v-for="option in statusOptions" :key="option.value" :label="option.value">
+            <div class="order-filter-options" role="group" aria-label="订单状态筛选">
+              <button v-for="option in statusOptions" :key="option.value" type="button"
+                class="order-filter-option" :class="{ active: selectedStatus === option.value }"
+                :aria-pressed="selectedStatus === option.value" @click="selectStatus(option.value)">
                 {{ option.label }}
-              </el-checkbox>
-            </el-checkbox-group>
+              </button>
+            </div>
           </div>
           <div class="header-actions">
             <span class="order-count">共 {{ pagination.total }} 笔订单</span>
@@ -156,10 +153,11 @@ const query = reactive({
 })
 
 const statusOptions = [
+  { label: '全部', value: 'all' },
   { label: '待确认', value: 'pending' },
   { label: '已确认', value: 'confirmed' },
 ]
-const selectedStatuses = ref<string[]>(['pending'])
+const selectedStatus = ref('pending')
 
 const pagination = reactive({
   page: 1,
@@ -232,15 +230,12 @@ const onSearch = () => {
   fetchOrders()
 }
 
-const selectStatus = (statuses: string[]) => {
-  query.seller_confirm_state = statuses.length === statusOptions.length ? 'all' : statuses.length ? statuses[0] : 'none'
+const selectStatus = (status: string) => {
+  if (selectedStatus.value === status) return
+  selectedStatus.value = status
+  query.seller_confirm_state = status
   query.page = 1
   fetchOrders()
-}
-
-const toggleAllStatuses = (checked: boolean) => {
-  selectedStatuses.value = checked ? statusOptions.map((option) => option.value) : []
-  selectStatus(selectedStatuses.value)
 }
 
 const onPageChange = (page: number) => {
@@ -382,41 +377,40 @@ onMounted(fetchOrders)
   flex: none;
   color: #6e7781;
   line-height: 1.4;
-  font-size: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-left: 8px;
+  margin-right: 12px;
 }
 
 .order-filter-options {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex: none;
 }
 
-.order-filter-bar :deep(.el-checkbox) {
-  margin-right: 0;
-}
-
-.order-filter-bar :deep(.el-checkbox__label) {
+.order-filter-option {
+  flex: none;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: #57606a;
-  font-size: 12px;
-}
-
-.order-filter-bar :deep(.el-checkbox__input .el-checkbox__original) {
-  appearance: none;
-  border: 1px solid #8c959f;
-  border-radius: 3px;
-  background: #fff;
+  font: inherit;
+  font-size: 14px;
   cursor: pointer;
 }
 
-.order-filter-bar :deep(.el-checkbox__input .el-checkbox__original:checked) {
-  border-color: #0969da;
-  background-color: #fff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%230969da' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m3 8 3.2 3.2L13 4.5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 14px 14px;
+.order-filter-option:hover { background: #f6f8fa; }
+.order-filter-option.active {
+  background: #f6f8fa;
+  color: #2b75c7;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
+.order-filter-option:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 
 @media (max-width: 1150px) {
   .orders-header {

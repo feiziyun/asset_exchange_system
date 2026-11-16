@@ -899,6 +899,7 @@ onMounted(() => {
   gap: 8px;
 }
 
+.certificate-heading .cert-status { margin-left: 8px; }
 .certificate-heading :deep(.el-button.cert-apply-action) { margin-left: auto; }
 
 .certificate-layout {

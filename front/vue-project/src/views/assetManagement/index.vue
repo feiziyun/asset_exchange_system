@@ -126,15 +126,13 @@
               <div class="purchase-filter-row">
                 <div class="purchase-filter-bar">
                   <span class="purchase-filter-label">订单状态</span>
-                  <el-checkbox
-                    :model-value="selectedPurchaseStatuses.length === purchaseStatusOptions.length"
-                    @change="toggleAllPurchaseStatuses"
-                  >全部</el-checkbox>
-                  <el-checkbox-group v-model="selectedPurchaseStatuses" class="purchase-filter-options" @change="onPurchaseStatusChange">
-                    <el-checkbox v-for="option in purchaseStatusOptions" :key="option.value" :label="option.value">
+                  <div class="purchase-filter-options" role="group" aria-label="订单状态筛选">
+                    <button v-for="option in purchaseStatusOptions" :key="option.value" type="button"
+                      class="purchase-filter-option" :class="{ active: selectedPurchaseStatus === option.value }"
+                      :aria-pressed="selectedPurchaseStatus === option.value" @click="onPurchaseStatusChange(option.value)">
                       {{ option.label }}
-                    </el-checkbox>
-                  </el-checkbox-group>
+                    </button>
+                  </div>
                 </div>
                 <span class="purchase-count">共 {{ purchasedPagination.total }} 笔订单</span>
               </div>
@@ -694,19 +692,17 @@ const purchasedQuery = reactive({
 })
 
 const purchaseStatusOptions = [
+  { label: '全部', value: 'all' },
   { label: '待付款', value: 'unpaid' },
   { label: '已付款', value: 'paid' },
 ]
-const selectedPurchaseStatuses = ref<string[]>(purchaseStatusOptions.map((option) => option.value))
+const selectedPurchaseStatus = ref('all')
 
-const onPurchaseStatusChange = () => {
+const onPurchaseStatusChange = (status: string) => {
+  if (selectedPurchaseStatus.value === status) return
+  selectedPurchaseStatus.value = status
   purchasedQuery.page = 1
   fetchPurchasedAssets()
-}
-
-const toggleAllPurchaseStatuses = (checked: boolean) => {
-  selectedPurchaseStatuses.value = checked ? purchaseStatusOptions.map((option) => option.value) : []
-  onPurchaseStatusChange()
 }
 
 const purchasedPagination = reactive({
@@ -911,9 +907,7 @@ const fetchPurchasedAssets = async (silent = false) => {
       ...purchasedQuery,
       order_role: 'buyer',
       exclude_cancelled: true,
-      payment_state: selectedPurchaseStatuses.value.length
-        ? selectedPurchaseStatuses.value.join(',')
-        : 'none',
+      payment_state: selectedPurchaseStatus.value === 'all' ? 'unpaid,paid' : selectedPurchaseStatus.value,
     })
     if (res.data.status === 0) {
       purchasedList.value = res.data.data?.list || []
@@ -1525,15 +1519,33 @@ onMounted(fetchCurrent)
 .purchase-filter-options {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   white-space: nowrap;
 }
 
-.purchase-filter-bar { min-width: 0; overflow-x: auto; }
-.purchase-filter-label { color: #6e7781; font-size: 12px; }
+.purchase-filter-bar { min-width: 0; overflow-x: auto; gap: 12px; }
+.purchase-filter-label { flex: none; margin-left: 8px; margin-right: 12px; color: #6e7781; font-size: 15px; font-weight: 600; }
 .purchase-count { flex: none; color: #57606a; font-size: 13px; }
-.purchase-filter-bar :deep(.el-checkbox) { margin-right: 0; }
-.purchase-filter-bar :deep(.el-checkbox__label) { color: #57606a; font-size: 12px; }
+.purchase-filter-option {
+  flex: none;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #57606a;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.purchase-filter-option:hover { background: #f6f8fa; }
+.purchase-filter-option.active {
+  background: #f6f8fa;
+  color: #2b75c7;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.purchase-filter-option:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 
 .toolbar-row {
   .title-wrap {
