@@ -16,6 +16,17 @@
           </el-input>
           <el-button class="app-search-button" @click="onSearch">搜索</el-button>
         </div>
+        <div class="order-filter-bar">
+          <span class="order-filter-label">订单状态</span>
+          <button
+            v-for="option in statusOptions"
+            :key="option.value || 'all'"
+            type="button"
+            class="order-filter-option"
+            :class="{ active: query.payment_state === option.value }"
+            @click="selectStatus(option.value)"
+          >{{ option.label }}</button>
+        </div>
         <div class="header-actions">
           <span class="order-count">共 {{ pagination.total }} 笔订单</span>
         </div>
@@ -128,7 +139,16 @@ const query = reactive({
   page_size: 10,
   keyword: '',
   order_role: 'seller',
+  payment_state: '',
 })
+
+const statusOptions = [
+  { label: '全部', value: '' },
+  { label: '已付款', value: 'paid' },
+  { label: '未付款', value: 'unpaid' },
+  { label: '已取消', value: 'cancelled' },
+  { label: '已完成', value: 'completed' },
+]
 
 const pagination = reactive({
   page: 1,
@@ -188,6 +208,12 @@ const fetchOrders = async () => {
 
 const onSearch = () => {
   query.keyword = searchInput.value.trim()
+  query.page = 1
+  fetchOrders()
+}
+
+const selectStatus = (status: string) => {
+  query.payment_state = status
   query.page = 1
   fetchOrders()
 }
@@ -286,6 +312,39 @@ onMounted(fetchOrders)
 .header-actions {
   grid-column: 3;
   justify-self: end;
+}
+
+.order-filter-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #d8dee4;
+  flex-wrap: wrap;
+}
+
+.order-filter-label {
+  margin-right: 4px;
+  color: #6e7781;
+  font-size: 12px;
+}
+
+.order-filter-option {
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 9px;
+  background: transparent;
+  color: #57606a;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.order-filter-option:hover,
+.order-filter-option.active {
+  background: #f0f6fc;
+  color: #0969da;
 }
 
 @media (max-width: 900px) {

@@ -4268,6 +4268,17 @@ exports.listOrders = async (query, userId, identity = '') => {
     params.push(Number(query.order_status));
   }
 
+  const paymentState = String(query.payment_state || '').toLowerCase();
+  if (paymentState === 'paid') {
+    where.push('ao.order_status IN (1, 2, 3)');
+  } else if (paymentState === 'unpaid') {
+    where.push('ao.order_status = 0');
+  } else if (paymentState === 'cancelled') {
+    where.push('ao.order_status IN (4, 6)');
+  } else if (paymentState === 'completed') {
+    where.push('ao.order_status = 3');
+  }
+
   if (query.delivery_only === true || query.delivery_only === 'true') {
     where.push("(ao.order_status >= 2 OR EXISTS (SELECT 1 FROM transactions t WHERE t.order_no = ao.order_no AND t.status = '已确认'))");
   }
