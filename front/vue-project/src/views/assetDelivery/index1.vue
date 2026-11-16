@@ -1833,11 +1833,17 @@ onBeforeUnmount(() => {
   background: transparent;
   color: #57606a;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 .delivery-filter-option:hover { background: #f6f8fa; }
-.delivery-filter-option.active { background: #eaf2fb; color: #0969da; font-weight: 600; }
+.delivery-filter-option.active {
+  background: #f6f8fa;
+  color: #0969da;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .delivery-filter-option:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 .delivery-filter-count { margin-left: auto; color: #57606a; font-size: 12px; white-space: nowrap; }
 
