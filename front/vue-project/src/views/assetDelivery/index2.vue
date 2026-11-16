@@ -42,9 +42,7 @@
                   </div>
                 </td>
                 <td>
-                  <el-button type="info" link @click="openHistoryDialog(item)">
-                    {{ getBuyerDeliveryStatusText(item) }}
-                  </el-button>
+                  <span class="delivery-status-text">{{ getBuyerDeliveryStatusText(item) }}</span>
                 </td>
                 <td class="buyer-action-col">
                   <div class="buyer-actions buyer-actions--inline">
@@ -1804,11 +1802,15 @@ onBeforeUnmount(() => {
   color: #1f2328;
 }
 
+.buyer-table td:nth-child(-n + 3) {
+  font-size: 13px;
+}
+
 .styled-table th {
   background: #f8fafc;
   color: #1f2328;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
   border-bottom: 1px solid #dde4ee;
 }
@@ -1878,10 +1880,10 @@ onBeforeUnmount(() => {
 .asset-info-cell {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 5px;
   min-width: 0;
-  text-align: left;
+  text-align: center;
 }
 
 .asset-name-link {
@@ -1890,13 +1892,12 @@ onBeforeUnmount(() => {
   padding: 0;
   border: 0;
   background: none;
-  color: #0969da;
+  color: var(--app-text-primary);
   font: inherit;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.5;
-  text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1904,7 +1905,8 @@ onBeforeUnmount(() => {
 }
 
 .asset-name-link:hover {
-  color: #0550ae;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .asset-name-link:focus-visible {
@@ -1919,7 +1921,12 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--app-text-secondary);
-  font-size: 12px;
+  font-size: 13px;
+}
+
+.delivery-status-text {
+  color: var(--app-text-primary);
+  font-size: 13px;
 }
 
 .asset-preview {
@@ -1984,7 +1991,7 @@ onBeforeUnmount(() => {
 .single-action-cell :deep(.el-button) {
   margin-left: 0;
   padding: 0 4px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .empty-cell {
