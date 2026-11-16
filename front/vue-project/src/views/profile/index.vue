@@ -6,7 +6,9 @@
           <el-card class="profile-header app-workbench-panel" shadow="never">
             <div class="header-content">
               <div class="avatar-block">
-                <el-avatar :size="72" :src="avatarUrl" />
+                <button type="button" class="avatar-preview-trigger" aria-label="查看头像" @click="avatarDialogVisible = true">
+                  <el-avatar :size="72" :src="avatarUrl" />
+                </button>
                 <input
                   ref="avatarInputRef"
                   type="file"
@@ -18,12 +20,13 @@
               <div class="base">
                 <div class="title-row">
                   <span class="name">{{ displayName }}</span>
-                  <span class="profile-role">{{ roleLabel }}</span>
-                  <el-button class="avatar-action profile-action-button" @click="openAvatarPicker">更换头像</el-button>
                 </div>
                 <div class="desc">
-                  <span>账号：{{ user.account || '-' }}</span>
-                  <span>用户ID：{{ user.id || '-' }}</span>
+                  <div class="identity-line">
+                    <span>账号：{{ user.account || '-' }}</span>
+                    <span>用户ID：{{ user.id || '-' }}</span>
+                    <span>用户身份：{{ roleLabel }}</span>
+                  </div>
                   <span>注册时间：{{ formatDateTime(user.create_time) }}</span>
                 </div>
               </div>
@@ -78,7 +81,7 @@
                     </div>
                   </div>
                 </div>
-                <el-button class="profile-action-button cert-action" @click="openCertificateDialog('renew')">续期证书</el-button>
+                <el-button class="profile-action-button cert-action" @click="openCertificateDialog('renew')">证书续期</el-button>
               </div>
               <el-alert v-else-if="certLoadError" :title="certLoadError" type="error" :closable="false" />
               <div v-else-if="!certLoading" class="certificate-empty">
@@ -147,13 +150,19 @@
             <div class="section-title">交易信息</div>
           </template>
           <template v-if="roleKey === 'buyer' || roleKey === 'seller'">
-            <div class="role-tip">{{ roleKey === 'buyer' ? '已支付订单与交付概览' : '交易订单与交付概览' }}</div>
+            <div class="role-tip">{{ roleKey === 'buyer' ? '已支付订单与交付概览' : '资产交易与交付概览' }}</div>
             <div v-if="summaryLoading" class="summary-message">正在加载订单数据…</div>
             <div v-else-if="summaryError" class="summary-message">{{ summaryError }}</div>
+            <div v-else-if="roleKey === 'seller'" class="summary-grid">
+              <div class="summary-item"><span>已登记资产</span><strong>{{ orderSummary.registered_assets }}</strong></div>
+              <div class="summary-item"><span>收到订单数</span><strong>{{ orderSummary.paid_orders }}</strong></div>
+              <div class="summary-item"><span>待交付订单</span><strong>{{ orderSummary.awaiting_delivery }}</strong></div>
+              <div class="summary-item"><span>已完成订单</span><strong>{{ orderSummary.completed_orders }}</strong></div>
+            </div>
             <div v-else class="summary-grid">
               <div class="summary-item">
-                <span>{{ roleKey === 'buyer' ? '购买次数' : '交易订单' }}</span>
-                <strong>{{ roleKey === 'buyer' ? orderSummary.paid_orders : orderSummary.total_orders }}</strong>
+                <span>购买次数</span>
+                <strong>{{ orderSummary.paid_orders }}</strong>
               </div>
               <div class="summary-item"><span>已完成订单</span><strong>{{ orderSummary.completed_orders }}</strong></div>
               <div class="summary-item"><span>待交付</span><strong>{{ orderSummary.awaiting_delivery }}</strong></div>
@@ -163,14 +172,23 @@
           <div v-else class="role-tip">当前角色：{{ roleLabel }}</div>
           <div class="work-list">
             <div v-for="item in roleModules" :key="item.title" class="work-item">
-              <div class="work-title">{{ item.title }}</div>
+              <router-link :to="item.path" class="work-title work-link">{{ item.title }}</router-link>
               <div class="work-desc">{{ item.desc }}</div>
-              <el-button type="primary" link @click="goPath(item.path)">进入</el-button>
             </div>
           </div>
         </el-card>
       </el-col>
     </el-row>
+
+    <el-dialog v-model="avatarDialogVisible" title="我的头像" width="min(380px, 92vw)">
+      <div class="avatar-preview">
+        <img :src="avatarUrl" alt="当前头像" />
+      </div>
+      <template #footer>
+        <el-button @click="avatarDialogVisible = false">关闭</el-button>
+        <el-button class="profile-action-button" :loading="avatarUploading" @click="openAvatarPicker">更换头像</el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="ledgerVisible" title="余额明细" width="min(700px, 92vw)">
       <div v-loading="ledgerLoading">
@@ -337,6 +355,8 @@ const certSubmitting = ref(false)
 const certLoadError = ref('')
 const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png')
 const avatarInputRef = ref<HTMLInputElement | null>(null)
+const avatarDialogVisible = ref(false)
+const avatarUploading = ref(false)
 const tokenPayload = parseTokenPayload() || {}
 
 const user = reactive({
@@ -380,6 +400,7 @@ const roleLabel = computed(() => getRoleLabel(user.identity || tokenPayload.iden
 const roleKey = computed(() => getRoleKey(user.identity || tokenPayload.identity || ''))
 const displayName = computed(() => user.name || user.account || '未命名用户')
 const orderSummary = reactive({
+  registered_assets: 0,
   total_orders: 0,
   paid_orders: 0,
   awaiting_delivery: 0,
@@ -473,6 +494,7 @@ const handleAvatarSelected = async (event: Event) => {
   const formData = new FormData()
   formData.append('avatar_file', file)
 
+  avatarUploading.value = true
   try {
     const uploadRes = await uploadAvatar(formData)
     if (uploadRes.data.status !== 0) {
@@ -486,6 +508,7 @@ const handleAvatarSelected = async (event: Event) => {
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || '头像更新失败')
   } finally {
+    avatarUploading.value = false
     input.value = ''
   }
 }
@@ -570,10 +593,6 @@ const savePassword = async () => {
   } catch (e) {
     ElMessage.error('密码修改失败')
   }
-}
-
-const goPath = (path: string) => {
-  router.push(path)
 }
 
 const openCertificateDialog = (mode: 'apply' | 'renew') => {
@@ -758,6 +777,11 @@ onMounted(() => {
   padding: 0 14px;
   font-weight: 600;
 }
+.profile-page :deep(.el-button.recharge-entry-button),
+.profile-page :deep(.el-button.cert-action) {
+  width: 136px;
+  justify-content: center;
+}
 .recharge-entry-button img { width: 18px; height: 18px; margin-right: 6px; border-radius: 4px; object-fit: contain; }
 .recharge-title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .recharge-title img { width: 24px; height: 24px; border-radius: 5px; object-fit: contain; }
@@ -797,12 +821,19 @@ onMounted(() => {
   .desc {
     color: #57606a;
     font-size: 13px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
-  .desc span {
+  .identity-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+  }
+
+  .identity-line span,
+  .desc > span {
     min-width: 0;
     overflow-wrap: anywhere;
   }
@@ -810,15 +841,36 @@ onMounted(() => {
 
 .account-column { min-width: 0; }
 
-.avatar-action { margin-left: auto; }
+.avatar-preview-trigger {
+  display: block;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
 
-.profile-role {
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
+.avatar-preview-trigger:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 3px;
+}
+
+.avatar-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 240px;
+  border-radius: 8px;
   background: #f6f8fa;
-  color: #57606a;
-  font-size: 12px;
-  padding: 3px 8px;
+}
+
+.avatar-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
 }
 
 .main-row {
@@ -922,15 +974,9 @@ onMounted(() => {
   .cert-action { align-self: flex-end; }
 }
 
-@media (max-width: 900px) {
-  .profile-header .desc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
 @media (max-width: 600px) {
   .profile-header :deep(.el-card__body) { padding: 20px; }
   .profile-header .header-content { align-items: flex-start; gap: 16px; }
-  .profile-header .desc { grid-template-columns: minmax(0, 1fr); }
-  .avatar-action { margin-left: 0; }
 }
 
 .role-tip {
@@ -972,13 +1018,20 @@ onMounted(() => {
   gap: 10px;
 
   .work-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 92px;
+    box-sizing: border-box;
+    text-align: center;
     border: 1px solid #d8dee4;
     border-radius: 6px;
     background: #fff;
     padding: 12px;
 
     .work-title {
-      color: #1f2328;
+      color: #0969da;
       font-weight: 600;
       margin-bottom: 4px;
     }
@@ -991,6 +1044,7 @@ onMounted(() => {
   }
 }
 
-.role-card :deep(.el-button.is-link) { color: #57606a; }
-.role-card :deep(.el-button.is-link:hover) { color: #0969da; }
+.work-link { text-decoration: none; }
+.work-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.work-link:focus-visible { outline: 2px solid #0969da; outline-offset: 3px; }
 </style>

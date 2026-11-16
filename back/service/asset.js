@@ -4221,7 +4221,7 @@ exports.getOrderSummary = async (userId, identity = '') => {
   const from = seller
     ? 'FROM asset_order ao INNER JOIN asset_publish_record apr ON apr.id = ao.publish_id WHERE apr.publisher_id = ?'
     : 'FROM asset_order ao WHERE ao.buyer_id = ? AND ao.buyer_deleted_at IS NULL';
-  const [rows] = await pool.query(`
+  const [orderResult, assetResult] = await Promise.all([pool.query(`
     SELECT
       COUNT(*) AS total_orders,
       COALESCE(SUM(ao.order_status IN (1, 2, 3)), 0) AS paid_orders,
@@ -4229,8 +4229,13 @@ exports.getOrderSummary = async (userId, identity = '') => {
       COALESCE(SUM(ao.order_status = 2), 0) AS awaiting_confirmation,
       COALESCE(SUM(ao.order_status = 3), 0) AS completed_orders
     ${from}
-  `, [userId]);
-  return rows[0];
+  `, [userId]), seller
+    ? pool.query('SELECT COUNT(*) AS registered_assets FROM digital_asset WHERE user_id = ?', [userId])
+    : Promise.resolve(null)]);
+  return {
+    ...orderResult[0][0],
+    registered_assets: seller ? Number(assetResult[0][0].registered_assets || 0) : 0,
+  };
 };
 
 exports.listOrders = async (query, userId, identity = '') => {
