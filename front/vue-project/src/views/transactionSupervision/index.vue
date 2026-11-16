@@ -103,7 +103,7 @@
             />
           </el-form-item>
           <div class="filter-actions">
-            <el-button type="primary" @click="applyFilters">查询</el-button>
+            <el-button type="primary" class="app-search-button" @click="applyFilters">查询</el-button>
             <el-button @click="resetFilters">重置</el-button>
           </div>
         </el-form>

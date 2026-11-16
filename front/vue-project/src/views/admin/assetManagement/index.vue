@@ -40,7 +40,7 @@
           <el-option label="已售罄" :value="2" />
           <el-option label="已下架" :value="0" />
         </el-select>
-        <el-button type="primary" @click="handleSearch">
+        <el-button type="primary" class="app-search-button" @click="handleSearch">
           <el-icon><Search /></el-icon>查询
         </el-button>
         <el-button @click="handleReset">

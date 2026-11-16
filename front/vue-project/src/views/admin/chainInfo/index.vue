@@ -40,7 +40,7 @@
           <el-option label="待上链" :value="0" />
           <el-option label="上链失败" :value="2" />
         </el-select>
-        <el-button type="primary" @click="handleSearch">
+        <el-button type="primary" class="app-search-button" @click="handleSearch">
           <el-icon><Search /></el-icon>查询
         </el-button>
         <el-button @click="handleReset">

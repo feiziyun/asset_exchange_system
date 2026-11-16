@@ -15,7 +15,7 @@
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
-        <el-button @click="handleSearch">搜索用户</el-button>
+        <el-button class="app-search-button" @click="handleSearch">搜索用户</el-button>
         <el-button type="primary" @click="openCreateDialog">新增用户</el-button>
       </div>
 

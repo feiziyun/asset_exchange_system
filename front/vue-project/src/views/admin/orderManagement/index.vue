@@ -45,7 +45,7 @@
           <el-option label="退款中" :value="5" />
           <el-option label="已退款" :value="6" />
         </el-select>
-        <el-button type="primary" @click="handleSearch">
+        <el-button type="primary" class="app-search-button" @click="handleSearch">
           <el-icon><Search /></el-icon>查询
         </el-button>
         <el-button @click="handleReset">
