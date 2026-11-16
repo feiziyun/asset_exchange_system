@@ -1727,9 +1727,9 @@ onBeforeUnmount(() => {
 }
 
 .buyer-actions :deep(.el-button.delivery-action-button.is-disabled) {
-  --el-button-disabled-bg-color: #f4f4f5;
-  --el-button-disabled-border-color: #e9e9eb;
-  --el-button-disabled-text-color: #909399;
+  --el-button-disabled-bg-color: #fafbfc;
+  --el-button-disabled-border-color: #eef0f2;
+  --el-button-disabled-text-color: #aeb5bd;
   box-shadow: none;
   opacity: 1;
 }

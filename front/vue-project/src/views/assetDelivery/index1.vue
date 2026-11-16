@@ -1926,9 +1926,9 @@ onBeforeUnmount(() => {
 }
 
 body button.upload-btn:disabled {
-  background: #f4f4f5 !important;
-  border-color: #e9e9eb !important;
-  color: #909399 !important;
+  background: #fafbfc !important;
+  border-color: #eef0f2 !important;
+  color: #aeb5bd !important;
   box-shadow: none;
   opacity: 1;
 }
