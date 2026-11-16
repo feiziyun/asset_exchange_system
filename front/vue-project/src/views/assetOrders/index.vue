@@ -351,7 +351,7 @@ onMounted(fetchOrders)
 
 .orders-filter-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 650px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   min-width: 0;
@@ -361,18 +361,18 @@ onMounted(fetchOrders)
 }
 
 .header-actions {
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 1;
   justify-self: end;
   white-space: nowrap;
 }
 
 .order-filter-bar {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
   min-width: 0;
   max-width: 100%;
@@ -428,18 +428,6 @@ onMounted(fetchOrders)
   .orders-search {
     grid-column: 1 / -1;
     grid-row: 2;
-  }
-
-  .orders-filter-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .order-filter-bar { grid-column: 1; }
-
-  .header-actions {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
   }
 }
 
