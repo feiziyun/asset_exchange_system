@@ -326,6 +326,7 @@ exports.listOrder_limit = {
     page_size: pageSize,
     keyword: joi.string().allow('').default(''),
     delivery_only: joi.boolean().default(false),
+    exclude_cancelled: joi.boolean().default(false),
     payment_state: joi.string().pattern(/^(none|(paid|unpaid|cancelled|completed)(,(paid|unpaid|cancelled|completed))*)$/).allow('').default(''),
     order_status: joi.number().integer().valid(0, 1, 2, 3, 4, 5, 6),
     order_role: joi.string().valid('buyer', 'seller', 'both').default('both'),

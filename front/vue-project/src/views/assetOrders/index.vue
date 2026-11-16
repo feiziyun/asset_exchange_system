@@ -3,20 +3,20 @@
     <div class="orders-page">
       <header class="orders-header toolbar-section">
         <div class="orders-title"><h2 class="page-title">订单列表</h2></div>
-        <div class="orders-controls">
-          <div class="app-search-bar">
-            <el-input
-              v-model="searchInput"
-              class="app-search-input"
-              placeholder="搜索订单号或资产名称"
-              clearable
-              @keyup.enter="onSearch"
-              @clear="onSearch"
-            >
-              <template #prefix><el-icon><Search /></el-icon></template>
-            </el-input>
-            <el-button class="app-search-button" @click="onSearch">搜索</el-button>
-          </div>
+        <div class="app-search-bar orders-search">
+          <el-input
+            v-model="searchInput"
+            class="app-search-input"
+            placeholder="搜索订单号或资产名称"
+            clearable
+            @keyup.enter="onSearch"
+            @clear="onSearch"
+          >
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <el-button class="app-search-button" @click="onSearch">搜索</el-button>
+        </div>
+        <div class="orders-filter-row">
           <div class="order-filter-bar">
             <span class="order-filter-label">订单状态</span>
             <el-checkbox
@@ -30,9 +30,9 @@
               </el-checkbox>
             </el-checkbox-group>
           </div>
-        </div>
-        <div class="header-actions">
-          <span class="order-count">共 {{ pagination.total }} 笔订单</span>
+          <div class="header-actions">
+            <span class="order-count">共 {{ pagination.total }} 笔订单</span>
+          </div>
         </div>
       </header>
 
@@ -74,12 +74,13 @@
               <div class="order-actions">
                 <el-button
                   v-if="isPendingOrder(row)"
+                  class="confirm-order-button"
                   type="primary"
                   :loading="actionLoadingNo === row.order_no"
                   @click="handleSellerConfirm(row)"
                 >确认交易</el-button>
                 <template v-if="isConfirmedOrder(row)">
-                  <el-button disabled>已确认</el-button>
+                  <el-button class="confirm-order-button" disabled>已确认</el-button>
                   <button type="button" class="delivery-link" @click="goToDelivery(row)">前往交付工作台</button>
                 </template>
                 <el-button
@@ -152,12 +153,12 @@ const query = reactive({
   keyword: '',
   order_role: 'seller',
   payment_state: '',
+  exclude_cancelled: true,
 })
 
 const statusOptions = [
   { label: '已付款', value: 'paid' },
   { label: '待付款', value: 'unpaid' },
-  { label: '已取消', value: 'cancelled' },
   { label: '已完成', value: 'completed' },
 ]
 const selectedStatuses = ref<string[]>(statusOptions.map((option) => option.value))
@@ -341,19 +342,21 @@ onMounted(fetchOrders)
 
 .orders-title { grid-column: 1; min-width: 0; }
 
-.orders-controls {
+.orders-search {
   grid-column: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
+  grid-row: 1;
+  width: min(100%, 420px);
+  justify-self: center;
 }
 
-.orders-controls .app-search-bar {
-  grid-column: auto;
-  grid-row: auto;
-  width: min(100%, 420px);
+.orders-filter-row {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 650px) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
 }
 
 .header-actions {
@@ -364,6 +367,8 @@ onMounted(fetchOrders)
 }
 
 .order-filter-bar {
+  grid-column: 2;
+  grid-row: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -419,10 +424,17 @@ onMounted(fetchOrders)
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .orders-controls {
+  .orders-search {
     grid-column: 1 / -1;
     grid-row: 2;
   }
+
+  .orders-filter-row {
+    grid-row: 3;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .order-filter-bar { grid-column: 1; }
 
   .header-actions {
     grid-column: 2;
@@ -555,6 +567,11 @@ onMounted(fetchOrders)
   flex-direction: column;
   align-items: flex-end;
   gap: 5px;
+}
+
+.order-actions :deep(.el-button.confirm-order-button) {
+  width: 104px;
+  margin: 0;
 }
 
 .delivery-link {

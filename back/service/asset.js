@@ -4268,6 +4268,10 @@ exports.listOrders = async (query, userId, identity = '') => {
     params.push(Number(query.order_status));
   }
 
+  if (query.exclude_cancelled === true || query.exclude_cancelled === 'true') {
+    where.push('ao.order_status NOT IN (4, 6)');
+  }
+
   const paymentStates = String(query.payment_state || '').toLowerCase().split(',').filter(Boolean);
   const statusGroups = {
     paid: [1, 2, 3],
