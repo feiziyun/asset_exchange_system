@@ -48,23 +48,23 @@
                 <td class="buyer-action-col">
                   <div class="buyer-actions buyer-actions--inline">
                     <el-button
-                      type="info"
-                      link
+                      type="primary"
+                      class="delivery-action-button"
                       :disabled="!canOpenDeliveryDetail(item)"
                       @click="openDeliveryDetail(item)"
-                    >交付详情</el-button>
+                    >查看详情</el-button>
                     <el-button
                       v-if="isHeOrder(item)"
                       type="primary"
-                      link
+                      class="delivery-action-button"
                       :loading="actionLoadingNo === `buyer-he-${item.order_no}`"
                       :disabled="isDeliveryExpired(item) || Boolean(item.he_record?.public_keys_ready) || actionLoadingNo === `buyer-he-${item.order_no}`"
                       @click="submitHeBuyerRequest(item)"
                     >{{ item.he_record?.public_keys_ready ? '已请求' : '请求交付' }}</el-button>
                     <el-button
                       v-if="isHeOrder(item)"
-                      type="success"
-                      link
+                      type="primary"
+                      class="delivery-action-button"
                       :loading="actionLoadingNo === `download-${item.order_no}`"
                       :disabled="!canDownloadHeResult(item) || actionLoadingNo === `download-${item.order_no}`"
                       @click="downloadBuyerResult(item)"
@@ -72,15 +72,15 @@
                     <el-button
                       v-if="isFlOrder(item)"
                       type="primary"
-                      link
+                      class="delivery-action-button"
                       :loading="flBuyerDialog.submitting && flBuyerDialog.order?.order_no === item.order_no"
                       :disabled="isDeliveryExpired(item) || Boolean(item.fl_record?.pcp_contract_id)"
                       @click="openBuyerDelivery(item)"
                     >{{ getBuyerFlActionLabel(item) }}</el-button>
                     <el-button
                       v-if="isFlOrder(item)"
-                      type="success"
-                      link
+                      type="primary"
+                      class="delivery-action-button"
                       :loading="actionLoadingNo === `download-${item.order_no}`"
                       :disabled="!canDownloadFlBuyerResult(item) || actionLoadingNo === `download-${item.order_no}`"
                       @click="downloadBuyerResult(item)"
@@ -88,15 +88,15 @@
                     <el-button
                       v-if="isPreOrder(item)"
                       type="primary"
-                      link
+                      class="delivery-action-button"
                       :loading="actionLoadingNo === `buyer-pre-${item.order_no}`"
                       :disabled="isDeliveryExpired(item) || Boolean(item.pre_record?.buyer_public_key_ready) || actionLoadingNo === `buyer-pre-${item.order_no}`"
                       @click="submitPreBuyerRequest(item)"
                     >{{ item.pre_record?.buyer_public_key_ready ? '已请求' : '请求交付' }}</el-button>
                     <el-button
                       v-if="isPreOrder(item)"
-                      type="success"
-                      link
+                      type="primary"
+                      class="delivery-action-button"
                       :loading="actionLoadingNo === `download-${item.order_no}`"
                       :disabled="!canDownloadPreResult(item) || actionLoadingNo === `download-${item.order_no}`"
                       @click="downloadBuyerResult(item)"
@@ -104,15 +104,15 @@
                     <el-button
                       v-if="isMpcOrder(item)"
                       type="primary"
-                      link
+                      class="delivery-action-button"
                       :loading="mpcBuyerDialog.submitting && mpcBuyerDialog.order?.order_no === item.order_no"
                       :disabled="!canTriggerMpcBuyerAction(item)"
                       @click="openBuyerDelivery(item)"
                     >{{ getBuyerMpcActionLabel(item) }}</el-button>
                     <el-button
                       v-if="isMpcOrder(item)"
-                      type="success"
-                      link
+                      type="primary"
+                      class="delivery-action-button"
                       :loading="actionLoadingNo === `download-${item.order_no}`"
                       :disabled="!canDownloadMpcResult(item) || actionLoadingNo === `download-${item.order_no}`"
                       @click="downloadBuyerResult(item)"
@@ -1714,6 +1714,23 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 10px;
   flex-wrap: nowrap;
+}
+
+.buyer-actions :deep(.el-button.delivery-action-button) {
+  --el-button-bg-color: #f6f8fa;
+  --el-button-border-color: #d0d7de;
+  --el-button-text-color: #0969da;
+  --el-button-hover-bg-color: #eef1f4;
+  --el-button-hover-border-color: #b7c1ca;
+  --el-button-hover-text-color: #0550ae;
+  --el-button-active-bg-color: #e7ebef;
+  --el-button-active-border-color: #aeb8c2;
+  --el-button-active-text-color: #0550ae;
+  min-width: 76px;
+  height: 30px;
+  margin: 0;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .request-status-pill {
