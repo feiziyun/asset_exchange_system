@@ -8,6 +8,9 @@
   --app-text-primary: #1f2328;
   --app-text-secondary: #57606a;
   --app-text-muted: #6e7781;
+  --app-link-color: #0969da;
+  --el-color-primary: var(--app-link-color);
+  --el-color-primary-dark-2: #0550ae;
   --el-text-color-primary: var(--app-text-primary);
   --el-text-color-regular: var(--app-text-secondary);
   --el-text-color-secondary: var(--app-text-muted);

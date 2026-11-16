@@ -43,13 +43,13 @@
 body .el-button.app-search-button {
   --el-button-bg-color: #eaf3ff;
   --el-button-border-color: #b6d3f8;
-  --el-button-text-color: #0759b6;
+  --el-button-text-color: var(--app-link-color);
   --el-button-hover-bg-color: #dcecff;
   --el-button-hover-border-color: #8ab8f2;
-  --el-button-hover-text-color: #064b97;
+  --el-button-hover-text-color: #0550ae;
   --el-button-active-bg-color: #cfe4fc;
   --el-button-active-border-color: #78aaeb;
-  --el-button-active-text-color: #064b97;
+  --el-button-active-text-color: #0550ae;
   min-width: 78px;
   height: 32px;
   padding: 0 16px;
