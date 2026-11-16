@@ -1,6 +1,6 @@
 <template>
   <div class="common-wrapped">
-    <div class="manage-page" :class="{ 'buyer-manage-page': roleKey === 'buyer' }">
+    <div class="manage-page" :class="{ 'delivery-width-page': roleKey === 'buyer' || roleKey === 'seller' }">
       <section class="toolbar-section">
         <div class="toolbar-row app-search-layout">
           <div class="title-wrap">
@@ -63,14 +63,18 @@
                     <td>{{ item.classification_data_level || '一般数据' }}</td>
                     <td>
                       <div class="brief-cell">
-                        {{ item.brief || item.description || '暂无资产描述' }}
+                        {{ item.description || item.brief || '暂无资产描述' }}
                       </div>
                     </td>
                     <td>{{ item.is_proxy ? item.quantity_remaining : Number(item.remaining_qty || 0) + Number(item.available_qty || 0) }}</td>
                     <td>
-                      <el-tag :type="item.active_delegation ? 'warning' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? 'info' : statusTag(item.status)">
-                        {{ item.active_delegation ? '代理托管中' : Number(item.remaining_qty) === 0 && Number(item.status) === 1 ? Number(item.available_qty) > 0 ? '待上架' : '已售罄' : statusText(item.status) }}
-                      </el-tag>
+                      <button
+                        v-if="!item.is_proxy && !item.active_delegation"
+                        type="button"
+                        class="trade-status-button"
+                        @click="openTradeStatus(item)"
+                      >{{ tradeStatusText(item) }}</button>
+                      <span v-else class="trade-status-static">{{ tradeStatusText(item) }}</span>
                     </td>
                     <td>
                       <div class="permission-list">
@@ -349,8 +353,8 @@
             v-model="editForm.status"
             :active-value="1"
             :inactive-value="0"
-            active-text="上架中"
-            inactive-text="未上架"
+            active-text="已开放交易"
+            inactive-text="未开放交易"
           />
         </el-form-item>
         <el-form-item label="估值定价">
@@ -371,6 +375,25 @@
     <template #footer>
       <el-button @click="editVisible = false">取消</el-button>
       <el-button type="primary" :loading="editLoading" @click="submitEdit">保存</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="tradeStatusVisible" title="交易状态与上架数量" width="420px">
+    <el-form label-width="96px">
+      <el-form-item label="上架状态">
+        <el-radio-group v-model="tradeStatusTarget">
+          <el-radio :value="0">未开放交易</el-radio>
+          <el-radio :value="1" :disabled="!tradeStatusCanOpen">已开放交易</el-radio>
+          <el-radio v-if="tradeStatusTarget === 2" :value="2" disabled>资产已售罄</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item v-if="tradeStatusTarget === 1" label="上架数量">
+        <el-input-number v-model="tradeStatusQuantity" :min="1" :max="tradeStatusMaxQuantity" :precision="0" :disabled="!tradeStatusRow || !canPublish(tradeStatusRow)" style="width: 100%" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="tradeStatusVisible = false">取消</el-button>
+      <el-button type="primary" :loading="tradeStatusLoading" :disabled="tradeStatusTarget === 2" @click="submitTradeStatus">保存</el-button>
     </template>
   </el-dialog>
 
@@ -730,6 +753,28 @@ const proxyCustodyForm = reactive({
 })
 const proxySelectedAsset = ref<AssetItem | null>(null)
 const proxyAvailableRights = computed(() => proxySelectedAsset.value ? availableProxyRights(proxySelectedAsset.value) : [])
+const tradeStatusVisible = ref(false)
+const tradeStatusLoading = ref(false)
+const tradeStatusRow = ref<AssetItem | null>(null)
+const tradeStatusTarget = ref(0)
+const tradeStatusQuantity = ref(1)
+const tradeStatusCanOpen = computed(() => {
+  const row = tradeStatusRow.value
+  return !!row && ((Number(row.status) === 1 && Number(row.remaining_qty) > 0) || canPublish(row))
+})
+const tradeStatusMaxQuantity = computed(() => {
+  const row = tradeStatusRow.value
+  if (!row) return 0
+  const listedQty = Number(row.status) === 1 ? Number(row.remaining_qty || 0) : 0
+  return Number(row.available_qty || 0) + listedQty
+})
+
+const tradeStatusText = (row: AssetItem) => {
+  if (row.is_proxy || row.active_delegation) return '代理托管中'
+  if (Number(row.status) === 1 && Number(row.remaining_qty) > 0) return '已开放交易'
+  if (Number(row.status) === 2 || (Number(row.status) === 1 && Number(row.available_qty) === 0)) return '资产已售罄'
+  return '未开放交易'
+}
 
 const statusText = (status?: number) => {
   if (status === 0) return '未上架'
@@ -1014,6 +1059,69 @@ const canPublish = (row: AssetItem) => {
 
 const canDownShelf = (row: AssetItem) => {
   return Number(row.status) === 1
+}
+
+const openTradeStatus = (row: AssetItem) => {
+  tradeStatusRow.value = row
+  const listedQty = Number(row.remaining_qty || 0)
+  tradeStatusTarget.value = Number(row.status) === 1 && listedQty > 0
+    ? 1
+    : tradeStatusText(row) === '资产已售罄' ? 2 : 0
+  tradeStatusQuantity.value = listedQty > 0 ? listedQty : Math.max(1, Number(row.available_qty || 0))
+  tradeStatusVisible.value = true
+}
+
+const submitTradeStatus = async () => {
+  const row = tradeStatusRow.value
+  if (!row || tradeStatusTarget.value === 2) return
+  const currentlyOpen = Number(row.status) === 1 && Number(row.remaining_qty) > 0
+  const targetOpen = tradeStatusTarget.value === 1
+  const quantity = Number(tradeStatusQuantity.value)
+  if (targetOpen && (!tradeStatusCanOpen.value || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > tradeStatusMaxQuantity.value)) {
+    ElMessage.error('请选择有效的上架数量')
+    return
+  }
+  if (targetOpen && currentlyOpen && quantity === Number(row.remaining_qty)) {
+    tradeStatusVisible.value = false
+    return
+  }
+  if (targetOpen && !canPublish(row)) {
+    ElMessage.warning('当前资产不能调整上架数量')
+    return
+  }
+  if (!targetOpen && Number(row.status) === 0) {
+    tradeStatusVisible.value = false
+    return
+  }
+
+  tradeStatusLoading.value = true
+  try {
+    const res = targetOpen
+      ? await publishAsset({
+          asset_id: row.id,
+          publish_price: row.pricing_mode === 'auction'
+            ? normalizeAuctionStartPrice(row.auction_start_price ?? row.price ?? 0)
+            : roundPrice(row.price),
+          publish_qty: quantity,
+          pricing_mode: row.pricing_mode === 'auction' ? 'auction' : 'fixed',
+          auction_start_price: row.pricing_mode === 'auction'
+            ? normalizeAuctionStartPrice(row.auction_start_price ?? row.price ?? 0)
+            : null,
+          auction_end_time: row.auction_end_time || null,
+        })
+      : await updateAssetStatus(row.id, 0)
+    if (res.data.status !== 0) {
+      ElMessage.error(res.data.message || '交易状态更新失败')
+      return
+    }
+    ElMessage.success('交易状态更新成功')
+    tradeStatusVisible.value = false
+    await fetchOwnedAssets()
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || '交易状态更新失败')
+  } finally {
+    tradeStatusLoading.value = false
+  }
 }
 
 const openOrderDetail = (row: PurchasedItem) => {
@@ -1348,7 +1456,7 @@ onMounted(fetchCurrent)
     box-sizing: border-box;
   }
 
-  .buyer-manage-page {
+  .delivery-width-page {
     width: min(100%, 1240px);
     min-height: calc(100vh - 112px);
     padding: 24px 24px 48px;
@@ -1436,12 +1544,41 @@ onMounted(fetchCurrent)
 
 .seller-table th:nth-child(1) { width: 120px; }
 .seller-table th:nth-child(2) { width: 76px; }
-.seller-table th:nth-child(3) { width: 180px; }
+.seller-table th:nth-child(3) { width: 260px; }
 .seller-table th:nth-child(4) { width: 76px; }
 .seller-table th:nth-child(5) { width: 82px; }
 .seller-table th:nth-child(6) { width: 100px; }
 .seller-table th:nth-child(7) { width: 88px; }
 .seller-table th:nth-child(8) { width: 100px; }
+
+.seller-table td:nth-child(3) {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.seller-table .brief-cell {
+  display: block;
+  overflow: visible;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset;
+}
+
+.trade-status-button,
+.trade-status-static {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--app-text-primary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.trade-status-button { cursor: pointer; }
+.trade-status-button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.trade-status-button:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 
 .purchased-table th:nth-child(1) { width: 31%; }
 .purchased-table th:nth-child(2) { width: 12%; }
