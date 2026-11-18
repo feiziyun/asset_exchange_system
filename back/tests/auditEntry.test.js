@@ -27,6 +27,19 @@ const response = () => ({
   redirect(code, url) { this.statusCode = code; this.redirectUrl = url; return this; },
 });
 
+test('shared Hub directory exposes PAM nodes only', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => Response.json({ nodes: [
+    { node_id: 'mpc-auditor-1', web_origin: 'http://mpc.example' },
+    { node_id: 'pam-node-1', web_origin: 'http://node.example' },
+  ] });
+  try {
+    assert.deepEqual((await pamNodes.fetchNodes(true)).map((node) => node.node_id), ['pam-node-1']);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test('entry requires an auditor or administrator and creates an isolated handoff cookie', async () => {
   const originalGetUser = pamNodes.getUser;
   pamNodes.getUser = async () => ({ id: 7, identity: 'auditor', status: 0, auditor_target: 'HUB' });
