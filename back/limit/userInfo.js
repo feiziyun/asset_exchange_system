@@ -9,9 +9,9 @@ const gender = joi.string().valid('男', '女').required();
 // 邮箱：必须是符合邮箱格式的字符串
 const email = joi.string().email().required();
 //旧密码
-const oldPassword = joi.string().pattern(/^(?![0-9]+$)[a-z0-9]{1,50}$/).min(6).max(12).required();
+const oldPassword = joi.string().pattern(/^(?![0-9]+$)[a-zA-Z0-9]{1,50}$/).min(6).max(12).required();
 //新密码
-const newPassword = joi.string().pattern(/^(?![0-9]+$)[a-z0-9]{1,50}$/).min(6).max(12).required();
+const newPassword = joi.string().pattern(/^(?![0-9]+$)[a-zA-Z0-9]{1,50}$/).min(6).max(12).required();
 //账号
 const account = joi.string().alphanum().min(6).max(12).required();
 
