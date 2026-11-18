@@ -92,7 +92,7 @@
           </el-select>
         </el-form-item>
         <el-form-item v-if="createForm.identity === 'auditor'" label="审计入口">
-          <el-select v-model="createForm.auditor_target" placeholder="请选择审计入口" style="width: 100%">
+          <el-select v-model="createForm.auditor_target" placeholder="可稍后配置" clearable style="width: 100%">
             <el-option label="全局审计总览（Hub）" value="HUB" />
             <el-option v-for="node in auditNodes" :key="node.node_id" :label="nodeLabel(node)" :value="`NODE:${node.node_id}`" />
           </el-select>
@@ -101,7 +101,7 @@
           <el-input v-model.trim="createForm.account" placeholder="6-12位字母或数字" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="createForm.password" placeholder="6-12位小写字母或数字，不能为纯数字" show-password />
+          <el-input v-model="createForm.password" placeholder="6-12位字母或数字，不能为纯数字" show-password />
         </el-form-item>
         <el-form-item label="姓名">
           <el-input v-model.trim="createForm.name" placeholder="选填" />
@@ -255,10 +255,6 @@ const handleCreateUser = async () => {
   }
   if (!createForm.value.account || !createForm.value.password) {
     ElMessage.warning('请填写账号和密码')
-    return
-  }
-  if (createForm.value.identity === 'auditor' && !createForm.value.auditor_target) {
-    ElMessage.warning('审计方必须选择审计入口')
     return
   }
   creating.value = true

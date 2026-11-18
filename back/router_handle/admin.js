@@ -161,10 +161,10 @@ exports.createUser = async (req, res) => {
     });
   }
 
-  if (!/^(?![0-9]+$)[a-z0-9]{6,12}$/.test(String(password || ''))) {
+  if (!/^(?![0-9]+$)[a-zA-Z0-9]{6,12}$/.test(String(password || ''))) {
     return res.send({
       status: 1,
-      message: '密码必须为6-12位小写字母或数字，且不能为纯数字'
+      message: '密码必须为6-12位字母或数字，且不能为纯数字'
     });
   }
 
@@ -175,9 +175,13 @@ exports.createUser = async (req, res) => {
     });
   }
 
-  let auditorTarget;
+  let auditorTarget = '';
   try {
-    auditorTarget = await validateAuditorTarget(normalizedIdentity, req.body?.auditor_target);
+    // Creating a user only requires account and password. The auditor entry
+    // can be assigned later from the role editor.
+    auditorTarget = normalizedIdentity === 'auditor' && req.body?.auditor_target
+      ? await validateAuditorTarget(normalizedIdentity, req.body.auditor_target)
+      : '';
   } catch (error) {
     return res.status(400).send({ status: 1, message: error.message });
   }
