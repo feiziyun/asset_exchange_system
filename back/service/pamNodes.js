@@ -1,11 +1,11 @@
 const crypto = require('node:crypto');
 const db = require('../db/index');
 const auditConfig = require('../config/audit.json');
+const { credentialKey } = require('./pamCredentialKey');
 
 const pool = db.promise();
 const hubApiBase = auditConfig.hubApiBaseUrl || process.env.HUB_API_BASE_URL || '';
 const hubToken = auditConfig.hubTradingToken || process.env.HUB_TRADING_TOKEN || '';
-const credentialKeyHex = auditConfig.nodeCredentialKey || process.env.PAM_NODE_CREDENTIAL_KEY || '';
 
 async function hubFetch(pathname) {
   if (!hubApiBase || !hubToken) throw new Error('审计平台接口未配置');
@@ -32,16 +32,9 @@ async function fetchNodes(force = false) {
   return nodeCache.nodes;
 }
 
-function credentialKey() {
-  if (!/^[0-9a-fA-F]{64}$/.test(credentialKeyHex)) {
-    throw new Error('nodeCredentialKey 未配置或长度不是 32 字节');
-  }
-  return Buffer.from(credentialKeyHex, 'hex');
-}
-
 function encryptSecret(value) {
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', credentialKey(), iv);
+  const cipher = crypto.createCipheriv('aes-256-gcm', credentialKey(true), iv);
   const encrypted = Buffer.concat([cipher.update(String(value), 'utf8'), cipher.final()]);
   return [iv.toString('hex'), cipher.getAuthTag().toString('hex'), encrypted.toString('hex')].join(':');
 }
