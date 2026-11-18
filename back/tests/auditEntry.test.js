@@ -44,6 +44,7 @@ test('entry requires an auditor or administrator and creates an isolated handoff
   }, allowed);
   assert.equal(allowed.statusCode, 200);
   assert.equal(new URL(allowed.body.entry_url).pathname, '/entry/start');
+  assert.equal(new URL(allowed.body.entry_url).searchParams.get('trading_system'), 'asset_exchange');
   assert.equal(new URL(allowed.body.entry_url).searchParams.get('pcc_contract_id'), 'contract 1');
   assert.equal(allowed.cookies[0].name, 'asset_exchange_pam_trade_entry');
   assert.equal(allowed.cookies[0].value, token);

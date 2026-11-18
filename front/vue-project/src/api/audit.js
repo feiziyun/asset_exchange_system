@@ -1,9 +1,9 @@
 import request from '@/http/index.js'
 
-// Hub follows the reference flow: set the cookie on the public trading backend,
-// whose host must also receive the Hub authorization callback.
+// Start on the same public host that receives the Hub callback, so the
+// browser sends the handoff cookie on the return navigation.
 const auditRequestConfig = () => ({
-  ...(import.meta.env.VITE_AUDIT_LAUNCH_ORIGIN ? { baseURL: import.meta.env.VITE_AUDIT_LAUNCH_ORIGIN } : {}),
+  baseURL: window.location.origin,
   withCredentials: true,
 })
 

@@ -109,6 +109,7 @@ exports.startPamEntry = async (req, res) => {
   }
 
   const entryUrl = new URL('/entry/start', `${HUB_WEB_ORIGIN.replace(/\/$/, '')}/`);
+  entryUrl.searchParams.set('trading_system', 'asset_exchange');
   const contractId = String(req.body?.pcc_contract_id || req.query?.pcc_contract_id || '').trim();
   if (contractId) entryUrl.searchParams.set('pcc_contract_id', contractId);
 

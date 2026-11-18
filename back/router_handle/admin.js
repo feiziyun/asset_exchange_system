@@ -294,10 +294,27 @@ exports.updateUserIdentity = async (req, res) => {
     return res.status(400).send({ status: 1, message: error.message });
   }
 
+  try {
+    const [[column]] = await pool.query(`SELECT COUNT(*) AS total FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'auditor_target'`);
+    if (Number(column.total) === 0) {
+      return res.status(503).send({
+        status: 1,
+        message: '数据库缺少 users.auditor_target，请先执行 back/sql/2026-11-11-auditor-entry.sql',
+      });
+    }
+  } catch (error) {
+    console.error('检查审计入口字段失败:', error);
+    return res.status(500).send({ status: 1, message: '检查审计入口数据库字段失败' });
+  }
+
   const operatorId = req.auth?.id;
   const checkSql = 'SELECT id, identity FROM users WHERE id = ? LIMIT 1';
   db.query(checkSql, [id], (err, results) => {
-    if (err) return res.cc(err);
+    if (err) {
+      console.error('查询待修改身份的用户失败:', err);
+      return res.status(500).send({ status: 1, message: '查询用户失败' });
+    }
     if (results.length !== 1) {
       return res.send({
         status: 1,
@@ -315,7 +332,10 @@ exports.updateUserIdentity = async (req, res) => {
 
     const updateSql = 'UPDATE users SET identity = ?, auditor_target = ?, update_time = NOW() WHERE id = ?';
     db.query(updateSql, [identity, auditorTarget || null, id], (updateErr, updateResults) => {
-      if (updateErr) return res.cc(updateErr);
+      if (updateErr) {
+        console.error('更新用户身份失败:', updateErr);
+        return res.status(500).send({ status: 1, message: '更新用户身份失败，请查看后端日志' });
+      }
       if (updateResults.affectedRows !== 1) {
         return res.send({
           status: 1,

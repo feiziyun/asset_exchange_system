@@ -41,8 +41,7 @@ const openAuditPlatform = async () => {
       const res = await createPamNodeTicket(target.slice(5))
       const path = res.data?.url || ''
       if (!path) throw new Error(res.data?.message || '生成审计节点入口失败')
-      const launchOrigin = import.meta.env.VITE_AUDIT_LAUNCH_ORIGIN || window.location.origin
-      url = new URL(path, launchOrigin).toString()
+      url = new URL(path, window.location.origin).toString()
     } else {
       throw new Error('管理员分配的审计入口无效，请联系管理员')
     }
