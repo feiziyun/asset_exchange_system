@@ -9,19 +9,51 @@ const HUB_TRADING_TOKEN = auditConfig.hubTradingToken || process.env.HUB_TRADING
 // Cookies are shared by ports on the same host; keep this handoff separate
 // from the reference PCP service running alongside the asset exchange system.
 const ENTRY_COOKIE = 'asset_exchange_pam_trade_entry';
+const LOGIN_ORIGIN_COOKIE = 'asset_exchange_pam_login_origin';
 const ENTRY_COOKIE_TTL_MS = 300000;
 
 const allowedIdentity = (identity) => identity === 'auditor' || identity === 'admin';
 
-const readEntryCookie = (header = '') => {
+const readCookie = (header = '', name) => {
   const entry = String(header).split(';').map((part) => part.trim())
-    .find((part) => part.startsWith(`${ENTRY_COOKIE}=`));
+    .find((part) => part.startsWith(`${name}=`));
   if (!entry) return '';
   try {
-    return decodeURIComponent(entry.slice(ENTRY_COOKIE.length + 1));
+    return decodeURIComponent(entry.slice(name.length + 1));
   } catch (_error) {
     return '';
   }
+};
+
+const browserOrigin = (value) => {
+  try {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password ||
+      url.pathname !== '/' || url.search || url.hash) return '';
+    return url.origin;
+  } catch (_error) {
+    return '';
+  }
+};
+
+const requestFrontendOrigin = (headers = {}) => {
+  const origin = browserOrigin(headers.origin);
+  if (origin) return origin;
+  try {
+    return browserOrigin(new URL(headers.referer).origin);
+  } catch (_error) {
+    return '';
+  }
+};
+
+const sendEntryError = (req, res, status, message) => {
+  const loginOrigin = browserOrigin(readCookie(req.headers.cookie, LOGIN_ORIGIN_COOKIE));
+  const loginUrl = loginOrigin ? `${loginOrigin}/#/login?logout=1` : '';
+  res.clearCookie(ENTRY_COOKIE, { path: '/' });
+  res.clearCookie(LOGIN_ORIGIN_COOKIE, { path: '/' });
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  return res.status(status).type('html').send(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>审计入口暂不可用</title><style>body{margin:0;background:#f6f8fa;color:#24292f;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{box-sizing:border-box;max-width:520px;margin:12vh auto;padding:32px;background:white;border:1px solid #d0d7de;border-radius:8px}h1{font-size:21px;margin:0 0 12px}p{color:#57606a;margin:0 0 24px}.button{display:inline-block;padding:8px 16px;border:1px solid #1f6feb;border-radius:6px;background:#0969da;color:white;text-decoration:none;font-weight:600}</style></head><body><main class="card"><h1>暂时无法进入审计平台</h1><p>${pamNodes.escapeHtml(message)}</p>${loginUrl ? `<a class="button" href="${pamNodes.escapeHtml(loginUrl)}">退出并返回登录</a>` : '<p>请返回交易系统登录页，重新登录后从审计入口进入。</p>'}</main></body></html>`);
 };
 
 const hubApiFetch = async (pathname, options = {}) => {
@@ -86,6 +118,15 @@ exports.startPamEntry = async (req, res) => {
     path: '/',
     maxAge: ENTRY_COOKIE_TTL_MS,
   });
+  const loginOrigin = requestFrontendOrigin(req.headers);
+  if (loginOrigin) {
+    res.cookie(LOGIN_ORIGIN_COOKIE, loginOrigin, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: ENTRY_COOKIE_TTL_MS,
+    });
+  }
   if (req.method === 'GET') return res.redirect(303, entryUrl.toString());
   return res.json({ message: '审计平台跳转地址已生成', entry_url: entryUrl.toString() });
 };
@@ -153,9 +194,9 @@ exports.launchNode = async (req, res) => {
 
 exports.authorizePamEntry = async (req, res) => {
   const requestId = String(req.query?.request_id || '').trim();
-  if (!requestId) return res.status(400).send('缺少 request_id');
+  if (!requestId) return sendEntryError(req, res, 400, '缺少 request_id，请重新从交易系统进入');
 
-  const token = readEntryCookie(req.headers.cookie);
+  const token = readCookie(req.headers.cookie, ENTRY_COOKIE);
   if (!token) {
     console.error('[PAM] 授权回调缺少交易交接凭据', {
       host: req.headers.host,
@@ -163,22 +204,22 @@ exports.authorizePamEntry = async (req, res) => {
       protocol: req.headers['x-forwarded-proto'] || req.protocol,
       cookieNames: String(req.headers.cookie || '').split(';').map((part) => part.split('=')[0].trim()).filter(Boolean),
     });
-    return res.status(401).send('缺少交易交接凭据，请重新从交易系统进入');
+    return sendEntryError(req, res, 401, '缺少交易交接凭据，请重新从交易系统进入');
   }
 
   let claims;
   try {
     claims = jwt.verify(token, jwtConfig.businessSecretKey, { algorithms: ['HS256'] });
   } catch (error) {
-    return res.status(401).send(error.name === 'TokenExpiredError' ? '交易登录已过期，请重新登录' : '交易登录令牌无效，请重新登录');
+    return sendEntryError(req, res, 401, error.name === 'TokenExpiredError' ? '交易登录已过期，请重新登录' : '交易登录令牌无效，请重新登录');
   }
   if (!allowedIdentity(claims.identity)) {
-    return res.status(403).send('仅审计方或管理员可进入审计平台');
+    return sendEntryError(req, res, 403, '仅审计方或管理员可进入审计平台');
   }
 
   try {
     const entry = await hubApiFetch(`/hub/web/requests/${encodeURIComponent(requestId)}`);
-    if (entry.mode !== 'reader') return res.status(403).send('本次交接的角色不被允许');
+    if (entry.mode !== 'reader') return sendEntryError(req, res, 403, '本次交接的角色不被允许');
 
     const launch = await hubApiFetch('/hub/web/launches', {
       method: 'POST',
@@ -187,9 +228,10 @@ exports.authorizePamEntry = async (req, res) => {
     if (!launch.launch_url) throw new Error('审计平台未返回跳转地址');
 
     res.clearCookie(ENTRY_COOKIE, { path: '/' });
+    res.clearCookie(LOGIN_ORIGIN_COOKIE, { path: '/' });
     return res.redirect(303, launch.launch_url);
   } catch (error) {
     console.error('PAM 授权回调失败:', error);
-    return res.status(502).send(error.message || '审计平台授权失败');
+    return sendEntryError(req, res, 502, error.message || '审计平台授权失败');
   }
 };

@@ -140,6 +140,11 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
+  if (to.path === '/login' && to.query.logout === '1') {
+    clearAuthData()
+    next({ path: '/login', replace: true })
+    return
+  }
   const token = getStoredToken()
   const hasToken = Boolean(token)
   const validToken = hasToken && isTokenValid()

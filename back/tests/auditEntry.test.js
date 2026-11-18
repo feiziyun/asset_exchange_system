@@ -20,8 +20,10 @@ const response = () => ({
   status(code) { this.statusCode = code; return this; },
   json(body) { this.body = body; return this; },
   send(body) { this.body = body; return this; },
+  set(name, value) { this.headers ||= {}; this.headers[name] = value; return this; },
+  type(value) { this.contentType = value; return this; },
   cookie(name, value, options) { this.cookies.push({ name, value, options }); return this; },
-  clearCookie(name, options) { this.clearedCookie = { name, options }; return this; },
+  clearCookie(name, options) { this.clearedCookies ||= []; this.clearedCookies.push({ name, options }); return this; },
   redirect(code, url) { this.statusCode = code; this.redirectUrl = url; return this; },
 });
 
@@ -48,6 +50,34 @@ test('entry requires an auditor or administrator and creates an isolated handoff
   assert.equal(allowed.cookies[0].options.httpOnly, true);
   assert.equal(allowed.cookies[0].options.sameSite, 'lax');
   assert.equal(allowed.cookies[0].options.maxAge, 300000);
+  assert.equal(allowed.cookies.length, 1);
+  } finally {
+    pamNodes.getUser = originalGetUser;
+  }
+});
+
+test('entry remembers the trading frontend origin for the callback login link', async () => {
+  const originalGetUser = pamNodes.getUser;
+  pamNodes.getUser = async () => ({ id: 7, identity: 'auditor', status: 0, auditor_target: 'HUB' });
+  try {
+    const result = response();
+    await handlers.startPamEntry({
+      auth: { id: 7, identity: 'auditor' },
+      headers: { authorization: `Bearer ${tokenFor()}`, origin: 'http://trade.example:8082' },
+      body: {},
+    }, result);
+    assert.equal(result.cookies[1].name, 'asset_exchange_pam_login_origin');
+    assert.equal(result.cookies[1].value, 'http://trade.example:8082');
+    assert.equal(result.cookies[1].options.httpOnly, true);
+
+    const errorPage = response();
+    await handlers.authorizePamEntry({
+      query: { request_id: 'r1' },
+      headers: { cookie: 'asset_exchange_pam_login_origin=http%3A%2F%2Ftrade.example%3A8082' },
+    }, errorPage);
+    assert.equal(errorPage.statusCode, 401);
+    assert.match(errorPage.body, /href="http:\/\/trade\.example:8082\/#\/login\?logout=1"/);
+    assert.equal(errorPage.headers['Cache-Control'], 'no-store');
   } finally {
     pamNodes.getUser = originalGetUser;
   }
@@ -117,7 +147,9 @@ test('reader callback creates a Hub launch and redirects once', async () => {
     }, result);
     assert.equal(result.statusCode, 303);
     assert.equal(result.redirectUrl, 'https://audit.example/launch/1');
-    assert.equal(result.clearedCookie.name, 'asset_exchange_pam_trade_entry');
+    assert.deepEqual(result.clearedCookies.map((item) => item.name), [
+      'asset_exchange_pam_trade_entry', 'asset_exchange_pam_login_origin',
+    ]);
     assert.equal(calls[0].options.headers['x-trading-token'], auditConfig.hubTradingToken || 'test-hub-token');
     assert.equal(new URL(calls[0].url).pathname, '/hub/web/requests/request-1');
     assert.equal(new URL(calls[1].url).pathname, '/hub/web/launches');
