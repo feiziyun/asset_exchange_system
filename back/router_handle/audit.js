@@ -6,7 +6,9 @@ const pamNodes = require('../service/pamNodes');
 const HUB_WEB_ORIGIN = auditConfig.hubWebOrigin || process.env.HUB_WEB_ORIGIN || '';
 const HUB_API_BASE_URL = auditConfig.hubApiBaseUrl || process.env.HUB_API_BASE_URL || '';
 const HUB_TRADING_TOKEN = auditConfig.hubTradingToken || process.env.HUB_TRADING_TOKEN || '';
-const ENTRY_COOKIE = 'pam_trade_entry';
+// Cookies are shared by ports on the same host; keep this handoff separate
+// from the reference PCP service running alongside the asset exchange system.
+const ENTRY_COOKIE = 'asset_exchange_pam_trade_entry';
 const ENTRY_COOKIE_TTL_MS = 300000;
 
 const allowedIdentity = (identity) => identity === 'auditor' || identity === 'admin';
@@ -65,6 +67,14 @@ exports.startPamEntry = async (req, res) => {
   const token = String(req.headers.authorization || req.body?.token || req.query?.token || '')
     .replace(/^Bearer\s+/i, '').trim();
   if (!token) return res.status(401).json({ error: '缺少登录令牌' });
+  try {
+    const claims = jwt.verify(token, jwtConfig.businessSecretKey, { algorithms: ['HS256'] });
+    if (Number(claims.id) !== Number(req.auth?.id) || !allowedIdentity(claims.identity)) {
+      return res.status(403).json({ error: '审计登录身份不一致，请重新登录' });
+    }
+  } catch (error) {
+    return res.status(401).json({ error: error.name === 'TokenExpiredError' ? '交易登录已过期，请重新登录' : '交易登录令牌无效，请重新登录' });
+  }
 
   const entryUrl = new URL('/entry/start', `${HUB_WEB_ORIGIN.replace(/\/$/, '')}/`);
   const contractId = String(req.body?.pcc_contract_id || req.query?.pcc_contract_id || '').trim();
@@ -159,8 +169,8 @@ exports.authorizePamEntry = async (req, res) => {
   let claims;
   try {
     claims = jwt.verify(token, jwtConfig.businessSecretKey, { algorithms: ['HS256'] });
-  } catch (_error) {
-    return res.status(401).send('交易登录已过期，请重新登录');
+  } catch (error) {
+    return res.status(401).send(error.name === 'TokenExpiredError' ? '交易登录已过期，请重新登录' : '交易登录令牌无效，请重新登录');
   }
   if (!allowedIdentity(claims.identity)) {
     return res.status(403).send('仅审计方或管理员可进入审计平台');

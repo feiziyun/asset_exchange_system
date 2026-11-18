@@ -25,7 +25,7 @@ const response = () => ({
   redirect(code, url) { this.statusCode = code; this.redirectUrl = url; return this; },
 });
 
-test('entry requires an auditor or administrator and creates the reference cookie', async () => {
+test('entry requires an auditor or administrator and creates an isolated handoff cookie', async () => {
   const originalGetUser = pamNodes.getUser;
   pamNodes.getUser = async () => ({ id: 7, identity: 'auditor', status: 0, auditor_target: 'HUB' });
   try {
@@ -43,11 +43,30 @@ test('entry requires an auditor or administrator and creates the reference cooki
   assert.equal(allowed.statusCode, 200);
   assert.equal(new URL(allowed.body.entry_url).pathname, '/entry/start');
   assert.equal(new URL(allowed.body.entry_url).searchParams.get('pcc_contract_id'), 'contract 1');
-  assert.equal(allowed.cookies[0].name, 'pam_trade_entry');
+  assert.equal(allowed.cookies[0].name, 'asset_exchange_pam_trade_entry');
   assert.equal(allowed.cookies[0].value, token);
   assert.equal(allowed.cookies[0].options.httpOnly, true);
   assert.equal(allowed.cookies[0].options.sameSite, 'lax');
   assert.equal(allowed.cookies[0].options.maxAge, 300000);
+  } finally {
+    pamNodes.getUser = originalGetUser;
+  }
+});
+
+test('entry rejects an expired business token before opening Hub', async () => {
+  const originalGetUser = pamNodes.getUser;
+  pamNodes.getUser = async () => ({ id: 7, identity: 'auditor', status: 0, auditor_target: 'HUB' });
+  try {
+    const expired = jwt.sign({ id: 7, account: 'auditor01', identity: 'auditor', exp: 1 }, businessSecretKey);
+    const result = response();
+    await handlers.startPamEntry({
+      auth: { id: 7, identity: 'auditor' },
+      headers: { authorization: `Bearer ${expired}` },
+      body: {},
+    }, result);
+    assert.equal(result.statusCode, 401);
+    assert.match(result.body.error, /已过期/);
+    assert.equal(result.cookies.length, 0);
   } finally {
     pamNodes.getUser = originalGetUser;
   }
@@ -61,7 +80,7 @@ test('callback rejects missing credentials and non-reader requests', async () =>
   const referenceCookieOnly = response();
   await handlers.authorizePamEntry({
     query: { request_id: 'r1' },
-    headers: { cookie: `bupt_pam_trade_entry=${encodeURIComponent(tokenFor())}` },
+    headers: { cookie: `pam_trade_entry=${encodeURIComponent(tokenFor())}` },
   }, referenceCookieOnly);
   assert.equal(referenceCookieOnly.statusCode, 401);
   assert.match(referenceCookieOnly.body, /缺少交易交接凭据/);
@@ -72,7 +91,7 @@ test('callback rejects missing credentials and non-reader requests', async () =>
     const denied = response();
     await handlers.authorizePamEntry({
       query: { request_id: 'r1' },
-      headers: { cookie: `pam_trade_entry=${encodeURIComponent(tokenFor())}` },
+      headers: { cookie: `asset_exchange_pam_trade_entry=${encodeURIComponent(tokenFor())}` },
     }, denied);
     assert.equal(denied.statusCode, 403);
     assert.equal(denied.redirectUrl, undefined);
@@ -94,11 +113,11 @@ test('reader callback creates a Hub launch and redirects once', async () => {
     const result = response();
     await handlers.authorizePamEntry({
       query: { request_id: 'request-1' },
-      headers: { cookie: `bupt_pam_trade_entry=old-token; pam_trade_entry=${encodeURIComponent(tokenFor())}` },
+      headers: { cookie: `pam_trade_entry=old-token; asset_exchange_pam_trade_entry=${encodeURIComponent(tokenFor())}` },
     }, result);
     assert.equal(result.statusCode, 303);
     assert.equal(result.redirectUrl, 'https://audit.example/launch/1');
-    assert.equal(result.clearedCookie.name, 'pam_trade_entry');
+    assert.equal(result.clearedCookie.name, 'asset_exchange_pam_trade_entry');
     assert.equal(calls[0].options.headers['x-trading-token'], auditConfig.hubTradingToken || 'test-hub-token');
     assert.equal(new URL(calls[0].url).pathname, '/hub/web/requests/request-1');
     assert.equal(new URL(calls[1].url).pathname, '/hub/web/launches');
@@ -119,7 +138,7 @@ test('Hub request failures do not redirect the browser', async () => {
     const result = response();
     await handlers.authorizePamEntry({
       query: { request_id: 'request-2' },
-      headers: { cookie: `pam_trade_entry=${encodeURIComponent(tokenFor())}` },
+      headers: { cookie: `asset_exchange_pam_trade_entry=${encodeURIComponent(tokenFor())}` },
     }, result);
     assert.equal(result.statusCode, 502);
     assert.equal(result.redirectUrl, undefined);

@@ -9,17 +9,18 @@
         <el-button v-if="errorMessage" type="primary" @click="openAuditPlatform">重试</el-button>
         <el-button v-else-if="!loading" type="primary" @click="openAuditPlatform">进入审计平台</el-button>
         <el-button @click="goProfile">个人中心</el-button>
+        <el-button @click="logout">退出登录</el-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { startPamEntry, createPamNodeTicket } from '@/api/audit'
-import { parseTokenPayload } from '@/utils/auth'
+import { clearAuthData, parseTokenPayload } from '@/utils/auth'
 
 const router = useRouter()
 const loading = ref(false)
@@ -62,9 +63,10 @@ const goProfile = () => {
   router.push('/profile')
 }
 
-onMounted(() => {
-  openAuditPlatform()
-})
+const logout = () => {
+  clearAuthData()
+  router.replace('/login')
+}
 </script>
 
 <style scoped>
