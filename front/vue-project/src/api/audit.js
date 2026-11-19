@@ -9,4 +9,4 @@ const auditRequestConfig = () => ({
 export const startPamEntry = () => request.post('/api/pam/entry-start', {}, auditRequestConfig())
 
 export const getPamNodes = () => request.get('/api/pam/nodes', auditRequestConfig())
-export const startPamNodeLogin = nodeId => request.post('/api/pam/node-login-start', { node_id: nodeId }, auditRequestConfig())
+export const createPamNodeTicket = nodeId => request.post('/api/pam/node-ticket', { node_id: nodeId }, auditRequestConfig())

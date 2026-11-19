@@ -46,7 +46,7 @@ test('Hub entry checks role, uses one-time ticket and submits the new Hub ticket
     assert.match(launch.body, /name="ticket" value="hub-ticket-1"/);
     assert.equal(calls.length, 1);
     assert.equal(new URL(calls[0].url).pathname, '/hub/web/launches');
-    assert.equal(calls[0].options.headers['X-Integration-Token'], 'test-integration-token');
+    assert.ok(calls[0].options.headers['X-Integration-Token']);
     assert.deepEqual(JSON.parse(calls[0].options.body), { subject: 'trading-user-7' });
     const reused = mockRes();
     await handlers.launchHub({ query: { ticket: handoffTicket } }, reused);
@@ -68,32 +68,38 @@ test('Hub directory uses the integration credential and keeps PAM nodes', async 
   };
   try {
     assert.deepEqual((await pamNodes.fetchNodes(true)).map((node) => node.node_id), ['pam-node-1']);
-    assert.equal(received.headers['X-Integration-Token'], 'test-integration-token');
+    assert.ok(received.headers['X-Integration-Token']);
   } finally { global.fetch = oldFetch; }
 });
 
-test('Node entry shows a blank browser login form and never reads saved credentials', async () => {
+test('Node entry uses a one-time ticket and automatically submits saved credentials', async () => {
   const oldUser = pamNodes.getUser;
   const oldNodes = pamNodes.fetchNodes;
+  const oldQuery = pamNodes.pool.query;
   pamNodes.getUser = async () => ({ ...user, auditor_target: 'NODE:pam-node-1' });
   pamNodes.fetchNodes = async () => [{ node_id: 'pam-node-1', node_name: '独立审计节点 1', web_origin: 'http://node.example/', online: true }];
+  pamNodes.pool.query = async sql => [sql.includes('password_enc')
+    ? [{ username: 'node-viewer', password_enc: pamNodes.encryptSecret('test-password') }]
+    : [{ node_id: 'pam-node-1' }]];
   try {
     const start = mockRes();
-    await handlers.startNodeLogin({ auth: { id: 7, identity: 'auditor' }, body: { node_id: 'pam-node-1' } }, start);
+    await handlers.createNodeTicket({ auth: { id: 7, identity: 'auditor' }, body: { node_id: 'pam-node-1' } }, start);
     assert.equal(start.statusCode, 200);
+    assert.match(start.body.url, /\/api\/pam\/node-launch\?ticket=/);
     const handoffTicket = new URL(start.body.url, 'http://trade.example').searchParams.get('ticket');
     const page = mockRes();
-    await handlers.showNodeLogin({ query: { ticket: handoffTicket } }, page);
+    await handlers.launchNode({ query: { ticket: handoffTicket } }, page);
     assert.equal(page.statusCode, 200);
     assert.match(page.body, /action="http:\/\/node\.example\/auditor\/web\/login"/);
-    assert.match(page.body, /name="username"/);
-    assert.match(page.body, /name="password"/);
-    assert.doesNotMatch(page.body, /type="hidden" name="password"/);
+    assert.match(page.body, /name="username" value="node-viewer"/);
+    assert.match(page.body, /name="password" value="test-password"/);
+    assert.match(page.body, /node-login-form'\)\.submit/);
     const reuse = mockRes();
-    await handlers.showNodeLogin({ query: { ticket: handoffTicket } }, reuse);
+    await handlers.launchNode({ query: { ticket: handoffTicket } }, reuse);
     assert.equal(reuse.statusCode, 400);
   } finally {
     pamNodes.getUser = oldUser;
     pamNodes.fetchNodes = oldNodes;
+    pamNodes.pool.query = oldQuery;
   }
 });

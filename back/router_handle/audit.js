@@ -9,7 +9,6 @@ const HUB_API_BASE_URL = auditConfig.hubApiBaseUrl || process.env.HUB_API_BASE_U
 // Hub 运维台“安全与凭据”创建的接入凭据；旧交易令牌不能用于新接口。
 const HUB_INTEGRATION_TOKEN = auditIntegration.token;
 const hubTickets = new Map();
-const nodeTickets = new Map();
 
 const allowedIdentity = (identity) => identity === 'auditor' || identity === 'admin';
 
@@ -134,7 +133,7 @@ exports.getPamNodes = async (req, res) => {
   }
 };
 
-exports.startNodeLogin = async (req, res) => {
+exports.createNodeTicket = async (req, res) => {
   if (!allowedIdentity(req.auth?.identity)) return res.status(403).json({ message: '当前账号没有审计入口权限' });
   try {
     const user = await pamNodes.getUser(req.auth.id);
@@ -149,25 +148,22 @@ exports.startNodeLogin = async (req, res) => {
     if (!nodes.some((node) => node.node_id === nodeId && node.web_origin)) {
       return res.status(404).json({ message: '审计节点不存在或没有配置访问地址' });
     }
-    for (const [key, entry] of nodeTickets) {
-      if (entry.expiresAt < Date.now()) nodeTickets.delete(key);
-    }
-    const ticket = crypto.randomBytes(24).toString('hex');
-    nodeTickets.set(ticket, { userId: user.id, nodeId, expiresAt: Date.now() + 60000 });
-    const path = `/api/pam/node-login?ticket=${encodeURIComponent(ticket)}`;
+    const [credentials] = await pamNodes.pool.query('SELECT node_id FROM pam_node_credentials WHERE node_id = ? LIMIT 1', [nodeId]);
+    if (!credentials.length) return res.status(503).json({ message: '该节点的查看凭据尚未配置，请联系管理员' });
+    const ticket = pamNodes.createTicket(user.id, nodeId);
+    const path = `/api/pam/node-launch?ticket=${encodeURIComponent(ticket)}`;
     const httpOrigin = String(auditIntegration.httpOrigin).replace(/\/$/, '');
     res.set('Cache-Control', 'no-store');
     return res.json({ url: httpOrigin ? `${httpOrigin}${path}` : path });
   } catch (error) {
-    console.error('准备审计节点登录失败:', error);
-    return res.status(502).json({ message: '无法获取审计节点目录' });
+    console.error('生成审计节点跳转失败:', error);
+    return res.status(502).json({ message: '生成审计节点跳转失败' });
   }
 };
 
-exports.showNodeLogin = async (req, res) => {
+exports.launchNode = async (req, res) => {
   const ticket = String(req.query?.ticket || '').trim();
-  const item = nodeTickets.get(ticket);
-  nodeTickets.delete(ticket);
+  const item = pamNodes.takeTicket(ticket);
   res.set('Cache-Control', 'no-store');
   res.set('Referrer-Policy', 'no-referrer');
   if (!item || item.expiresAt < Date.now()) return sendEntryError(req, res, 400, '审计入口已过期，请重新进入');
@@ -180,13 +176,17 @@ exports.showNodeLogin = async (req, res) => {
     const nodes = await pamNodes.fetchNodes(true);
     const node = nodes.find((entry) => entry.node_id === item.nodeId);
     if (!node?.web_origin) throw new Error('审计节点没有配置访问地址');
+    const [rows] = await pamNodes.pool.query('SELECT username, password_enc FROM pam_node_credentials WHERE node_id = ? LIMIT 1', [item.nodeId]);
+    if (!rows.length) throw new Error('该节点的查看凭据尚未配置');
+    const username = rows[0].username;
+    const password = pamNodes.decryptSecret(rows[0].password_enc);
     const origin = new URL(node.web_origin);
     if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password ||
       origin.pathname !== '/' || origin.search || origin.hash) throw new Error('审计节点访问地址无效');
     const action = new URL('/auditor/web/login', origin).toString();
-    return res.type('html').send(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>登录审计节点</title><style>body{font:16px/1.5 sans-serif;background:#f6f8fa;color:#24292f}.card{max-width:420px;margin:12vh auto;padding:28px;background:white;border:1px solid #d0d7de;border-radius:8px}label{display:block;margin:16px 0}input{box-sizing:border-box;width:100%;height:38px;padding:8px;border:1px solid #d0d7de;border-radius:6px}button{height:38px;padding:0 18px;background:#0969da;border:1px solid #0969da;border-radius:6px;color:white;cursor:pointer}</style></head><body><main class="card"><h1>登录 ${pamNodes.escapeHtml(node.node_name || node.node_id)}</h1><form method="post" action="${pamNodes.escapeHtml(action)}"><label>查看账号<input name="username" autocomplete="username" required></label><label>查看密码<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">登录审计节点</button></form></main></body></html>`);
+    return res.type('html').send(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>正在进入审计节点</title></head><body><p>正在进入 ${pamNodes.escapeHtml(node.node_name || node.node_id)}…</p><form id="node-login-form" method="post" action="${pamNodes.escapeHtml(action)}"><input type="hidden" name="username" value="${pamNodes.escapeHtml(username)}"><input type="hidden" name="password" value="${pamNodes.escapeHtml(password)}"><noscript><button type="submit">继续进入节点</button></noscript></form><script>document.getElementById('node-login-form').submit();</script></body></html>`);
   } catch (error) {
-    console.error('显示审计节点登录页失败:', error);
+    console.error('审计节点自动登录失败:', error);
     return sendEntryError(req, res, 502, error.message || '审计节点暂不可用');
   }
 };

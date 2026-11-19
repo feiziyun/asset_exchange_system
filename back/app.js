@@ -82,8 +82,9 @@ app.use(
       '/api/pam/entry-start',
       '/api/pam/nodes',
       '/api/pam/hub-launch',
-      '/api/pam/node-login-start',
-      '/api/pam/node-login',
+      '/api/pam/node-ticket',
+      '/api/pam/node-launch',
+      /^\/api\/admin\/nodes(?:\/|$)/,
       '/api/alipay/notify',
       '/api/delegate-asset',
       '/api/revoke-delegation',
@@ -149,9 +150,11 @@ app.use([
   '/api/industry-transaction-stats',
 ], businessJwt);
 app.use('/api/pam/entry-start', businessJwt);
-app.use('/api/pam/node-login-start', businessJwt);
+app.use('/api/pam/node-ticket', businessJwt);
 app.use('/api/pam/nodes', businessJwt);
 app.use('/api/pam', auditRouter);
+app.get('/api/admin/nodes', businessJwt, adminAuth, adminHandler.getAuditNodeCredentials);
+app.post('/api/admin/nodes/:nodeId/credentials', businessJwt, adminAuth, adminHandler.saveAuditNodeCredentials);
 app.use('/api/regulator', businessJwt, require('./router/regulatorProxy'));
 app.use('/api', originalCompatRouter);
 app.use('/api', businessJwt, require('./router/delegation'));

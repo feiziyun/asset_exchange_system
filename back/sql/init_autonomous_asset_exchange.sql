@@ -62,6 +62,14 @@ CREATE TABLE `users` (
   UNIQUE KEY `uk_account` (`account`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
+CREATE TABLE IF NOT EXISTS `pam_node_credentials` (
+  `node_id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `node_name` VARCHAR(128) NULL,
+  `username` VARCHAR(128) NOT NULL,
+  `password_enc` TEXT NOT NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审计节点自动登录凭据';
+
 CREATE TABLE `region` (
   `id` INT NOT NULL AUTO_INCREMENT COMMENT '主键',
   `region_key` VARCHAR(20) NOT NULL COMMENT '地区标识',

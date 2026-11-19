@@ -7,7 +7,7 @@ router.post('/entry-start', auditHandler.startPamEntry);
 router.get('/entry-start', auditHandler.startPamEntry);
 router.get('/nodes', auditHandler.getPamNodes);
 router.get('/hub-launch', auditHandler.launchHub);
-router.post('/node-login-start', auditHandler.startNodeLogin);
-router.get('/node-login', auditHandler.showNodeLogin);
+router.post('/node-ticket', auditHandler.createNodeTicket);
+router.get('/node-launch', auditHandler.launchNode);
 
 module.exports = router;

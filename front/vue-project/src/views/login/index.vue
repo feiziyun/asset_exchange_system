@@ -112,7 +112,8 @@ import forgetPassword from './components/forget_password.vue'
 import { ElMessage } from 'element-plus'
 import { login, register } from '@/api/login'
 import { useRouter } from 'vue-router'
-import { getRoleKey } from '@/utils/auth'
+import { getRoleKey, parseTokenPayload } from '@/utils/auth'
+import { launchAssignedAudit } from '@/utils/auditLaunch'
 import { loadSavedPassword, removeSavedPassword, saveLoginPassword } from '@/utils/savedPasswords'
 
 const router = useRouter()
@@ -256,7 +257,12 @@ const Login = async () => {
       if (role === 'admin') {
         router.push('/admin/dashboard')
       } else if (role === 'auditor') {
-        router.push('/audit-entry')
+        try {
+          await launchAssignedAudit(parseTokenPayload()?.auditor_target)
+        } catch (error: any) {
+          ElMessage.error(error?.response?.data?.message || error?.message || '进入审计平台失败')
+          router.push('/audit-entry')
+        }
       } else if (role === 'regulator') {
         router.push('/regulation')
       } else {
