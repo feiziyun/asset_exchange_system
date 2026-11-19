@@ -25,7 +25,7 @@ test('Hub entry checks role, uses one-time ticket and submits the new Hub ticket
   pamNodes.getUser = async () => user;
   global.fetch = async (url, options) => {
     calls.push({ url: String(url), options });
-    return Response.json({ entry_url: 'http://hub.example/hub/web/entry', ticket: 'hub-ticket-1' });
+    return Response.json({ entry_url: 'http://hub.example/entry', ticket: 'hub-ticket-1', expires_in: 60 });
   };
   try {
     const denied = mockRes();
@@ -42,7 +42,7 @@ test('Hub entry checks role, uses one-time ticket and submits the new Hub ticket
     await handlers.launchHub({ query: { ticket: handoffTicket } }, launch);
     assert.equal(launch.statusCode, 200);
     assert.match(launch.body, /method="post"/);
-    assert.match(launch.body, /action="http:\/\/hub\.example\/hub\/web\/entry"/);
+    assert.match(launch.body, /action="http:\/\/hub\.example\/entry"/);
     assert.match(launch.body, /name="ticket" value="hub-ticket-1"/);
     assert.equal(calls.length, 1);
     assert.equal(new URL(calls[0].url).pathname, '/hub/web/launches');
@@ -70,4 +70,30 @@ test('Hub directory uses the integration credential and keeps PAM nodes', async 
     assert.deepEqual((await pamNodes.fetchNodes(true)).map((node) => node.node_id), ['pam-node-1']);
     assert.equal(received.headers['X-Integration-Token'], 'test-integration-token');
   } finally { global.fetch = oldFetch; }
+});
+
+test('Node entry shows a blank browser login form and never reads saved credentials', async () => {
+  const oldUser = pamNodes.getUser;
+  const oldNodes = pamNodes.fetchNodes;
+  pamNodes.getUser = async () => ({ ...user, auditor_target: 'NODE:pam-node-1' });
+  pamNodes.fetchNodes = async () => [{ node_id: 'pam-node-1', node_name: '独立审计节点 1', web_origin: 'http://node.example/', online: true }];
+  try {
+    const start = mockRes();
+    await handlers.startNodeLogin({ auth: { id: 7, identity: 'auditor' }, body: { node_id: 'pam-node-1' } }, start);
+    assert.equal(start.statusCode, 200);
+    const handoffTicket = new URL(start.body.url, 'http://trade.example').searchParams.get('ticket');
+    const page = mockRes();
+    await handlers.showNodeLogin({ query: { ticket: handoffTicket } }, page);
+    assert.equal(page.statusCode, 200);
+    assert.match(page.body, /action="http:\/\/node\.example\/auditor\/web\/login"/);
+    assert.match(page.body, /name="username"/);
+    assert.match(page.body, /name="password"/);
+    assert.doesNotMatch(page.body, /type="hidden" name="password"/);
+    const reuse = mockRes();
+    await handlers.showNodeLogin({ query: { ticket: handoffTicket } }, reuse);
+    assert.equal(reuse.statusCode, 400);
+  } finally {
+    pamNodes.getUser = oldUser;
+    pamNodes.fetchNodes = oldNodes;
+  }
 });

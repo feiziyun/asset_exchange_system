@@ -344,7 +344,7 @@ CREATE TABLE `asset_order` (
   CONSTRAINT `fk_order_asset` FOREIGN KEY (`asset_id`) REFERENCES `digital_asset` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `fk_order_buyer` FOREIGN KEY (`buyer_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
-+CREATE TABLE IF NOT EXISTS `asset_chain_transfer_record` (
+CREATE TABLE IF NOT EXISTS `asset_chain_transfer_record` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `order_id` BIGINT NOT NULL COMMENT '对应订单',
   `asset_id` BIGINT NOT NULL COMMENT '对应登记资产',

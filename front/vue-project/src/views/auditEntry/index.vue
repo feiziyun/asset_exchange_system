@@ -3,7 +3,7 @@
     <div class="audit-entry-card">
       <div class="title page-title">审计入口</div>
       <div class="desc">
-        {{ loading ? '正在进入外部审计平台，请稍候…' : errorMessage || '点击下方按钮进入审计平台' }}
+        {{ loading ? '正在连接审计平台，请稍候…' : errorMessage || '点击下方按钮进入审计平台' }}
       </div>
       <div class="actions">
         <el-button v-if="errorMessage" type="primary" @click="openAuditPlatform">重试</el-button>
@@ -19,7 +19,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { startPamEntry, createPamNodeTicket } from '@/api/audit'
+import { startPamEntry, startPamNodeLogin } from '@/api/audit'
 import { clearAuthData, parseTokenPayload } from '@/utils/auth'
 
 const router = useRouter()
@@ -38,10 +38,9 @@ const openAuditPlatform = async () => {
       url = res.data?.url || ''
       if (!url) throw new Error(res.data?.error || res.data?.message || '审计平台未返回跳转地址')
     } else if (target.startsWith('NODE:')) {
-      const res = await createPamNodeTicket(target.slice(5))
-      const path = res.data?.url || ''
-      if (!path) throw new Error(res.data?.message || '生成审计节点入口失败')
-      url = new URL(path, window.location.origin).toString()
+      const res = await startPamNodeLogin(target.slice(5))
+      url = res.data?.url || ''
+      if (!url) throw new Error(res.data?.message || '生成审计节点入口失败')
     } else {
       throw new Error('管理员分配的审计入口无效，请联系管理员')
     }

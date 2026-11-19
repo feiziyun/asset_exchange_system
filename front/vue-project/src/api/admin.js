@@ -23,8 +23,6 @@ export const updateUserIdentity = (id, identity, auditorTarget = '') => {
 }
 
 export const getAuditNodes = () => request.get('/api/pam/nodes')
-export const getAuditNodeCredentials = () => request.get('/api/admin/nodes')
-export const saveAuditNodeCredentials = (nodeId, data) => request.post(`/api/admin/nodes/${encodeURIComponent(nodeId)}/credentials`, data)
 
 // 获取链上信息
 export const getChainInfo = (params) => {
