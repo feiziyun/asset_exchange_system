@@ -2,8 +2,10 @@ const db = require('../db/index');
 
 const pool = db.promise();
 const { isEnabled: digitalContractEnabled } = require('./digitalContract');
+const { mapHeRecordRow } = require('./pcp/he');
+const { mapPreRecordRow } = require('./pcp/pre');
 
-const COMPLETED_PCP_STATUSES = new Set(['COMPLETED']);
+const COMPLETED_PCP_STATUSES = new Set(['PAM_PASSED', 'COMPLETED']);
 const COMPLETED_MPC_STATUSES = new Set(['done']);
 
 const parseJson = (value, fallback = null) => {
@@ -115,6 +117,28 @@ const mapFlRecordRow = (row) => {
     seller_ids: parseJson(row.seller_ids_json, []),
     seller_join_packages: parseJson(row.seller_join_packages_json, {}),
     seller_result_packages: parseJson(row.seller_result_packages_json, {}),
+    buyer_result_ready: COMPLETED_PCP_STATUSES.has(String(row.pcp_status || '').toUpperCase()) &&
+      Boolean(row.buyer_download_token || row.buyer_result_storage_path),
+  };
+};
+
+const mapHeOrderRecord = (row) => {
+  const mapped = mapHeRecordRow(row);
+  if (!mapped) return null;
+  return {
+    ...mapped,
+    result_ready: COMPLETED_PCP_STATUSES.has(String(mapped.pcp_status || '').toUpperCase()) &&
+      Boolean(mapped.download_token || mapped.result_storage_path),
+  };
+};
+
+const mapPreOrderRecord = (row) => {
+  const mapped = mapPreRecordRow(row);
+  if (!mapped) return null;
+  return {
+    ...mapped,
+    result_ready: COMPLETED_PCP_STATUSES.has(String(mapped.pcp_status || '').toUpperCase()) &&
+      Boolean(mapped.result_ready),
   };
 };
 
@@ -596,8 +620,8 @@ async function attachDeliveryMeta(orderList = []) {
     list.push(mapDeliveryRecordRow(row));
     recordMap.set(row.transaction_id, list);
   });
-  const heMap = new Map(heRows.map((row) => [row.transaction_id, row]));
-  const preMap = new Map(preRows.map((row) => [row.transaction_id, row]));
+  const heMap = new Map(heRows.map((row) => [row.transaction_id, mapHeOrderRecord(row)]));
+  const preMap = new Map(preRows.map((row) => [row.transaction_id, mapPreOrderRecord(row)]));
   const flMap = new Map(flRows.map((row) => [row.transaction_id, mapFlRecordRow(row)]));
   const mpcMap = new Map(mpcRows.map((row) => [row.transaction_id, mapMpcRecordRow(row)]));
 
@@ -661,6 +685,9 @@ module.exports = {
   getDigitalContractByOrderNo,
   getTradeModeLabel,
   isPrivacyResultReady,
+  mapHeOrderRecord,
+  mapPreOrderRecord,
+  mapFlRecordRow,
   normalizePcType,
   normalizeProcessingType,
   saveDeliveryRequest,

@@ -1,195 +1,73 @@
 'use strict';
-
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
+process.env.HUB_INTEGRATION_TOKEN = 'test-integration-token';
 const pamNodes = require('../service/pamNodes');
-const auditConfig = require('../config/audit.json');
-
-process.env.HUB_TRADING_TOKEN = 'test-hub-token';
 const handlers = require('../router_handle/audit');
 const { businessSecretKey } = require('../jwt_config');
 
-const tokenFor = (identity = 'auditor') => jwt.sign(
-  { id: 7, account: 'auditor01', identity }, businessSecretKey, { expiresIn: '5m' },
-);
-
-const response = () => ({
+const mockRes = () => ({
   statusCode: 200,
-  cookies: [],
   status(code) { this.statusCode = code; return this; },
   json(body) { this.body = body; return this; },
   send(body) { this.body = body; return this; },
-  set(name, value) { this.headers ||= {}; this.headers[name] = value; return this; },
+  set(name, value) { (this.headers ||= {})[name] = value; return this; },
   type(value) { this.contentType = value; return this; },
-  cookie(name, value, options) { this.cookies.push({ name, value, options }); return this; },
-  clearCookie(name, options) { this.clearedCookies ||= []; this.clearedCookies.push({ name, options }); return this; },
-  redirect(code, url) { this.statusCode = code; this.redirectUrl = url; return this; },
 });
+const user = { id: 7, identity: 'auditor', status: 0, auditor_target: 'HUB' };
+const token = () => jwt.sign({ id: 7, identity: 'auditor', account: 'auditor01' }, businessSecretKey, { expiresIn: '5m' });
 
-test('shared Hub directory exposes PAM nodes only', async () => {
-  const originalFetch = global.fetch;
-  global.fetch = async () => Response.json({ nodes: [
-    { node_id: 'mpc-auditor-1', web_origin: 'http://mpc.example' },
-    { node_id: 'pam-node-1', web_origin: 'http://node.example' },
-  ] });
-  try {
-    assert.deepEqual((await pamNodes.fetchNodes(true)).map((node) => node.node_id), ['pam-node-1']);
-  } finally {
-    global.fetch = originalFetch;
-  }
-});
-
-test('entry requires an auditor or administrator and creates an isolated handoff cookie', async () => {
-  const originalGetUser = pamNodes.getUser;
-  pamNodes.getUser = async () => ({ id: 7, identity: 'auditor', status: 0, auditor_target: 'HUB' });
-  try {
-  const denied = response();
-  await handlers.startPamEntry({ auth: { identity: 'buyer' }, headers: {} }, denied);
-  assert.equal(denied.statusCode, 403);
-
-  const token = tokenFor();
-  const allowed = response();
-  await handlers.startPamEntry({
-    auth: { id: 7, identity: 'auditor' },
-    headers: { authorization: `Bearer ${token}` },
-    body: { pcc_contract_id: 'contract 1' },
-  }, allowed);
-  assert.equal(allowed.statusCode, 200);
-  assert.equal(new URL(allowed.body.entry_url).pathname, '/entry/start');
-  assert.equal(new URL(allowed.body.entry_url).searchParams.get('trading_system'), 'asset_exchange');
-  assert.equal(new URL(allowed.body.entry_url).searchParams.get('pcc_contract_id'), 'contract 1');
-  assert.equal(allowed.cookies[0].name, 'asset_exchange_pam_trade_entry');
-  assert.equal(allowed.cookies[0].value, token);
-  assert.equal(allowed.cookies[0].options.httpOnly, true);
-  assert.equal(allowed.cookies[0].options.sameSite, 'lax');
-  assert.equal(allowed.cookies[0].options.maxAge, 300000);
-  assert.equal(allowed.cookies.length, 1);
-  } finally {
-    pamNodes.getUser = originalGetUser;
-  }
-});
-
-test('entry remembers the trading frontend origin for the callback login link', async () => {
-  const originalGetUser = pamNodes.getUser;
-  pamNodes.getUser = async () => ({ id: 7, identity: 'auditor', status: 0, auditor_target: 'HUB' });
-  try {
-    const result = response();
-    await handlers.startPamEntry({
-      auth: { id: 7, identity: 'auditor' },
-      headers: { authorization: `Bearer ${tokenFor()}`, origin: 'http://trade.example:8082' },
-      body: {},
-    }, result);
-    assert.equal(result.cookies[1].name, 'asset_exchange_pam_login_origin');
-    assert.equal(result.cookies[1].value, 'http://trade.example:8082');
-    assert.equal(result.cookies[1].options.httpOnly, true);
-
-    const errorPage = response();
-    await handlers.authorizePamEntry({
-      query: { request_id: 'r1' },
-      headers: { cookie: 'asset_exchange_pam_login_origin=http%3A%2F%2Ftrade.example%3A8082' },
-    }, errorPage);
-    assert.equal(errorPage.statusCode, 401);
-    assert.match(errorPage.body, /href="http:\/\/trade\.example:8082\/#\/login\?logout=1"/);
-    assert.equal(errorPage.headers['Cache-Control'], 'no-store');
-  } finally {
-    pamNodes.getUser = originalGetUser;
-  }
-});
-
-test('entry rejects an expired business token before opening Hub', async () => {
-  const originalGetUser = pamNodes.getUser;
-  pamNodes.getUser = async () => ({ id: 7, identity: 'auditor', status: 0, auditor_target: 'HUB' });
-  try {
-    const expired = jwt.sign({ id: 7, account: 'auditor01', identity: 'auditor', exp: 1 }, businessSecretKey);
-    const result = response();
-    await handlers.startPamEntry({
-      auth: { id: 7, identity: 'auditor' },
-      headers: { authorization: `Bearer ${expired}` },
-      body: {},
-    }, result);
-    assert.equal(result.statusCode, 401);
-    assert.match(result.body.error, /已过期/);
-    assert.equal(result.cookies.length, 0);
-  } finally {
-    pamNodes.getUser = originalGetUser;
-  }
-});
-
-test('callback rejects missing credentials and non-reader requests', async () => {
-  const missing = response();
-  await handlers.authorizePamEntry({ query: { request_id: 'r1' }, headers: {} }, missing);
-  assert.equal(missing.statusCode, 401);
-
-  const referenceCookieOnly = response();
-  await handlers.authorizePamEntry({
-    query: { request_id: 'r1' },
-    headers: { cookie: `pam_trade_entry=${encodeURIComponent(tokenFor())}` },
-  }, referenceCookieOnly);
-  assert.equal(referenceCookieOnly.statusCode, 401);
-  assert.match(referenceCookieOnly.body, /缺少交易交接凭据/);
-
-  const originalFetch = global.fetch;
-  global.fetch = async () => Response.json({ mode: 'writer' });
-  try {
-    const denied = response();
-    await handlers.authorizePamEntry({
-      query: { request_id: 'r1' },
-      headers: { cookie: `asset_exchange_pam_trade_entry=${encodeURIComponent(tokenFor())}` },
-    }, denied);
-    assert.equal(denied.statusCode, 403);
-    assert.equal(denied.redirectUrl, undefined);
-  } finally {
-    global.fetch = originalFetch;
-  }
-});
-
-test('reader callback creates a Hub launch and redirects once', async () => {
-  const originalFetch = global.fetch;
+test('Hub entry checks role, uses one-time ticket and submits the new Hub ticket', async () => {
+  const oldUser = pamNodes.getUser;
+  const oldFetch = global.fetch;
   const calls = [];
+  pamNodes.getUser = async () => user;
   global.fetch = async (url, options) => {
     calls.push({ url: String(url), options });
-    return Response.json(calls.length === 1
-      ? { mode: 'reader' }
-      : { launch_url: 'https://audit.example/launch/1' });
+    return Response.json({ entry_url: 'http://hub.example/hub/web/entry', ticket: 'hub-ticket-1' });
   };
   try {
-    const result = response();
-    await handlers.authorizePamEntry({
-      query: { request_id: 'request-1' },
-      headers: { cookie: `pam_trade_entry=old-token; asset_exchange_pam_trade_entry=${encodeURIComponent(tokenFor())}` },
-    }, result);
-    assert.equal(result.statusCode, 303);
-    assert.equal(result.redirectUrl, 'https://audit.example/launch/1');
-    assert.deepEqual(result.clearedCookies.map((item) => item.name), [
-      'asset_exchange_pam_trade_entry', 'asset_exchange_pam_login_origin',
-    ]);
-    assert.equal(calls[0].options.headers['x-trading-token'], auditConfig.hubTradingToken || 'test-hub-token');
-    assert.equal(new URL(calls[0].url).pathname, '/hub/web/requests/request-1');
-    assert.equal(new URL(calls[1].url).pathname, '/hub/web/launches');
-    assert.deepEqual(JSON.parse(calls[1].options.body), {
-      request_id: 'request-1', subject: 'trade:auditor01',
-    });
+    const denied = mockRes();
+    await handlers.startPamEntry({ auth: { id: 7, identity: 'buyer' } }, denied);
+    assert.equal(denied.statusCode, 403);
+
+    const start = mockRes();
+    await handlers.startPamEntry({ auth: { id: 7, identity: 'auditor' }, headers: { authorization: `Bearer ${token()}` }, body: {} }, start);
+    assert.equal(start.statusCode, 200);
+    assert.match(start.body.url, /\/api\/pam\/hub-launch\?ticket=/);
+    assert.equal(start.headers['Cache-Control'], 'no-store');
+    const handoffTicket = new URL(start.body.url, 'http://trade.example').searchParams.get('ticket');
+    const launch = mockRes();
+    await handlers.launchHub({ query: { ticket: handoffTicket } }, launch);
+    assert.equal(launch.statusCode, 200);
+    assert.match(launch.body, /method="post"/);
+    assert.match(launch.body, /action="http:\/\/hub\.example\/hub\/web\/entry"/);
+    assert.match(launch.body, /name="ticket" value="hub-ticket-1"/);
+    assert.equal(calls.length, 1);
+    assert.equal(new URL(calls[0].url).pathname, '/hub/web/launches');
+    assert.equal(calls[0].options.headers['X-Integration-Token'], 'test-integration-token');
+    assert.deepEqual(JSON.parse(calls[0].options.body), { subject: 'trading-user-7' });
+    const reused = mockRes();
+    await handlers.launchHub({ query: { ticket: handoffTicket } }, reused);
+    assert.equal(reused.statusCode, 400);
   } finally {
-    global.fetch = originalFetch;
+    pamNodes.getUser = oldUser;
+    global.fetch = oldFetch;
   }
 });
 
-test('Hub request failures do not redirect the browser', async () => {
-  const originalFetch = global.fetch;
-  global.fetch = async () => Response.json({ detail: 'Hub unavailable' }, { status: 503 });
-  const originalError = console.error;
-  console.error = () => {};
+test('Hub directory uses the integration credential and keeps PAM nodes', async () => {
+  const oldFetch = global.fetch;
+  let received;
+  global.fetch = async (_url, options) => {
+    received = options;
+    return Response.json({ nodes: [
+      { node_id: 'mpc-auditor-1' }, { node_id: 'pam-node-1', web_origin: 'http://node.example' },
+    ] });
+  };
   try {
-    const result = response();
-    await handlers.authorizePamEntry({
-      query: { request_id: 'request-2' },
-      headers: { cookie: `asset_exchange_pam_trade_entry=${encodeURIComponent(tokenFor())}` },
-    }, result);
-    assert.equal(result.statusCode, 502);
-    assert.equal(result.redirectUrl, undefined);
-  } finally {
-    console.error = originalError;
-    global.fetch = originalFetch;
-  }
+    assert.deepEqual((await pamNodes.fetchNodes(true)).map((node) => node.node_id), ['pam-node-1']);
+    assert.equal(received.headers['X-Integration-Token'], 'test-integration-token');
+  } finally { global.fetch = oldFetch; }
 });

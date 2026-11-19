@@ -556,6 +556,7 @@ CREATE TABLE `fl_delivery_contracts` (
   `transaction_id` VARCHAR(128) NOT NULL,
   `business_contract_id` VARCHAR(128) NOT NULL,
   `pcp_contract_id` VARCHAR(128) DEFAULT NULL,
+  `current_attempt_id` VARCHAR(128) DEFAULT NULL,
   `buyer_id` VARCHAR(255) NOT NULL,
   `seller_ids_json` JSON DEFAULT NULL,
   `buyer_result_public_key` TEXT DEFAULT NULL,

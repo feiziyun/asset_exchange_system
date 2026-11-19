@@ -6,6 +6,8 @@ const digitalContractService = require('../digitalContract');
 const FormData = require('form-data');
 const { execFile } = require('child_process');
 const { services } = require('../../config/services');
+const { callbackUrl } = require('./notification');
+const { assertTradeActor, assertTradeWritable } = require('./access');
 
 const { createPcpClient } = require('./client');
 const { PCP_FL_RESULT_ROLES } = require('./constants');
@@ -51,6 +53,9 @@ function stringifyUpstreamErrorPayload(payload) {
 }
 
 function formatFlRouteError(error) {
+  if (error?.statusCode) {
+    return { status: error.statusCode, body: { message: error.message, code: `FL_${error.statusCode}` } };
+  }
   if (isMissingPcpTableError(error)) {
     return {
       status: 500,
@@ -123,7 +128,10 @@ function extractFlNotificationPayload(body, firstDefined) {
     transactionId: firstDefined(payload.transaction_id, body?.transaction_id),
     pcpContractId: firstDefined(payload.pcc_contract_id, payload.pcp_contract_id, payload.contract_id,
       body?.pcc_contract_id, body?.pcp_contract_id, body?.contract_id),
-    pcpStatus: firstDefined(payload.status, body?.status),
+    pcpStatus: firstDefined(payload.status, body?.status,
+      payload.event_type === 'PCC_TOKEN_READY' && payload.result_role === 'fl_top_model' ? 'PAM_PASSED' : null),
+    attemptId: firstDefined(payload.attempt_id, body?.attempt_id),
+    tradeContractId: firstDefined(payload.trade_contract_id, body?.trade_contract_id),
     currentEpoch: firstDefined(payload.current_epoch, body?.current_epoch),
     receiverId: firstDefined(payload.receiver_id, body?.receiver_id),
     resultRole: firstDefined(payload.result_role, body?.result_role),
@@ -374,7 +382,7 @@ function registerFlRoutes({
 
   async function syncCurrentFlAttempt(record) {
     const mapped = mapFlRecordRow(record);
-    const attemptId = mapped?.seller_result_packages?.__attempt_id || null;
+    const attemptId = record?.current_attempt_id || mapped?.seller_result_packages?.__attempt_id || null;
     if (!record?.pcp_contract_id || !attemptId) {
       return record;
     }
@@ -413,6 +421,7 @@ function registerFlRoutes({
           transactionId: record.transaction_id,
           businessContractId: record.business_contract_id,
           pcpContractId: record.pcp_contract_id,
+          currentAttemptId: nextAttemptId,
           buyerId: record.buyer_id,
           pcpStatus: nextStatus,
           currentEpoch: nextEpoch,
@@ -420,7 +429,7 @@ function registerFlRoutes({
           buyerResultFilename: tokenSyncState.buyerResultFilename,
           buyerResultStoragePath: tokenSyncState.buyerResultStoragePath,
           sellerResultPackages,
-          lastError: null
+          lastError: nextStatus === 'WAITING_EPOCH_INPUT' ? record.last_error : null
         })
       );
     } catch (error) {
@@ -581,6 +590,7 @@ function registerFlRoutes({
         transaction_id: fallback.transaction_id || fallback.transactionId || null,
         business_contract_id: businessContractId,
         pcp_contract_id: null,
+        current_attempt_id: null,
         buyer_id: buyerId,
         seller_ids: [],
         pcp_status: 'NOT_EXIST',
@@ -605,6 +615,7 @@ function registerFlRoutes({
       transaction_id: mapped.transaction_id,
       business_contract_id: mapped.business_contract_id || businessContractId,
       pcp_contract_id: mapped.pcp_contract_id || null,
+      current_attempt_id: mapped.current_attempt_id || mapped.seller_result_packages?.__attempt_id || null,
       buyer_id: mapped.buyer_id || buyerId,
       seller_ids: mapped.seller_ids || [],
       buyer_result_public_key: mapped.buyer_result_public_key || null,
@@ -635,6 +646,7 @@ function registerFlRoutes({
         transaction_id,
         business_contract_id,
         pcp_contract_id,
+        current_attempt_id,
         buyer_id,
         seller_ids_json,
         buyer_result_public_key,
@@ -652,10 +664,11 @@ function registerFlRoutes({
         seller_join_packages_json,
         seller_result_packages_json,
         last_error
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         business_contract_id = VALUES(business_contract_id),
         pcp_contract_id = VALUES(pcp_contract_id),
+        current_attempt_id = VALUES(current_attempt_id),
         buyer_id = VALUES(buyer_id),
         seller_ids_json = VALUES(seller_ids_json),
         buyer_result_public_key = VALUES(buyer_result_public_key),
@@ -679,6 +692,7 @@ function registerFlRoutes({
       record.transaction_id,
       record.business_contract_id,
       record.pcp_contract_id,
+      record.current_attempt_id,
       record.buyer_id,
       record.seller_ids_json,
       record.buyer_result_public_key,
@@ -712,6 +726,8 @@ function registerFlRoutes({
         mapped && mapped.business_contract_id
       ),
       pcpContractId: firstDefined(overrides.pcpContractId, mapped && mapped.pcp_contract_id),
+      currentAttemptId: firstDefined(overrides.currentAttemptId, mapped && mapped.current_attempt_id,
+        mapped?.seller_result_packages?.__attempt_id),
       buyerId: firstDefined(overrides.buyerId, mapped && mapped.buyer_id),
       sellerIds: hasOwn('sellerIds')
         ? normalizeSellerIds(overrides.sellerIds)
@@ -1028,6 +1044,8 @@ function registerFlRoutes({
 
       try {
         const { transaction, digitalContract } = await requireFlContext(transactionId);
+        assertTradeActor(req, transaction, 'buyer');
+        assertTradeWritable(transaction);
         if (digitalContractService.isEnabled()) {
           if (!req.auth?.id || Number(transaction.buyer_id) !== Number(req.auth.id)) throw new Error('仅本交易买方可提交FL模型');
           digitalContractService.assertFlPackages(digitalContract, topModelInitialPackage.buffer, bottomModelInitialPackage.buffer);
@@ -1055,8 +1073,13 @@ function registerFlRoutes({
           dpNoiseScale: 0,
           dpClippingThreshold: 1
         });
+        if (contractPayload.seller_ids.length !== 1 ||
+            contractPayload.seller_ids[0] !== transaction.seller_address) {
+          return res.status(400).json({ success: false, message: 'FL 卖方必须与当前交易一致' });
+        }
 
         const form = new FormData();
+        form.append('callback_url', callbackUrl('fl'));
         form.append('metadata', JSON.stringify(contractPayload));
         form.append('top_model_initial_package', topModelInitialPackage.buffer, {
           filename: topModelInitialPackage.originalname || 'top-model.zip',
@@ -1153,6 +1176,11 @@ function registerFlRoutes({
     try {
       validateHexString(sellerPublicKey, 'sellerPublicKey');
       const { transaction, digitalContract } = await requireFlContext(transactionId);
+      assertTradeActor(req, transaction, 'seller');
+      assertTradeWritable(transaction);
+      if (sellerId !== transaction.seller_address) {
+        return res.status(400).json({ success: false, message: 'FL 卖方地址与当前交易不一致' });
+      }
       const existing = await getFlRecordByTransactionId(transactionId);
 
       if (!existing?.pcp_contract_id) {
@@ -1301,9 +1329,16 @@ function registerFlRoutes({
         });
       }
 
+      let activeRecord = null;
       try {
         const { transaction, digitalContract } = await requireFlContext(transactionId);
+        assertTradeActor(req, transaction, 'seller');
+        assertTradeWritable(transaction);
+        if (sellerId !== transaction.seller_address) {
+          return res.status(400).json({ success: false, message: 'FL 卖方地址与当前交易不一致' });
+        }
         const existing = await getFlRecordByTransactionId(transactionId);
+        activeRecord = existing;
 
         if (!existing?.pcp_contract_id) {
           return res.status(400).json({
@@ -1313,14 +1348,22 @@ function registerFlRoutes({
         }
 
         const client = createPcpClient({ baseUrl: getPcpFlBaseUrl() });
-        let currentAttemptId = mapFlRecordRow(existing)?.seller_result_packages?.__attempt_id || null;
+        const failedAttempt = ['FAILED', 'PAM_FAILED', 'AUDIT_FAILED'].includes(
+          String(existing.pcp_status || '').toUpperCase()
+        );
+        let currentAttemptId = failedAttempt
+          ? null
+          : existing.current_attempt_id || mapFlRecordRow(existing)?.seller_result_packages?.__attempt_id || null;
         let currentEpoch = Number(existing.current_epoch || 0);
 
         if (!currentAttemptId) {
           const attemptResp = await client.post(
             `/fl/${encodeURIComponent(existing.pcp_contract_id)}/attempts`,
             {
-              idempotency_key: `${existing.pcp_contract_id}-attempt`
+              idempotency_key: failedAttempt
+                ? `${existing.pcp_contract_id}-retry-after-${existing.current_attempt_id || 'initial'}`
+                : `${existing.pcp_contract_id}-attempt`,
+              callback_url: callbackUrl('fl')
             }
           );
           currentAttemptId = firstDefined(
@@ -1347,7 +1390,10 @@ function registerFlRoutes({
             transactionId,
             businessContractId: digitalContract.contract_id,
             pcpContractId: existing.pcp_contract_id,
+            currentAttemptId,
             currentEpoch,
+            pcpStatus: 'WAITING_EPOCH_INPUT',
+            lastError: null,
             sellerResultPackages: {
               ...persistedSellerResults,
               __attempt_id: currentAttemptId
@@ -1437,6 +1483,15 @@ function registerFlRoutes({
           }
         });
       } catch (error) {
+        if (activeRecord?.pcp_contract_id) {
+          try {
+            const latest = await getFlRecordByTransactionId(transactionId);
+            await upsertFlRecord(mergeFlRecordInput(latest, {
+              transactionId,
+              lastError: error.message || 'FL 批次提交失败'
+            }));
+          } catch (_) { /* Preserve the original submission error. */ }
+        }
         const routeError = formatFlRouteError(error);
         return res.status(error.statusCode || routeError.status).json({
           success: false,
@@ -1462,6 +1517,7 @@ function registerFlRoutes({
 
     try {
       const { transaction, digitalContract } = await requireFlContext(transactionId);
+      assertTradeActor(req, transaction);
       let record = await getFlRecordByTransactionId(transactionId);
       let syncError = null;
 
@@ -1481,7 +1537,9 @@ function registerFlRoutes({
               businessContractId: digitalContract.contract_id,
               buyerId: transaction.buyer_address,
               pcpContractId: firstDefined(contractData.contractId, record.pcp_contract_id),
-              pcpStatus: firstDefined(contractData.status, record.pcp_status),
+              pcpStatus: record.current_attempt_id
+                ? record.pcp_status
+                : firstDefined(contractData.status, record.pcp_status),
               currentEpoch: firstDefined(record.current_epoch, 0),
               lastError: record.last_error
             })
@@ -1637,7 +1695,21 @@ function registerFlRoutes({
         });
       }
 
+      const recordedAttempt = record.current_attempt_id || mapFlRecordRow(record)?.seller_result_packages?.__attempt_id;
+      if ((payload.pcpContractId && payload.pcpContractId !== record.pcp_contract_id) ||
+          (payload.tradeContractId && payload.tradeContractId !== record.business_contract_id) ||
+          (payload.attemptId && recordedAttempt && payload.attemptId !== recordedAttempt)) {
+        return res.status(409).json({ success: false, message: 'FL 通知与交易记录不匹配' });
+      }
+
       const { transaction, digitalContract } = await requireFlContext(record.transaction_id);
+      const sellers = mapFlRecordRow(record)?.seller_ids || [];
+      const expectedReceiver = payload.resultRole === 'fl_top_model'
+        ? payload.receiverId === transaction.buyer_address
+        : sellers.includes(payload.receiverId);
+      if (!expectedReceiver) {
+        return res.status(409).json({ success: false, message: 'FL 通知接收方与交易记录不匹配' });
+      }
       const resultUpdates = updateFlResultPackages(record, payload);
       const saved = await upsertFlRecord(
         mergeFlRecordInput(record, {
@@ -1691,6 +1763,10 @@ function registerFlRoutes({
 
     try {
       const { transaction, digitalContract } = await requireFlContext(transactionId);
+      const participantId = receiverRole === 'seller' ? transaction.seller_id : transaction.buyer_id;
+      if (req.auth?.internal !== 'privacy-result' && Number(req.auth?.id) !== Number(participantId)) {
+        return res.status(403).json({ success: false, message: '无权下载该 FL 结果' });
+      }
       let record = await getFlRecordByTransactionId(transactionId);
 
       if (!record) {
@@ -1698,6 +1774,10 @@ function registerFlRoutes({
           success: false,
           message: '当前交易暂无 FL 记录'
         });
+      }
+
+      if (receiverRole === 'buyer' && !['PAM_PASSED', 'COMPLETED'].includes(String(record.pcp_status || '').toUpperCase())) {
+        return res.status(409).json({ success: false, message: 'FL 审计尚未放行买方结果' });
       }
 
       if (receiverRole === 'seller' && sellerId && resultRole === 'fl_bottom_model') {

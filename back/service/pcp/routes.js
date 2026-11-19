@@ -7,6 +7,8 @@ const loggedAxios = createLoggedAxios('pcp-routes');
 const FormData = require('form-data');
 const { execFile } = require('child_process');
 const { services } = require('../../config/services');
+const { callbackUrl } = require('./notification');
+const { assertTradeActor, assertTradeWritable } = require('./access');
 
 const {
   HE_ENC_TYPES,
@@ -591,7 +593,8 @@ function registerHeRoutes({
       has_paillier_public_key: Boolean(mapped.paillier_public_key),
       has_elgamal_public_key: Boolean(mapped.elgamal_public_key),
       public_keys_ready: Boolean(mapped.public_keys_ready),
-      result_ready: Boolean(mapped.result_storage_path || mapped.download_token),
+      result_ready: ['PAM_PASSED', 'COMPLETED'].includes(String(mapped.pcp_status || '').toUpperCase()) &&
+        Boolean(mapped.result_storage_path || mapped.download_token),
       download_token: mapped.download_token || null,
       result_filename: mapped.result_filename || null,
       last_error: mapped.last_error || null
@@ -743,6 +746,7 @@ function registerHeRoutes({
 
     try {
       const { transaction, digitalContract } = await requireHeContext(transactionId);
+      assertTradeActor(req, transaction);
       const record = await getHeRecordByTransactionId(transactionId);
 
       return res.status(200).json({
@@ -789,6 +793,8 @@ function registerHeRoutes({
 
     try {
       const { transaction, digitalContract } = await requireHeContext(transactionId);
+      assertTradeActor(req, transaction, 'buyer');
+      assertTradeWritable(transaction);
       const existing = await getHeRecordByTransactionId(transactionId);
       const existingMapped = mapHeRecordRow(existing);
       if (existingMapped?.public_keys_ready) {
@@ -882,6 +888,8 @@ function registerHeRoutes({
 
       try {
         const { transaction, digitalContract } = await requireHeContext(transactionId);
+        assertTradeActor(req, transaction, 'seller');
+        assertTradeWritable(transaction);
         const existing = await getHeRecordByTransactionId(transactionId);
         const publicKeys = getHePublicKeyByEncType(existing, encType);
         const mappedExisting = mapHeRecordRow(existing);
@@ -906,6 +914,10 @@ function registerHeRoutes({
 
         let pcpContractId = existing && existing.pcp_contract_id;
         let currentAttemptId = existing && existing.current_attempt_id;
+        const previousStatus = String(existing?.pcp_status || '').toUpperCase();
+        if (currentAttemptId && !['FAILED', 'PAM_FAILED', 'AUDIT_FAILED'].includes(previousStatus)) {
+          return res.status(409).json({ success: false, message: '当前 HE 计算批次已提交，请查询状态' });
+        }
         let contractResponse = null;
         let attemptResponse = null;
         const heClient = createPcpClient({
@@ -920,6 +932,7 @@ function registerHeRoutes({
             operation,
             sellerFileCount: orderedFiles.length
           });
+          contractPayload.callback_url = callbackUrl('he');
 
           const contractResp = await heClient.post('/he/contract', contractPayload);
           contractResponse = contractResp?.data || null;
@@ -939,11 +952,15 @@ function registerHeRoutes({
         }
 
         const form = new FormData();
+        form.append('callback_url', callbackUrl('he'));
         form.append('metadata', JSON.stringify(buildHeAttemptMetadata({
           contractId: pcpContractId,
           sellerId: transaction.seller_address,
           publicKey: buildPcpHePublicKey(encType, publicKeys),
-          sellerFileFields
+          sellerFileFields,
+          idempotencyKey: currentAttemptId
+            ? `${pcpContractId}-retry-after-${currentAttemptId}`
+            : `${pcpContractId}-attempt-initial`
         })));
         orderedFiles.forEach((file, index) => {
           form.append(sellerFileFields[index], file.buffer, {
@@ -1019,6 +1036,7 @@ function registerHeRoutes({
 
     try {
       const { transaction, digitalContract } = await requireHeContext(transactionId);
+      assertTradeActor(req, transaction);
       let record = await getHeRecordByTransactionId(transactionId);
       let syncError = null;
 
@@ -1164,6 +1182,9 @@ function registerHeRoutes({
 
     try {
       const { transaction, digitalContract } = await requireHeContext(transactionId);
+      if (req.auth?.internal !== 'privacy-result' && Number(req.auth?.id) !== Number(transaction.buyer_id)) {
+        return res.status(403).json({ success: false, message: '无权下载该 HE 结果' });
+      }
       let record = await getHeRecordByTransactionId(transactionId);
 
       if (!record) {
@@ -1171,6 +1192,10 @@ function registerHeRoutes({
           success: false,
           message: '当前交易暂无 HE 记录'
         });
+      }
+
+      if (!['PAM_PASSED', 'COMPLETED'].includes(String(record.pcp_status || '').toUpperCase())) {
+        return res.status(409).json({ success: false, message: 'HE 审计尚未放行结果' });
       }
 
       let storagePath = await resolveLocalResultPath(record.result_storage_path);
@@ -1369,7 +1394,8 @@ function registerPreRoutes({
       reencryption_key_ready: Boolean(mapped.reencryption_key_ready),
       pcp_status: mapped.pcp_status || 'CREATED',
       has_record: true,
-      result_ready: Boolean(mapped.result_ready),
+      result_ready: ['PAM_PASSED', 'COMPLETED'].includes(String(mapped.pcp_status || '').toUpperCase()) &&
+        Boolean(mapped.result_ready),
       download_token: mapped.download_token || null,
       result_filename: mapped.result_filename || null,
       last_error: mapped.last_error || null
@@ -1520,6 +1546,7 @@ function registerPreRoutes({
       transaction,
       businessContractId: digitalContract.contract_id
     });
+    contractPayload.callback_url = callbackUrl('pre');
     const client = createPcpClient({
       baseUrl: getPcpPreBaseUrl()
     });
@@ -1562,6 +1589,12 @@ function registerPreRoutes({
     sourceCipherZipFile
   }) {
     const mappedRecord = mapPreRecordRow(record);
+    const previousStatus = String(record.pcp_status || '').toUpperCase();
+    if (record.current_attempt_id && !['FAILED', 'PAM_FAILED', 'AUDIT_FAILED'].includes(previousStatus)) {
+      const error = new Error('当前 PRE 计算批次已提交，请查询状态');
+      error.statusCode = 409;
+      throw error;
+    }
 
     if (!mappedRecord?.buyer_public_key) {
       const error = new Error('买方尚未上传 PRE 公钥');
@@ -1587,11 +1620,15 @@ function registerPreRoutes({
       baseUrl: getPcpPreBaseUrl()
     });
     const form = new FormData();
+    form.append('callback_url', callbackUrl('pre'));
     form.append('metadata', JSON.stringify(buildPreAttemptMetadata({
       contractId: record.pcp_contract_id,
       sourcePublicKey: mappedRecord.seller_source_public_key,
       targetPublicKey: mappedRecord.buyer_public_key,
-      reencryptionKey: mappedRecord.reencryption_key
+      reencryptionKey: mappedRecord.reencryption_key,
+      idempotencyKey: record.current_attempt_id
+        ? `${record.pcp_contract_id}-retry-after-${record.current_attempt_id}`
+        : `${record.pcp_contract_id}-attempt-initial`
     })));
     form.append('source_cipher_zip', sourceCipherZipFile.buffer, {
       filename: sourceCipherZipFile.originalname || 'source.zip',
@@ -1636,6 +1673,7 @@ function registerPreRoutes({
 
     try {
       const { transaction, digitalContract } = await requirePreContext(transactionId);
+      assertTradeActor(req, transaction);
       let record = await getPreRecordByTransactionId(transactionId);
       let syncError = null;
 
@@ -1761,6 +1799,9 @@ function registerPreRoutes({
 
     try {
       validatePreJsonPayload(buyerPublicKey, 'buyerPublicKey');
+      const context = await requirePreContext(transactionId);
+      assertTradeActor(req, context.transaction, 'buyer');
+      assertTradeWritable(context.transaction);
       const ensured = await ensurePreContract({ transactionId });
       const existingMapped = mapPreRecordRow(ensured.record);
       if (existingMapped?.buyer_public_key_ready) {
@@ -1839,6 +1880,9 @@ function registerPreRoutes({
       }
 
       try {
+        const context = await requirePreContext(transactionId);
+        assertTradeActor(req, context.transaction, 'seller');
+        assertTradeWritable(context.transaction);
         let existing = await getPreRecordByTransactionId(transactionId);
         const ensured = await ensurePreContract({ transactionId, existingRecord: existing });
         existing = ensured.record;
@@ -2035,6 +2079,9 @@ function registerPreRoutes({
 
     try {
       const { transaction, digitalContract } = await requirePreContext(transactionId);
+      if (req.auth?.internal !== 'privacy-result' && Number(req.auth?.id) !== Number(transaction.buyer_id)) {
+        return res.status(403).json({ success: false, message: '无权下载该 PRE 结果' });
+      }
       const record = await getPreRecordByTransactionId(transactionId);
 
       if (!record) {
@@ -2042,6 +2089,10 @@ function registerPreRoutes({
           success: false,
           message: '当前交易暂无 PRE 记录'
         });
+      }
+
+      if (!['PAM_PASSED', 'COMPLETED'].includes(String(record.pcp_status || '').toUpperCase())) {
+        return res.status(409).json({ success: false, message: 'PRE 审计尚未放行结果' });
       }
 
       if (!record.download_token) {
@@ -2114,7 +2165,8 @@ function registerPreRoutes({
       }
 
       try {
-        await requirePreContext(transactionId);
+        const { transaction } = await requirePreContext(transactionId);
+        assertTradeActor(req, transaction, 'buyer');
         const record = mapPreRecordRow(await getPreRecordByTransactionId(transactionId));
         if (!record) {
           return res.status(404).json({

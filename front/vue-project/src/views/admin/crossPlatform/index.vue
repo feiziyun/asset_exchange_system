@@ -1,6 +1,9 @@
 <template>
   <div class="cross-page">
     <h2 class="page-title">跨链跨平台</h2>
+    <el-tabs v-model="activeTab" class="cross-tabs">
+      <el-tab-pane label="资产信息" name="assets"><AssetCatalog /></el-tab-pane>
+      <el-tab-pane label="跨链调配" name="bridge">
     <div class="cross-grid">
       <el-card>
         <template #header><strong>跨平台检索</strong></template>
@@ -40,6 +43,8 @@
         <pre v-if="response" class="response">{{ JSON.stringify(response, null, 2) }}</pre>
       </el-card>
     </div>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -47,7 +52,9 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '@/http/index.js'
+import AssetCatalog from './AssetCatalog.vue'
 
+const activeTab = ref('assets')
 const keyword = ref('')
 const searching = ref(false)
 const searchError = ref('')

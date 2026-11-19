@@ -77,7 +77,8 @@ function buildHeAttemptMetadata({
   contractId,
   sellerId,
   publicKey,
-  sellerFileFields
+  sellerFileFields,
+  idempotencyKey
 }) {
   requireNonEmpty(contractId, 'contractId');
   const normalizedFields = Array.isArray(sellerFileFields) && sellerFileFields.length
@@ -90,7 +91,7 @@ function buildHeAttemptMetadata({
   }
 
   return {
-    idempotency_key: `${contractId}-attempt-${Date.now()}`,
+    idempotency_key: idempotencyKey || `${contractId}-attempt-initial`,
     public_key: publicKey,
     seller_files: logicalSellerIds.map((sellerFileId, index) => ({
       seller_id: sellerFileId,

@@ -195,9 +195,10 @@
                               type="success"
                               link
                               :loading="actionLoadingNo === item.order_no"
+                              :disabled="!canConfirmPurchase(item)"
                               @click="openConfirmDialog(item.order_no)"
                             >
-                              确认收货
+                              {{ canConfirmPurchase(item) ? '确认收货' : '等待交付结果' }}
                             </el-button>
                           </div>
                         </td>
@@ -600,6 +601,11 @@ interface PurchasedItem {
   order_status?: number
   wallet_payment_status?: string | null
   transaction_status?: string | null
+  pc_type?: string | null
+  he_record?: { pcp_status?: string; download_token?: string; result_ready?: boolean } | null
+  pre_record?: { pcp_status?: string; download_token?: string; result_ready?: boolean } | null
+  fl_record?: { pcp_status?: string; buyer_download_token?: string; buyer_result_ready?: boolean } | null
+  mpc_record?: { task_status?: string } | null
   created_at?: string
 }
 
@@ -1010,6 +1016,16 @@ const openConfirmDialog = (orderNo?: string) => {
   if (!orderNo) return
   confirmOrderNo.value = orderNo
   confirmDialogVisible.value = true
+}
+
+const canConfirmPurchase = (item: PurchasedItem) => {
+  const type = String(item.pc_type || '').toUpperCase()
+  const passed = (status?: string) => ['PAM_PASSED', 'COMPLETED'].includes(String(status || '').toUpperCase())
+  if (type === 'HE') return passed(item.he_record?.pcp_status) && Boolean(item.he_record?.result_ready)
+  if (type === 'PRE') return passed(item.pre_record?.pcp_status) && Boolean(item.pre_record?.result_ready)
+  if (type === 'FL') return passed(item.fl_record?.pcp_status) && Boolean(item.fl_record?.buyer_result_ready)
+  if (type === 'MPC') return String(item.mpc_record?.task_status || '').toLowerCase() === 'done'
+  return true
 }
 
 const submitConfirm = async () => {

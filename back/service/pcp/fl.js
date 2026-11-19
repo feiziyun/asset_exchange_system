@@ -149,7 +149,7 @@ function buildFlContractPayload({
   }
 
   return {
-    idempotency_key: `fl-contract-${requireNonEmpty(businessContractId, 'businessContractId')}-${Date.now()}`,
+    idempotency_key: `fl-contract-${requireNonEmpty(businessContractId, 'businessContractId')}`,
     buyer_id: buyerId,
     trade_contract_id: requireNonEmpty(businessContractId, 'businessContractId'),
     seller_ids: normalizedSellerIds,
@@ -177,6 +177,7 @@ function normalizeFlRecord(input = {}) {
       'businessContractId'
     ),
     pcp_contract_id: input.pcpContractId ? String(input.pcpContractId) : null,
+    current_attempt_id: input.currentAttemptId ? String(input.currentAttemptId) : null,
     buyer_id: requireNonEmpty(input.buyerId, 'buyerId'),
     seller_ids_json: serializeJsonOrNull(normalizeSellerIds(input.sellerIds)),
     buyer_result_public_key: input.buyerResultPublicKey
@@ -223,7 +224,8 @@ function mapFlRecordRow(row) {
     seller_result_packages: sellerResultPackages && typeof sellerResultPackages === 'object'
       ? sellerResultPackages
       : {},
-    buyer_result_ready: Boolean(row.buyer_download_token || row.buyer_result_storage_path)
+    buyer_result_ready: ['PAM_PASSED', 'COMPLETED'].includes(String(row.pcp_status || '').toUpperCase()) &&
+      Boolean(row.buyer_download_token || row.buyer_result_storage_path)
   };
 }
 

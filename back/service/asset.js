@@ -14,6 +14,8 @@ const {
   upsertDigitalContractForOrder,
 } = require('./delivery');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const { businessSecretKey } = require('../jwt_config');
 const { loggedFetch, createLoggedAxios } = require('./httpLogger');
 const { services } = require('../config/services');
 const alipayConfig = require('../config/alipay');
@@ -25,6 +27,11 @@ const CLASSIFICATION_SERVICE_BASE_URL =
   process.env.CLASSIFICATION_SERVICE_BASE_URL || 'http://10.112.191.163:8007';
 const LOCAL_BACK_BASE_URL =
   process.env.LOCAL_BACK_BASE_URL || `http://127.0.0.1:${process.env.PORT || 3007}`;
+const localPrivacyRequest = () => ({
+  headers: {
+    Authorization: `Bearer ${jwt.sign({ internal: 'privacy-result' }, businessSecretKey, { expiresIn: '30s' })}`,
+  },
+});
 const DATA_CATALOG_BASE_URL =
   process.env.DATA_CATALOG_BASE_URL || 'http://127.0.0.1:8008';
 const DATA_CATALOG_PLATFORM_NAME =
@@ -3917,6 +3924,9 @@ exports.sellerDeliver = async (orderNo, sellerId, payload = {}) => {
     if (!order) throw new Error('订单不存在');
     if (Number(order.publisher_id) !== Number(sellerId)) throw new Error('无权限操作该订单');
     if (Number(order.order_status) !== 1) throw new Error('订单当前状态不可交付，请确认买家已付款');
+    if (String(order.transaction_status || '') !== '已确认') {
+      throw new Error('请先确认交易，再执行交付');
+    }
 
     const buyerAddress = String(order.buyer_address || payload.buyer_address || '').trim();
     if (!buyerAddress) {
@@ -3945,6 +3955,27 @@ exports.sellerDeliver = async (orderNo, sellerId, payload = {}) => {
       owner_address: sellerAddress,
     };
     const orderPcType = requireDeliveryMethod(refreshedOrder.pc_type || 'HE');
+    if (['HE', 'PRE', 'FL'].includes(orderPcType)) {
+      const table = {
+        HE: 'he_delivery_contracts',
+        PRE: 'pre_delivery_contracts',
+        FL: 'fl_delivery_contracts',
+      }[orderPcType];
+      const [pccRows] = await conn.query(
+        `SELECT pcp_contract_id, current_attempt_id, pcp_status, last_error FROM ${table} WHERE transaction_id = ? LIMIT 1`,
+        [order.transaction_id],
+      );
+      const pccRecord = pccRows[0];
+      if (!pccRecord?.pcp_contract_id || !pccRecord.current_attempt_id) {
+        throw new Error(`请先提交 ${orderPcType} 计算批次，再确认卖家交付`);
+      }
+      if (['FAILED', 'PAM_FAILED', 'AUDIT_FAILED'].includes(String(pccRecord.pcp_status || '').toUpperCase())) {
+        throw new Error(`${orderPcType} 计算或审计失败，请重新提交交付材料`);
+      }
+      if (pccRecord.last_error) {
+        throw new Error(`${orderPcType} 交付材料提交失败：${pccRecord.last_error}`);
+      }
+    }
     const deliveryPayload = {
       ...payload,
       pc_type: orderPcType,
@@ -4050,7 +4081,8 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
           ao.order_no,
           t.transaction_id,
           t.status AS transaction_status,
-          dc.pc_type,
+          COALESCE(dc.pc_type, ao.pc_type) AS pc_type,
+          COALESCE(t.expiration_time, dc.expiration_time) AS expiration_time,
           he.pcp_status AS he_pcp_status,
           he.download_token AS he_download_token,
           he.result_storage_path AS he_result_storage_path,
@@ -4078,6 +4110,9 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
     if (!order) throw new Error('订单不存在');
     if (Number(order.buyer_id) !== Number(buyerId)) throw new Error('无权限确认该订单交付');
     if (Number(order.order_status) !== 2) throw new Error('订单当前状态不可确认交付，请等待卖家交付');
+    if (order.expiration_time && new Date(order.expiration_time).getTime() <= Date.now()) {
+      throw new Error('数字合约已过期，不能确认交付');
+    }
 
     const privacyReady = isPrivacyResultReady({
       digitalContract: { pc_type: order.pc_type },
@@ -4351,9 +4386,9 @@ exports.listOrders = async (query, userId, identity = '') => {
       LEFT JOIN fl_delivery_contracts fl ON fl.transaction_id = dt.transaction_id
       LEFT JOIN mpc_delivery_contracts mpc ON mpc.transaction_id = dt.transaction_id
       WHERE dt.order_no = ao.order_no AND CASE COALESCE(dc.pc_type, ao.pc_type)
-        WHEN 'HE' THEN he.result_storage_path IS NOT NULL OR UPPER(he.pcp_status) IN ('PAM_PASSED', 'COMPLETED')
-        WHEN 'PRE' THEN pre.result_storage_path IS NOT NULL OR UPPER(pre.pcp_status) IN ('PAM_PASSED', 'COMPLETED')
-        WHEN 'FL' THEN fl.buyer_result_storage_path IS NOT NULL OR UPPER(fl.pcp_status) IN ('PAM_PASSED', 'COMPLETED')
+        WHEN 'HE' THEN UPPER(he.pcp_status) IN ('PAM_PASSED', 'COMPLETED') AND (he.download_token IS NOT NULL OR he.result_storage_path IS NOT NULL)
+        WHEN 'PRE' THEN UPPER(pre.pcp_status) IN ('PAM_PASSED', 'COMPLETED') AND (pre.download_token IS NOT NULL OR pre.result_storage_path IS NOT NULL)
+        WHEN 'FL' THEN UPPER(fl.pcp_status) IN ('PAM_PASSED', 'COMPLETED') AND (fl.buyer_download_token IS NOT NULL OR fl.buyer_result_storage_path IS NOT NULL)
         WHEN 'MPC' THEN LOWER(mpc.task_status) = 'done'
         ELSE EXISTS (SELECT 1 FROM delivery_records rec WHERE rec.transaction_id = dt.transaction_id AND rec.result_status = 'DELIVERED')
       END
@@ -4948,7 +4983,7 @@ exports.exportVmCompatible = async (payload = {}) => {
   const fileBaseName = String(payload.filename || `delivery_result_${transactionId}`).trim() || `delivery_result_${transactionId}`;
 
   if (pcType === 'HE') {
-    const response = await loggedFetch(`${LOCAL_BACK_BASE_URL}/api/privacy/he/result?transactionId=${encodeURIComponent(transactionId)}`, {}, 'asset-he-result');
+    const response = await loggedFetch(`${LOCAL_BACK_BASE_URL}/api/privacy/he/result?transactionId=${encodeURIComponent(transactionId)}`, localPrivacyRequest(), 'asset-he-result');
     if (!response.ok) throw new Error(await response.text() || 'HE 结果下载失败');
     return {
       buffer: Buffer.from(await response.arrayBuffer()),
@@ -4958,7 +4993,7 @@ exports.exportVmCompatible = async (payload = {}) => {
   }
 
   if (pcType === 'PRE') {
-    const response = await loggedFetch(`${LOCAL_BACK_BASE_URL}/api/privacy/pre/result?transactionId=${encodeURIComponent(transactionId)}`, {}, 'asset-pre-result');
+    const response = await loggedFetch(`${LOCAL_BACK_BASE_URL}/api/privacy/pre/result?transactionId=${encodeURIComponent(transactionId)}`, localPrivacyRequest(), 'asset-pre-result');
     if (!response.ok) throw new Error(await response.text() || 'PRE 结果下载失败');
     return {
       buffer: Buffer.from(await response.arrayBuffer()),
@@ -4969,7 +5004,9 @@ exports.exportVmCompatible = async (payload = {}) => {
 
   if (pcType === 'FL') {
     const response = await loggedFetch(
-      `${LOCAL_BACK_BASE_URL}/api/privacy/fl/result?transactionId=${encodeURIComponent(transactionId)}&receiverRole=buyer`
+      `${LOCAL_BACK_BASE_URL}/api/privacy/fl/result?transactionId=${encodeURIComponent(transactionId)}&receiverRole=buyer`,
+      localPrivacyRequest(),
+      'asset-fl-result'
     );
     if (!response.ok) throw new Error(await response.text() || 'FL 结果下载失败');
     return {

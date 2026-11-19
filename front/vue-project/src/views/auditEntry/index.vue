@@ -35,7 +35,7 @@ const openAuditPlatform = async () => {
     let url = ''
     if (target === 'HUB') {
       const res = await startPamEntry()
-      url = res.data?.entry_url || ''
+      url = res.data?.url || ''
       if (!url) throw new Error(res.data?.error || res.data?.message || '审计平台未返回跳转地址')
     } else if (target.startsWith('NODE:')) {
       const res = await createPamNodeTicket(target.slice(5))

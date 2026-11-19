@@ -1,16 +1,17 @@
 const crypto = require('node:crypto');
 const db = require('../db/index');
 const auditConfig = require('../config/audit.json');
+const auditIntegration = require('../config/auditIntegration');
 const { credentialKey } = require('./pamCredentialKey');
 
 const pool = db.promise();
 const hubApiBase = auditConfig.hubApiBaseUrl || process.env.HUB_API_BASE_URL || '';
-const hubToken = auditConfig.hubTradingToken || process.env.HUB_TRADING_TOKEN || '';
+const hubToken = auditIntegration.token;
 
 async function hubFetch(pathname) {
   if (!hubApiBase || !hubToken) throw new Error('审计平台接口未配置');
   const response = await fetch(new URL(pathname, `${hubApiBase.replace(/\/$/, '')}/`), {
-    headers: { 'x-trading-token': hubToken },
+    headers: { 'X-Integration-Token': hubToken },
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.detail || result.message || `审计平台请求失败: HTTP ${response.status}`);

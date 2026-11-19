@@ -58,7 +58,8 @@ function buildPreAttemptMetadata({
   contractId,
   targetPublicKey,
   reencryptionKey,
-  sourcePublicKey
+  sourcePublicKey,
+  idempotencyKey
 }) {
   requireNonEmpty(contractId, 'contractId');
 
@@ -75,7 +76,7 @@ function buildPreAttemptMetadata({
   }
 
   return {
-    idempotency_key: `${contractId}-attempt-${Date.now()}`,
+    idempotency_key: idempotencyKey || `${contractId}-attempt-initial`,
     source_public_key: sourcePublicKey,
     target_public_key: targetPublicKey,
     reencryption_key: reencryptionKey

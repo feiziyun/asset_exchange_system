@@ -6,7 +6,7 @@ const auditHandler = require('../router_handle/audit');
 router.post('/entry-start', auditHandler.startPamEntry);
 router.get('/entry-start', auditHandler.startPamEntry);
 router.get('/nodes', auditHandler.getPamNodes);
-router.get('/authorize', auditHandler.authorizePamEntry);
+router.get('/hub-launch', auditHandler.launchHub);
 router.post('/node-ticket', auditHandler.createNodeTicket);
 router.get('/node-launch', auditHandler.launchNode);
 

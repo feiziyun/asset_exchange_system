@@ -198,13 +198,16 @@ function extractHeResultNotificationPayload(body, firstDefined) {
       body?.contract_id,
       body?.pcp_contract_id
     ),
-    pcpStatus: firstDefined(payload.status, body?.status),
-    downloadToken: firstDefined(result.download_token, body?.download_token),
+    pcpStatus: firstDefined(payload.status, body?.status,
+      payload.event_type === 'PCC_TOKEN_READY' ? 'PAM_PASSED' : null),
+    downloadToken: firstDefined(payload.download_token, result.download_token, body?.download_token),
     resultFilename: firstDefined(result.filename, body?.result_filename),
     resultStoragePath: firstDefined(result.result_uri, body?.result_uri, body?.result_storage_path),
     lastError: firstDefined(payload.last_error, body?.last_error),
     resultRole: firstDefined(payload.result_role, body?.result_role),
-    receiverId: firstDefined(payload.receiver_id, body?.receiver_id)
+    receiverId: firstDefined(payload.receiver_id, body?.receiver_id),
+    attemptId: firstDefined(payload.attempt_id, body?.attempt_id),
+    tradeContractId: firstDefined(payload.trade_contract_id, body?.trade_contract_id)
   };
 }
 
@@ -251,6 +254,13 @@ function createHeResultNotificationHandler(deps) {
           success: false,
           message: '未找到对应的 HE 记录'
         });
+      }
+
+      if ((payload.pcpContractId && payload.pcpContractId !== record.pcp_contract_id) ||
+          (payload.attemptId && payload.attemptId !== record.current_attempt_id) ||
+          (payload.tradeContractId && payload.tradeContractId !== record.business_contract_id) ||
+          (payload.receiverId && payload.receiverId !== record.buyer_id)) {
+        return res.status(409).json({ success: false, message: 'HE 通知与交易记录不匹配' });
       }
 
       const { transaction, digitalContract } = await requireHeContext(record.transaction_id);
@@ -304,8 +314,9 @@ function extractPreResultNotificationPayload(body, firstDefined) {
       body?.contract_id,
       body?.pcp_contract_id
     ),
-    pcpStatus: firstDefined(payload.status, body?.status),
-    downloadToken: firstDefined(result.download_token, body?.download_token),
+    pcpStatus: firstDefined(payload.status, body?.status,
+      payload.event_type === 'PCC_TOKEN_READY' ? 'PAM_PASSED' : null),
+    downloadToken: firstDefined(payload.download_token, result.download_token, body?.download_token),
     resultFilename: firstDefined(result.filename, body?.result_filename),
     resultStoragePath: firstDefined(
       result.result_uri,
@@ -314,7 +325,9 @@ function extractPreResultNotificationPayload(body, firstDefined) {
     ),
     lastError: firstDefined(payload.last_error, body?.last_error),
     resultRole: firstDefined(payload.result_role, body?.result_role),
-    receiverId: firstDefined(payload.receiver_id, body?.receiver_id)
+    receiverId: firstDefined(payload.receiver_id, body?.receiver_id),
+    attemptId: firstDefined(payload.attempt_id, body?.attempt_id),
+    tradeContractId: firstDefined(payload.trade_contract_id, body?.trade_contract_id)
   };
 }
 
@@ -466,6 +479,13 @@ function createPreResultNotificationHandler(deps) {
           success: false,
           message: '未找到对应的 PRE 记录'
         });
+      }
+
+      if ((payload.pcpContractId && payload.pcpContractId !== record.pcp_contract_id) ||
+          (payload.attemptId && payload.attemptId !== record.current_attempt_id) ||
+          (payload.tradeContractId && payload.tradeContractId !== record.business_contract_id) ||
+          (payload.receiverId && payload.receiverId !== record.buyer_id)) {
+        return res.status(409).json({ success: false, message: 'PRE 通知与交易记录不匹配' });
       }
 
       const { transaction, digitalContract } = await requirePreContext(record.transaction_id);

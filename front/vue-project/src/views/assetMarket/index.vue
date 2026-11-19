@@ -285,9 +285,6 @@
           style="width: 100%"
         />
       </el-form-item>
-      <el-form-item label="购买数量">
-        <el-input-number v-model="buyForm.buy_qty" :min="1" :max="Number(selectedAsset?.remaining_qty || 1)" :precision="0" style="width: 100%" />
-      </el-form-item>
     </el-form>
     <template #footer>
       <el-button @click="buyVisible = false">取消</el-button>
@@ -838,9 +835,8 @@ const submitBuy = async () => {
     ElMessage.error('缺少资产ID')
     return
   }
-  if (!Number.isSafeInteger(Number(buyForm.buy_qty)) || Number(buyForm.buy_qty) < 1 ||
-      Number(buyForm.buy_qty) > Number(selectedAsset.value?.remaining_qty || 0)) {
-    ElMessage.error('购买数量不能超过剩余份数')
+  if (Number(selectedAsset.value?.remaining_qty || 0) < 1) {
+    ElMessage.error('资产已售罄')
     return
   }
 
@@ -872,7 +868,7 @@ const submitBuy = async () => {
   try {
     const orderRes = await createOrder({
       publish_id: selectedAsset.value?.publish_id,
-      buy_qty: buyForm.buy_qty,
+      buy_qty: 1,
       trade_mode: buyForm.trade_mode,
       expiration_time: showExpirationInput.value ? buyForm.expiration_time : null,
       processing_type:

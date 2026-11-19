@@ -8,4 +8,5 @@ back/logs/
 back/storage/
 back/public/upload/
 back/config/pcp.local.json
+back/config/audit.integration.local.json
 back/.claude/settings.local.json

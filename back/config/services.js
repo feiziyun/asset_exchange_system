@@ -105,6 +105,9 @@ const services = {
 
   pcpClientId: pcpConfig.clientId || process.env.PCC_CLIENT_ID || 'trading-system',
   pcpClientSecret: pcpConfig.clientSecret || process.env.PCC_CLIENT_SECRET || process.env.PCP_CLIENT_SECRET || '',
+  pcpCallbackBaseUrl: pcpConfig.callbackBaseUrl || process.env.PCC_CALLBACK_BASE_URL || '',
+  pcpNotifyClientId: pcpConfig.notifyClientId || process.env.PCC_NOTIFY_CLIENT_ID || '',
+  pcpNotifyClientSecret: pcpConfig.notifyClientSecret || process.env.PCC_NOTIFY_CLIENT_SECRET || '',
 
   mpcBaseUrl:
     process.env.MPC_TASK_BASE_URL ||

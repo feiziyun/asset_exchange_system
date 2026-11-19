@@ -657,7 +657,13 @@ const normalizedDeliveryStatusText = (order: OrderItem) => {
   || '').toUpperCase()
 
   if (['FAILED', 'AUDIT_FAILED', 'PAM_FAILED', 'REJECTED'].includes(status)) return '交付失败'
+  if (pcType === 'FL' && status === 'WAITING_EPOCH_INPUT' && order.fl_record?.last_error) return '提交失败'
   if (['PAMING'].includes(status)) return '审计中'
+  if (status === 'PAM_PASSED' && !(
+    pcType === 'HE' ? order.he_record?.result_ready :
+      pcType === 'PRE' ? order.pre_record?.result_ready :
+        pcType === 'FL' ? order.fl_record?.buyer_result_ready : true
+  )) return '结果准备中'
   if (['QUEUED', 'RUNNING', 'COMPUTED', 'READY', 'COMPUTING'].includes(status)) return '计算中'
   if (['COMPLETED', 'PAM_PASSED', 'DONE', 'SUCCESS'].includes(status) || Number(order.order_status) === 3) return '已完成'
   if (['CREATED', 'WAITING_INPUT', 'WAITING_EPOCH_INPUT', 'JOINED', 'PENDING', 'BUYER_REQUESTED'].includes(status)) return '待卖方交付'
@@ -765,10 +771,10 @@ const isMpcOrder = (order: OrderItem) => getPcType(order) === 'MPC'
 const sellerActionText = (order: OrderItem) => (isPrivacyPc(order) ? '执行交付' : '卖家交付')
 
 const isCompletedPcpStatus = (status?: string) => ['PAM_PASSED', 'COMPLETED'].includes(String(status || '').toUpperCase())
-const canDownloadHeResult = (order: OrderItem) => !isDeliveryExpired(order) && Boolean(order.he_record?.result_ready || isCompletedPcpStatus(order.he_record?.pcp_status))
-const canDownloadPreResult = (order: OrderItem) => !isDeliveryExpired(order) && Boolean(order.pre_record?.result_ready || isCompletedPcpStatus(order.pre_record?.pcp_status))
+const canDownloadHeResult = (order: OrderItem) => !isDeliveryExpired(order) && isCompletedPcpStatus(order.he_record?.pcp_status) && Boolean(order.he_record?.result_ready)
+const canDownloadPreResult = (order: OrderItem) => !isDeliveryExpired(order) && isCompletedPcpStatus(order.pre_record?.pcp_status) && Boolean(order.pre_record?.result_ready)
 const canDownloadFlBuyerResult = (order: OrderItem) => Boolean(
-  !isDeliveryExpired(order) && (order.fl_record?.buyer_result_ready || isCompletedPcpStatus(order.fl_record?.pcp_status))
+  !isDeliveryExpired(order) && isCompletedPcpStatus(order.fl_record?.pcp_status) && order.fl_record?.buyer_result_ready
 )
 const canDownloadMpcResult = (order: OrderItem) => !isDeliveryExpired(order) && String(order.mpc_record?.task_status || '').toLowerCase() === 'done'
 const getBuyerFlActionLabel = (order: OrderItem) => {

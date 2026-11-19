@@ -16,6 +16,8 @@ const SENSITIVE_KEYS = new Set([
   'signature',
   'access_token',
   'refresh_token',
+  'download_token',
+  'notify_client_secret',
 ]);
 
 const redact = (value, key = '') => {
@@ -40,7 +42,11 @@ const redact = (value, key = '') => {
 const preview = (value) => {
   if (value == null) return value;
   if (typeof value === 'string') {
-    return value.length > MAX_LOG_LENGTH ? `${value.slice(0, MAX_LOG_LENGTH)}...[truncated]` : value;
+    try {
+      return preview(JSON.parse(value));
+    } catch (_) {
+      return value.length > MAX_LOG_LENGTH ? `${value.slice(0, MAX_LOG_LENGTH)}...[truncated]` : value;
+    }
   }
   try {
     const text = JSON.stringify(redact(value));

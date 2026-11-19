@@ -1,70 +1,32 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('node:crypto');
 const jwtConfig = require('../jwt_config');
 const auditConfig = require('../config/audit.json');
+const auditIntegration = require('../config/auditIntegration');
 const pamNodes = require('../service/pamNodes');
 
-const HUB_WEB_ORIGIN = auditConfig.hubWebOrigin || process.env.HUB_WEB_ORIGIN || '';
 const HUB_API_BASE_URL = auditConfig.hubApiBaseUrl || process.env.HUB_API_BASE_URL || '';
-const HUB_TRADING_TOKEN = auditConfig.hubTradingToken || process.env.HUB_TRADING_TOKEN || '';
-// Cookies are shared by ports on the same host; keep this handoff separate
-// from the reference PCP service running alongside the asset exchange system.
-const ENTRY_COOKIE = 'asset_exchange_pam_trade_entry';
-const LOGIN_ORIGIN_COOKIE = 'asset_exchange_pam_login_origin';
-const ENTRY_COOKIE_TTL_MS = 300000;
+// Hub 运维台“安全与凭据”创建的接入凭据；旧交易令牌不能用于新接口。
+const HUB_INTEGRATION_TOKEN = auditIntegration.token;
+const hubTickets = new Map();
 
 const allowedIdentity = (identity) => identity === 'auditor' || identity === 'admin';
 
-const readCookie = (header = '', name) => {
-  const entry = String(header).split(';').map((part) => part.trim())
-    .find((part) => part.startsWith(`${name}=`));
-  if (!entry) return '';
-  try {
-    return decodeURIComponent(entry.slice(name.length + 1));
-  } catch (_error) {
-    return '';
-  }
-};
-
-const browserOrigin = (value) => {
-  try {
-    const url = new URL(value);
-    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password ||
-      url.pathname !== '/' || url.search || url.hash) return '';
-    return url.origin;
-  } catch (_error) {
-    return '';
-  }
-};
-
-const requestFrontendOrigin = (headers = {}) => {
-  const origin = browserOrigin(headers.origin);
-  if (origin) return origin;
-  try {
-    return browserOrigin(new URL(headers.referer).origin);
-  } catch (_error) {
-    return '';
-  }
-};
-
 const sendEntryError = (req, res, status, message) => {
-  const loginOrigin = browserOrigin(readCookie(req.headers.cookie, LOGIN_ORIGIN_COOKIE));
-  const loginUrl = loginOrigin ? `${loginOrigin}/#/login?logout=1` : '';
-  res.clearCookie(ENTRY_COOKIE, { path: '/' });
-  res.clearCookie(LOGIN_ORIGIN_COOKIE, { path: '/' });
   res.set('Cache-Control', 'no-store');
   res.set('Referrer-Policy', 'no-referrer');
-  return res.status(status).type('html').send(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>审计入口暂不可用</title><style>body{margin:0;background:#f6f8fa;color:#24292f;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{box-sizing:border-box;max-width:520px;margin:12vh auto;padding:32px;background:white;border:1px solid #d0d7de;border-radius:8px}h1{font-size:21px;margin:0 0 12px}p{color:#57606a;margin:0 0 24px}.button{display:inline-block;padding:8px 16px;border:1px solid #1f6feb;border-radius:6px;background:#0969da;color:white;text-decoration:none;font-weight:600}</style></head><body><main class="card"><h1>暂时无法进入审计平台</h1><p>${pamNodes.escapeHtml(message)}</p>${loginUrl ? `<a class="button" href="${pamNodes.escapeHtml(loginUrl)}">退出并返回登录</a>` : '<p>请返回交易系统登录页，重新登录后从审计入口进入。</p>'}</main></body></html>`);
+  return res.status(status).type('html').send(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>审计入口暂不可用</title><body style="font:16px/1.6 sans-serif;color:#24292f;background:#f6f8fa"><main style="max-width:520px;margin:12vh auto;padding:32px;background:white;border:1px solid #d0d7de;border-radius:8px"><h1>暂时无法进入审计平台</h1><p>${pamNodes.escapeHtml(message)}</p><button onclick="history.back()">返回交易系统</button></main></body></html>`);
 };
 
 const hubApiFetch = async (pathname, options = {}) => {
-  if (!HUB_API_BASE_URL || !HUB_TRADING_TOKEN) {
-    throw new Error('审计平台接口未配置');
+  if (!HUB_API_BASE_URL || !HUB_INTEGRATION_TOKEN) {
+    throw new Error('审计中台接入凭据未配置');
   }
   const url = new URL(pathname, `${HUB_API_BASE_URL.replace(/\/$/, '')}/`);
   const response = await fetch(url, {
     method: options.method || 'GET',
     headers: {
-      'x-trading-token': HUB_TRADING_TOKEN,
+      'X-Integration-Token': HUB_INTEGRATION_TOKEN,
       ...(options.body ? { 'content-type': 'application/json' } : {}),
     },
     body: options.body,
@@ -92,8 +54,8 @@ exports.startPamEntry = async (req, res) => {
     console.error('校验审计入口失败:', error);
     return res.status(500).json({ error: '校验审计权限失败' });
   }
-  if (!HUB_WEB_ORIGIN || !HUB_TRADING_TOKEN) {
-    return res.status(503).json({ error: '审计平台跳转未配置，请联系管理员' });
+  if (!HUB_API_BASE_URL || !HUB_INTEGRATION_TOKEN) {
+    return res.status(503).json({ error: '审计中台接入凭据未配置，请联系管理员' });
   }
 
   const token = String(req.headers.authorization || req.body?.token || req.query?.token || '')
@@ -108,28 +70,41 @@ exports.startPamEntry = async (req, res) => {
     return res.status(401).json({ error: error.name === 'TokenExpiredError' ? '交易登录已过期，请重新登录' : '交易登录令牌无效，请重新登录' });
   }
 
-  const entryUrl = new URL('/entry/start', `${HUB_WEB_ORIGIN.replace(/\/$/, '')}/`);
-  entryUrl.searchParams.set('trading_system', 'asset_exchange');
-  const contractId = String(req.body?.pcc_contract_id || req.query?.pcc_contract_id || '').trim();
-  if (contractId) entryUrl.searchParams.set('pcc_contract_id', contractId);
-
-  res.cookie(ENTRY_COOKIE, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: ENTRY_COOKIE_TTL_MS,
-  });
-  const loginOrigin = requestFrontendOrigin(req.headers);
-  if (loginOrigin) {
-    res.cookie(LOGIN_ORIGIN_COOKIE, loginOrigin, {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: ENTRY_COOKIE_TTL_MS,
-    });
+  for (const [key, entry] of hubTickets) {
+    if (entry.expiresAt < Date.now()) hubTickets.delete(key);
   }
-  if (req.method === 'GET') return res.redirect(303, entryUrl.toString());
-  return res.json({ message: '审计平台跳转地址已生成', entry_url: entryUrl.toString() });
+  const ticket = crypto.randomBytes(24).toString('hex');
+  hubTickets.set(ticket, { userId: Number(req.auth.id), expiresAt: Date.now() + 60000 });
+  res.set('Cache-Control', 'no-store');
+  const path = `/api/pam/hub-launch?ticket=${encodeURIComponent(ticket)}`;
+  const httpOrigin = String(auditIntegration.httpOrigin).replace(/\/$/, '');
+  return res.json({ message: '审计中台入口已生成', url: httpOrigin ? `${httpOrigin}${path}` : path });
+};
+exports.launchHub = async (req, res) => {
+  const ticket = String(req.query?.ticket || '').trim();
+  const item = hubTickets.get(ticket);
+  hubTickets.delete(ticket);
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  if (!item || item.expiresAt < Date.now()) return sendEntryError(req, res, 400, '审计入口已过期，请重新进入');
+  try {
+    const user = await pamNodes.getUser(item.userId);
+    if (!user || user.status !== 0 || !allowedIdentity(user.identity) ||
+      (user.identity === 'auditor' && user.auditor_target !== 'HUB')) {
+      return sendEntryError(req, res, 403, '当前账号没有 Hub 审计入口权限');
+    }
+    const launch = await hubApiFetch('/hub/web/launches', {
+      method: 'POST', body: JSON.stringify({ subject: `trading-user-${user.id}` }),
+    });
+    const entry = new URL(launch.entry_url);
+    if (!['http:', 'https:'].includes(entry.protocol) || entry.username || entry.password || !launch.ticket) {
+      throw new Error('审计中台未返回有效入场票据');
+    }
+    return res.type('html').send(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>进入审计中台</title><body><p>正在进入审计中台…</p><form id="hub-entry" method="post" action="${pamNodes.escapeHtml(entry.toString())}"><input type="hidden" name="ticket" value="${pamNodes.escapeHtml(launch.ticket)}"><noscript><button type="submit">继续进入</button></noscript></form><script>document.getElementById('hub-entry').submit();</script></body></html>`);
+  } catch (error) {
+    console.error('进入审计中台失败:', error);
+    return sendEntryError(req, res, 502, error.message || '审计中台暂不可用');
+  }
 };
 
 exports.getPamNodes = async (req, res) => {
@@ -190,49 +165,5 @@ exports.launchNode = async (req, res) => {
   } catch (error) {
     console.error('审计节点自动登录失败:', error);
     return res.status(500).type('html').send(`<!doctype html><meta charset="utf-8"><p>审计节点登录失败：${pamNodes.escapeHtml(error.message)}</p>`);
-  }
-};
-
-exports.authorizePamEntry = async (req, res) => {
-  const requestId = String(req.query?.request_id || '').trim();
-  if (!requestId) return sendEntryError(req, res, 400, '缺少 request_id，请重新从交易系统进入');
-
-  const token = readCookie(req.headers.cookie, ENTRY_COOKIE);
-  if (!token) {
-    console.error('[PAM] 授权回调缺少交易交接凭据', {
-      host: req.headers.host,
-      forwardedHost: req.headers['x-forwarded-host'],
-      protocol: req.headers['x-forwarded-proto'] || req.protocol,
-      cookieNames: String(req.headers.cookie || '').split(';').map((part) => part.split('=')[0].trim()).filter(Boolean),
-    });
-    return sendEntryError(req, res, 401, '缺少交易交接凭据，请重新从交易系统进入');
-  }
-
-  let claims;
-  try {
-    claims = jwt.verify(token, jwtConfig.businessSecretKey, { algorithms: ['HS256'] });
-  } catch (error) {
-    return sendEntryError(req, res, 401, error.name === 'TokenExpiredError' ? '交易登录已过期，请重新登录' : '交易登录令牌无效，请重新登录');
-  }
-  if (!allowedIdentity(claims.identity)) {
-    return sendEntryError(req, res, 403, '仅审计方或管理员可进入审计平台');
-  }
-
-  try {
-    const entry = await hubApiFetch(`/hub/web/requests/${encodeURIComponent(requestId)}`);
-    if (entry.mode !== 'reader') return sendEntryError(req, res, 403, '本次交接的角色不被允许');
-
-    const launch = await hubApiFetch('/hub/web/launches', {
-      method: 'POST',
-      body: JSON.stringify({ request_id: requestId, subject: `trade:${claims.account || claims.id}` }),
-    });
-    if (!launch.launch_url) throw new Error('审计平台未返回跳转地址');
-
-    res.clearCookie(ENTRY_COOKIE, { path: '/' });
-    res.clearCookie(LOGIN_ORIGIN_COOKIE, { path: '/' });
-    return res.redirect(303, launch.launch_url);
-  } catch (error) {
-    console.error('PAM 授权回调失败:', error);
-    return sendEntryError(req, res, 502, error.message || '审计平台授权失败');
   }
 };

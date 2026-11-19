@@ -62,7 +62,7 @@
                     <el-button type="primary" class="delivery-action-button app-primary-action"
                       :loading="actionLoadingNo === item.order_no"
                       :disabled="!isPrivacyPc(item) || isSellerDeliveryDisabled(item) || actionLoadingNo === item.order_no"
-                      @click="openSellerDelivery(item)">执行交付</el-button>
+                      @click="openSellerDelivery(item)">{{ getSellerDeliveryActionText(item) }}</el-button>
                   </div>
                 </td>
               </tr>
@@ -572,7 +572,13 @@ const normalizedDeliveryStatusText = (order: OrderItem) => {
   || '').toUpperCase()
 
   if (['FAILED', 'AUDIT_FAILED', 'PAM_FAILED', 'REJECTED'].includes(status)) return '交付失败'
+  if (pcType === 'FL' && status === 'WAITING_EPOCH_INPUT' && order.fl_record?.last_error) return '提交失败'
   if (['PAMING'].includes(status)) return '审计中'
+  if (status === 'PAM_PASSED' && !(
+    pcType === 'HE' ? order.he_record?.result_ready :
+      pcType === 'PRE' ? order.pre_record?.result_ready :
+        pcType === 'FL' ? order.fl_record?.buyer_result_ready : true
+  )) return '结果准备中'
   if (['QUEUED', 'RUNNING', 'COMPUTED', 'READY', 'COMPUTING'].includes(status)) return '计算中'
   if (['COMPLETED', 'PAM_PASSED', 'DONE', 'SUCCESS'].includes(status) || Number(order.order_status) === 3) return '已完成'
   if (['CREATED', 'WAITING_INPUT', 'WAITING_EPOCH_INPUT', 'JOINED', 'PENDING', 'BUYER_REQUESTED'].includes(status)) return '待卖方交付'
@@ -634,7 +640,19 @@ const isBuyerRequestDisabled = (order: OrderItem) => {
 
 const hasPrivacyTask = (order: OrderItem) => Boolean(order.transaction?.transaction_id && order.digital_contract?.pc_type)
 const canConfigureContract = (order: OrderItem) => roleKey !== 'buyer' && [1, 2].includes(Number(order.order_status))
-const canSellerDeliver = (order: OrderItem) => roleKey !== 'buyer' && Number(order.order_status) === 1
+const isFailedPccDelivery = (order: OrderItem) => {
+  const type = getPcType(order)
+  const status = String(
+    type === 'HE' ? order.he_record?.pcp_status :
+      type === 'PRE' ? order.pre_record?.pcp_status :
+        type === 'FL' ? order.fl_record?.pcp_status : ''
+  ).toUpperCase()
+  return ['FAILED', 'PAM_FAILED', 'AUDIT_FAILED'].includes(status) ||
+    (type === 'FL' && status === 'WAITING_EPOCH_INPUT' && Boolean(order.fl_record?.last_error))
+}
+const canSellerDeliver = (order: OrderItem) => roleKey !== 'buyer' && (
+  Number(order.order_status) === 1 || (Number(order.order_status) === 2 && isFailedPccDelivery(order))
+)
 const getPcType = (order: OrderItem) => String(order.digital_contract?.pc_type || order.transaction?.pc_type || order.pc_type || '').toUpperCase()
 const getTransactionId = (order: OrderItem) => String(order.transaction?.transaction_id || '').trim()
 const isDeliveryExpired = (order: OrderItem) => {
@@ -668,11 +686,13 @@ const isSellerDeliveryDisabled = (order: OrderItem) => {
   if (!canSellerDeliver(order)) return true
   if (isHeOrder(order)) return Boolean(order.he_record?.result_ready)
   if (isPreOrder(order)) return Boolean(order.pre_record?.result_ready)
-  if (isFlOrder(order)) return String(order.fl_record?.pcp_status || '').toUpperCase() === 'COMPLETED'
+  if (isFlOrder(order)) return Boolean(order.fl_record?.buyer_result_ready &&
+    ['PAM_PASSED', 'COMPLETED'].includes(String(order.fl_record?.pcp_status || '').toUpperCase()))
   return true
 }
 const getSellerDeliveryActionText = (order: OrderItem) => {
   if (isDeliveryExpired(order)) return '已过期'
+  if (isFailedPccDelivery(order) && Number(order.order_status) === 2) return '重新交付'
   if (isMpcOrder(order)) {
     const status = getMpcTaskStatus(order)
     if (!order.mpc_record?.remote_task_id) return '等待买方申请'
@@ -690,12 +710,14 @@ const getSellerDeliveryActionText = (order: OrderItem) => {
 const isCompletedPcpStatus = (status?: string) => ['PAM_PASSED', 'COMPLETED'].includes(String(status || '').toUpperCase())
 const canDownloadBuyerPrivacyResult = (order: OrderItem) => {
   const pcType = getPcType(order)
-  if (pcType === 'HE') return Boolean(order.he_record?.result_ready || isCompletedPcpStatus(order.he_record?.pcp_status))
-  if (pcType === 'PRE') return Boolean(order.pre_record?.result_ready || isCompletedPcpStatus(order.pre_record?.pcp_status))
+  if (pcType === 'HE') return Boolean(order.he_record?.result_ready && isCompletedPcpStatus(order.he_record?.pcp_status))
+  if (pcType === 'PRE') return Boolean(order.pre_record?.result_ready && isCompletedPcpStatus(order.pre_record?.pcp_status))
   if (pcType === 'FL') return Boolean(
-    order.fl_record?.buyer_result_ready ||
-    order.fl_record?.buyer_download_token ||
-    order.fl_record?.buyer_result_storage_path
+    isCompletedPcpStatus(order.fl_record?.pcp_status) && (
+      order.fl_record?.buyer_result_ready ||
+      order.fl_record?.buyer_download_token ||
+      order.fl_record?.buyer_result_storage_path
+    )
   )
   if (pcType === 'MPC') return String(order.mpc_record?.task_status || '').toLowerCase() === 'done'
   return Boolean(order.transaction?.can_download)
@@ -895,7 +917,7 @@ const pollHiddenHeUntilReady = async (transactionId: string, timeoutMs = 180000,
     const item = response.data?.item || null
     const status = String(item?.pcp_status || '').toUpperCase()
 
-    if (status === 'PAM_PASSED' || status === 'COMPLETED') {
+    if ((status === 'PAM_PASSED' || status === 'COMPLETED') && item?.result_ready) {
       return item
     }
 
@@ -1496,6 +1518,10 @@ const submitContract = async () => {
 }
 
 const submitSellerDeliver = async (order: OrderItem) => {
+  if (Number(order.order_status) === 2) {
+    await fetchOrders()
+    return
+  }
   actionLoadingNo.value = order.order_no
   try {
     const contract = order.digital_contract || {}

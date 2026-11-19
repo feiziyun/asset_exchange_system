@@ -24,7 +24,7 @@ const { registerMpcRoutes } = require('./service/mpc');
 //处理表单数据（就像纸质表格，例如：account=zhangsan&password=123456），
 app.use(bodyParser.urlencoded({extended:false}));//此时值只能是字符串或数组
 //处理json格式数据
-app.use(bodyParser.json())
+app.use(bodyParser.json({ verify: (req, _res, body) => { req.rawBody = body; } }))
 
 //给 res 对象添加一个自定义方法 cc（可能是 custom callback 的缩写）
 app.use((req, res, next)=>{
@@ -82,7 +82,7 @@ app.use(
       '/api/pam/entry-start',
       '/api/pam/node-ticket',
       '/api/pam/nodes',
-      '/api/pam/authorize',
+      '/api/pam/hub-launch',
       '/api/pam/node-launch',
       /^\/api\/admin\/nodes(?:\/|$)/,
       '/api/alipay/notify',
@@ -167,7 +167,16 @@ app.use('/asset/order', businessJwt, digitalContractRouter);
 app.use('/asset/certificate', businessJwt, certificateRouter);
 app.use('/asset/wallet', businessJwt, require('./router/wallet'));
 app.use('/admin', businessJwt, adminAuth, adminRouter);
-app.use('/api/privacy', businessJwt);
+const { verifyNotification } = require('./service/pcp/notification');
+app.use(/^\/api\/privacy\/(?:he|pre|fl)\/result-notify$/, verifyNotification);
+app.use('/api/privacy', (req, res, next) =>
+  /^\/(?:he|pre|fl)\/result-notify$/.test(req.path) ? next() : businessJwt(req, res, next));
+// PCC now sends signed token-ready notifications. Legacy manual result uploads
+// could otherwise mark an unaudited computation as complete.
+app.use(/^\/api\/privacy\/(?:he|pre|fl)\/result$/, (req, res, next) =>
+  req.method === 'POST'
+    ? res.status(410).json({ success: false, message: '请使用 PCC 签名结果通知' })
+    : next());
 
 function dbQuery(sql, params = []) {
   return new Promise((resolve, reject) => {
