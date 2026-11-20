@@ -25,40 +25,45 @@
       <!-- 中部筛选 -->
       <section class="filter-section">
         <div v-if="isRegulator" class="filter-row">
-          <div class="filter-label">行业领域：</div>
-          <div class="filter-options">
-            <span v-for="item in industryOptions" :key="item || 'all'" class="option-chip"
+          <span class="filter-label">行业领域</span>
+          <div class="filter-options" role="group" aria-label="行业领域筛选">
+            <button v-for="item in industryOptions" :key="item || 'all'" type="button" class="option-chip"
               :class="{ active: (query.classification_category_name || '') === item }"
-              @click="selectIndustry(item)">{{ item || '全部' }}</span>
+              :aria-pressed="(query.classification_category_name || '') === item"
+              @click="selectIndustry(item)">{{ item || '全部' }}</button>
           </div>
         </div>
         <div class="filter-row">
-          <div class="filter-label">数据产品类型：</div>
-          <div class="filter-options">
-            <span
+          <span class="filter-label">数据产品类型</span>
+          <div class="filter-options" role="group" aria-label="数据产品类型筛选">
+            <button
               v-for="item in categoryOptions"
               :key="item.id"
+              type="button"
               class="option-chip"
               :class="{ active: query.category_id === item.id }"
+              :aria-pressed="query.category_id === item.id"
               @click="selectCategory(item.id)"
             >
               {{ item.name }}
-            </span>
+            </button>
           </div>
         </div>
 
         <div class="filter-row">
-          <div class="filter-label">{{ isRegulator ? '数据来源评级：' : '数据分级：' }}</div>
-          <div class="filter-options">
-            <span
+          <span class="filter-label">{{ isRegulator ? '数据来源评级' : '数据分级' }}</span>
+          <div class="filter-options" role="group" :aria-label="isRegulator ? '数据来源评级筛选' : '数据分级筛选'">
+            <button
               v-for="item in assetGradeOptions"
               :key="item.value"
+              type="button"
               class="option-chip"
               :class="{ active: query.classification_data_level === item.value }"
+              :aria-pressed="query.classification_data_level === item.value"
               @click="selectAssetGrade(item.value)"
             >
               {{ item.name }}
-            </span>
+            </button>
           </div>
         </div>
 
@@ -951,14 +956,16 @@ onMounted(async () => {
   margin-top: 10px;
   background: #fff;
   border-radius: 10px;
-  padding: 10px 18px;
+  padding: 0 12px;
   box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
 
   .filter-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 0;
+    gap: 12px;
+    min-height: 48px;
+    padding: 8px 24px;
+    box-sizing: border-box;
 
     & + .filter-row {
       border-top: 1px solid #d8dee4;
@@ -966,41 +973,47 @@ onMounted(async () => {
   }
 
   .filter-label {
-    flex-shrink: 0;
-    width: 104px;
-    font-size: 13px;
-    color: #57606a;
+    flex: 0 0 104px;
+    margin-left: 8px;
+    margin-right: 12px;
+    font-size: 15px;
+    color: #6e7781;
     font-weight: 600;
     white-space: nowrap;
   }
 
   .filter-options {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
     gap: 6px;
     min-width: 0;
   }
 
   .option-chip {
-    padding: 3px 10px;
+    flex: none;
+    padding: 5px 9px;
+    border: 0;
     border-radius: 6px;
-    font-size: 13px;
-    color: #57606a;
-    cursor: pointer;
-    border: 1px solid transparent;
     background: transparent;
+    color: #57606a;
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
 
     &:hover {
-      color: #1f2328;
       background: #f6f8fa;
     }
 
     &.active {
-      border-color: #d1d9e0;
       background: #f6f8fa;
-      color: #1f2328;
+      color: #2b75c7;
       font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
+
+    &:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
   }
 }
 
