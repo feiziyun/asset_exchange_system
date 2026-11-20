@@ -7,28 +7,6 @@
           <section class="form-section">
             <div class="section-title">基础信息</div>
             <div class="register-main">
-              <div class="cover-panel">
-                <div class="cover-box" @click="triggerPictureSelect">
-                  <img
-                    v-if="form.picture_preview"
-                    :src="form.picture_preview"
-                    alt="asset-cover-preview"
-                    class="picture-preview"
-                  />
-                  <span v-else class="cover-empty">上传封面</span>
-                </div>
-                <input
-                  ref="pictureInputRef"
-                  type="file"
-                  accept="image/*"
-                  class="hidden-file-input"
-                  @change="onPictureSelected"
-                />
-                <el-button size="small" class="cover-button register-action-button" @click="triggerPictureSelect">
-                  选择封面
-                </el-button>
-              </div>
-
               <div class="form-panel">
                 <el-form-item label="资产名称" class="row-item">
                   <el-input v-model="form.asset_name" placeholder="请输入资产名称" />
@@ -172,6 +150,21 @@
           <section class="form-section">
             <div class="section-title">交易设置</div>
             <div class="trade-panel">
+              <el-form-item label="交易预览图片" class="row-item trade-single-item">
+                <div class="trade-picture-row">
+                  <input
+                    ref="pictureInputRef"
+                    type="file"
+                    accept="image/*"
+                    class="hidden-file-input"
+                    @change="onPictureSelected"
+                  />
+                  <el-button class="register-action-button" @click="triggerPictureSelect">选择图片</el-button>
+                  <el-button v-if="form.picture_preview" class="register-action-button" @click="picturePreviewVisible = true">预览图片</el-button>
+                  <span v-if="form.picture" class="selected-file-name" :title="form.picture.name">{{ form.picture.name }}</span>
+                </div>
+              </el-form-item>
+
               <el-form-item :label="form.pricing_mode === 'auction' ? '起拍价' : '资产价格'" class="row-item trade-single-item">
                 <div class="price-row">
                   <el-input-number
@@ -325,6 +318,9 @@
         <el-button @click="registerStatusVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+    <el-dialog v-model="picturePreviewVisible" title="交易预览图片" width="min(560px, 92vw)">
+      <img v-if="form.picture_preview" :src="form.picture_preview" alt="交易预览图片" class="trade-picture-preview" />
+    </el-dialog>
   </div>
 </template>
 
@@ -470,6 +466,7 @@ const classifying = ref(false)
 const certificates = ref<CertificateItem[]>([])
 const defaultRegisterCertificate = ref<CertificateItem | null>(null)
 const pictureInputRef = ref<HTMLInputElement | null>(null)
+const picturePreviewVisible = ref(false)
 const sourceFileInputRef = ref<HTMLInputElement | null>(null)
 const currentRole = getRoleKey(parseTokenPayload()?.identity || '')
 const sourceFile = ref<File | null>(null)
@@ -983,12 +980,13 @@ const triggerSourceFileSelect = () => {
 const onPictureSelected = (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
+  target.value = ''
   if (!file) return
 
   form.picture = file
   if (file.size > DRAFT_PICTURE_MAX_BYTES) {
     form.picture_preview = URL.createObjectURL(file)
-    ElMessage.warning('封面图片较大，本次会话仅保存表单文字内容')
+    ElMessage.warning('图片较大，本次会话仅保存表单文字内容')
     return
   }
 
@@ -1091,7 +1089,7 @@ const submitForm = async () => {
     return
   }
   if (!form.picture) {
-    ElMessage.error('请上传资产封面')
+    ElMessage.error('请选择交易预览图片')
     return
   }
   if (!form.certificate_name) {
@@ -1334,34 +1332,8 @@ onMounted(async () => {
 }
 
 .register-main {
-  display: grid;
-  grid-template-columns: 200px minmax(0, 760px);
-  gap: 28px;
-  align-items: start;
-}
-
-.cover-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.cover-box {
-  width: 160px;
-  height: 160px;
-  border: 1px dashed #cbd0d8;
-  border-radius: 8px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.cover-button {
-  width: 160px;
+  width: min(100%, 920px);
+  margin: 0 auto;
 }
 
 .register-action-button {
@@ -1377,19 +1349,35 @@ onMounted(async () => {
   margin-right: 4px;
 }
 
-.cover-empty {
-  font-size: 13px;
-  color: var(--app-text-muted);
-}
-
 .hidden-file-input {
   display: none;
 }
 
-.picture-preview {
+.trade-picture-preview {
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-height: 68vh;
+  object-fit: contain;
+}
+
+.trade-picture-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.trade-picture-row :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
+.trade-picture-row .selected-file-name {
+  min-width: 0;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .form-panel {
@@ -1803,18 +1791,8 @@ onMounted(async () => {
 }
 
 @media (max-width: 980px) {
-  .register-main,
   .trade-grid {
     grid-template-columns: 1fr;
-  }
-
-  .cover-panel {
-    align-items: stretch;
-  }
-
-  .cover-box,
-  .cover-button {
-    width: 100%;
   }
 }
 </style>
