@@ -22,13 +22,10 @@ let nodeCache = { at: 0, nodes: [] };
 async function fetchNodes(force = false) {
   if (!force && Date.now() - nodeCache.at < 30000) return nodeCache.nodes;
   const result = await hubFetch('/hub/web/node-directory');
-  // The shared Hub also lists MPC auditors. Only PAM nodes provide the
-  // /auditor/web/login endpoint used by this trading system.
+  // Hub 已筛选出获批且配置了 web_origin 的节点，包含独立 MPC 审计方。
   nodeCache = {
     at: Date.now(),
-    nodes: Array.isArray(result.nodes)
-      ? result.nodes.filter((node) => /^pam-node-[1-9]\d*$/.test(String(node.node_id || '')))
-      : [],
+    nodes: Array.isArray(result.nodes) ? result.nodes : [],
   };
   return nodeCache.nodes;
 }

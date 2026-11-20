@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 process.env.HUB_INTEGRATION_TOKEN = 'test-integration-token';
 const pamNodes = require('../service/pamNodes');
 const handlers = require('../router_handle/audit');
+const adminHandlers = require('../router_handle/admin');
 const { businessSecretKey } = require('../jwt_config');
 
 const mockRes = () => ({
@@ -57,40 +58,70 @@ test('Hub entry checks role, uses one-time ticket and submits the new Hub ticket
   }
 });
 
-test('Hub directory uses the integration credential and keeps PAM nodes', async () => {
+test('Hub directory uses the integration credential and includes MPC and PAM nodes', async () => {
   const oldFetch = global.fetch;
   let received;
   global.fetch = async (_url, options) => {
     received = options;
     return Response.json({ nodes: [
-      { node_id: 'mpc-auditor-1' }, { node_id: 'pam-node-1', web_origin: 'http://node.example' },
+      { node_id: 'mpc-auditor-1', web_origin: 'http://mpc.example' },
+      { node_id: 'pam-node-1', web_origin: 'http://node.example' },
     ] });
   };
   try {
-    assert.deepEqual((await pamNodes.fetchNodes(true)).map((node) => node.node_id), ['pam-node-1']);
+    assert.deepEqual((await pamNodes.fetchNodes(true)).map((node) => node.node_id), ['mpc-auditor-1', 'pam-node-1']);
     assert.ok(received.headers['X-Integration-Token']);
   } finally { global.fetch = oldFetch; }
 });
 
-test('Node entry uses a one-time ticket and automatically submits saved credentials', async () => {
+test('admin can list an MPC node for assignment and credential configuration', async () => {
+  const oldNodes = pamNodes.fetchNodes;
+  const oldQuery = pamNodes.pool.query;
+  pamNodes.fetchNodes = async () => [{
+    node_id: 'mpc-auditor-1', node_name: 'MPC 审计方 1',
+    web_origin: 'http://mpc.example', online: true,
+  }];
+  pamNodes.pool.query = async () => [[{
+    node_id: 'mpc-auditor-1', username: 'mpc-viewer',
+  }]];
+  try {
+    const directory = mockRes();
+    await adminHandlers.getAuditNodes({}, directory);
+    assert.equal(directory.body.data.nodes[0].node_id, 'mpc-auditor-1');
+
+    const credentials = mockRes();
+    await adminHandlers.getAuditNodeCredentials({ originalUrl: '/api/admin/nodes' }, credentials);
+    assert.equal(credentials.body.nodes[0].has_credentials, true);
+    assert.equal(credentials.body.nodes[0].username, 'mpc-viewer');
+    assert.equal(credentials.body.nodes[0].password, undefined);
+  } finally {
+    pamNodes.fetchNodes = oldNodes;
+    pamNodes.pool.query = oldQuery;
+  }
+});
+
+for (const { nodeId, origin } of [
+  { nodeId: 'pam-node-1', origin: 'http://node.example/' },
+  { nodeId: 'mpc-auditor-1', origin: 'http://mpc.example/' },
+]) test(`${nodeId} entry uses a one-time ticket and saved credentials`, async () => {
   const oldUser = pamNodes.getUser;
   const oldNodes = pamNodes.fetchNodes;
   const oldQuery = pamNodes.pool.query;
-  pamNodes.getUser = async () => ({ ...user, auditor_target: 'NODE:pam-node-1' });
-  pamNodes.fetchNodes = async () => [{ node_id: 'pam-node-1', node_name: '独立审计节点 1', web_origin: 'http://node.example/', online: true }];
+  pamNodes.getUser = async () => ({ ...user, auditor_target: `NODE:${nodeId}` });
+  pamNodes.fetchNodes = async () => [{ node_id: nodeId, node_name: nodeId, web_origin: origin, online: true }];
   pamNodes.pool.query = async sql => [sql.includes('password_enc')
     ? [{ username: 'node-viewer', password_enc: pamNodes.encryptSecret('test-password') }]
-    : [{ node_id: 'pam-node-1' }]];
+    : [{ node_id: nodeId }]];
   try {
     const start = mockRes();
-    await handlers.createNodeTicket({ auth: { id: 7, identity: 'auditor' }, body: { node_id: 'pam-node-1' } }, start);
+    await handlers.createNodeTicket({ auth: { id: 7, identity: 'auditor' }, body: { node_id: nodeId } }, start);
     assert.equal(start.statusCode, 200);
     assert.match(start.body.url, /\/api\/pam\/node-launch\?ticket=/);
     const handoffTicket = new URL(start.body.url, 'http://trade.example').searchParams.get('ticket');
     const page = mockRes();
     await handlers.launchNode({ query: { ticket: handoffTicket } }, page);
     assert.equal(page.statusCode, 200);
-    assert.match(page.body, /action="http:\/\/node\.example\/auditor\/web\/login"/);
+    assert.match(page.body, new RegExp(`action="${origin.replace(/\/$/, '').replace(/\./g, '\\.')}\\/auditor\\/web\\/login"`));
     assert.match(page.body, /name="username" value="node-viewer"/);
     assert.match(page.body, /name="password" value="test-password"/);
     assert.match(page.body, /node-login-form'\)\.submit/);
