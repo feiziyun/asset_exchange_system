@@ -1007,8 +1007,8 @@ onMounted(async () => {
 
     &.active {
       background: #f6f8fa;
-      color: #2b75c7;
-      font-weight: 600;
+      color: #1f5fa8;
+      font-weight: 700;
       text-decoration: underline;
       text-underline-offset: 3px;
     }
