@@ -65,7 +65,10 @@ exports.login = (req, res) => {
   const sql = 'select * from users where account = ?';
   db.query(sql, logInfo.account, (err, results)=>{
     //执行sql语句失败（数据库断开）
-    if(err) return res.cc(err);
+    if(err) {
+      console.error('[audit-entry] login database failed', { error: err.message });
+      return res.cc(err);
+    }
     if(results.length !== 1) return res.cc('账号不存在');
     const compareResult = bcrypt.compareSync(logInfo.password, results[0].password)
     if(!compareResult) return res.cc('密码错误');
@@ -74,6 +77,10 @@ exports.login = (req, res) => {
     const normalizedIdentity = ['buyer', 'seller', 'admin', 'regulator', 'auditor'].includes(rawIdentity)
       ? rawIdentity
       : 'buyer'
+    if (normalizedIdentity === 'auditor') console.info('[audit-entry] auditor login succeeded', {
+      userId: results[0].id,
+      target: results[0].auditor_target || null,
+    });
     const user = {
       id: results[0].id,
       account: results[0].account,

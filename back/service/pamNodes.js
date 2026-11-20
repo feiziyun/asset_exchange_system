@@ -12,6 +12,7 @@ async function hubFetch(pathname) {
   if (!hubApiBase || !hubToken) throw new Error('审计平台接口未配置');
   const response = await fetch(new URL(pathname, `${hubApiBase.replace(/\/$/, '')}/`), {
     headers: { 'X-Integration-Token': hubToken },
+    signal: AbortSignal.timeout(8000),
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.detail || result.message || `审计平台请求失败: HTTP ${response.status}`);

@@ -4,6 +4,7 @@ const { services } = require('./config/services');
 
 // 1. 导入express框架
 const express = require('express');
+const crypto = require('node:crypto');
 // 2. 创建express应用实例
 const app = express();
 
@@ -26,6 +27,19 @@ const { registerMpcAuditRoutes } = require('./service/mpc_audit');
 app.use(bodyParser.urlencoded({extended:false}));//此时值只能是字符串或数组
 //处理json格式数据
 app.use(bodyParser.json({ verify: (req, _res, body) => { req.rawBody = body; } }))
+
+app.use('/api/pam', (req, res, next) => {
+  const traceId = crypto.randomBytes(4).toString('hex');
+  const path = req.originalUrl.split('?')[0];
+  req.auditTraceId = traceId;
+  const startedAt = Date.now();
+  console.info('[audit-entry] request', { traceId, method: req.method, path });
+  res.on('finish', () => console.info('[audit-entry] response', {
+    traceId, method: req.method, path, httpStatus: res.statusCode,
+    durationMs: Date.now() - startedAt,
+  }));
+  next();
+});
 
 //给 res 对象添加一个自定义方法 cc（可能是 custom callback 的缩写）
 app.use((req, res, next)=>{
@@ -271,7 +285,12 @@ registerMpcAuditRoutes({
 //对不符合joi规则的值报错  
 app.use((err, req, res, next)=>{
   if(err instanceof Joi.ValidationError) return res.cc(err);
-  if (err.name === 'UnauthorizedError') return res.cc('身份认证失败，请重新登录');
+  if (err.name === 'UnauthorizedError') {
+    if (req.originalUrl.startsWith('/api/pam/')) console.warn('[audit-entry] authentication failed', {
+      traceId: req.auditTraceId, path: req.originalUrl.split('?')[0], reason: err.code || err.name,
+    });
+    return res.cc('身份认证失败，请重新登录');
+  }
   next(err);  // 如果不是Joi错误，继续传递给下一错误处理器
 }) 
 
