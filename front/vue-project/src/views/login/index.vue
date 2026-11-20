@@ -19,14 +19,17 @@
                   <form class="login-form" @submit.prevent="Login">
                     <el-form-item label="账号">
                       <el-autocomplete
+                        ref="accountInputRef"
                         v-model="loginData.account"
                         class="account-input"
+                        clearable
                         name="username"
                         autocomplete="off"
                         placeholder="请输入账号"
                         :fetch-suggestions="suggestSavedAccounts"
                         :trigger-on-focus="true"
                         @input="onAccountInput"
+                        @clear="clearAccount"
                         @select="selectSavedAccount"
                       />
                     </el-form-item>
@@ -107,7 +110,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import forgetPassword from './components/forget_password.vue'
 import { ElMessage } from 'element-plus'
 import { login, register } from '@/api/login'
@@ -120,6 +123,7 @@ const activeName = ref('first') // 默认登录表单
 const rememberAccount = ref(false) // 是否记住账号
 const savePassword = ref(false)
 const savedAccounts = ref<string[]>([])
+const accountInputRef = ref()
 const SAVED_ACCOUNTS_KEY = 'savedLoginAccounts'
 
 interface formData {
@@ -168,6 +172,17 @@ const suggestSavedAccounts = (query: string, callback: (items: { value: string }
 const onAccountInput = () => {
   loginData.password = ''
   savePassword.value = false
+}
+
+const clearAccount = async () => {
+  loginData.account = ''
+  onAccountInput()
+  await nextTick()
+  accountInputRef.value?.focus()
+  if (accountInputRef.value) {
+    accountInputRef.value.suggestions = savedAccounts.value.map((value) => ({ value }))
+    accountInputRef.value.activated = true
+  }
 }
 
 const fillSavedPassword = async (account: string) => {
