@@ -158,8 +158,12 @@ onMounted(async () => {
   }
 })
 
-const suggestSavedAccounts = (_query: string, callback: (items: { value: string }[]) => void) => {
-  callback(savedAccounts.value.map((value) => ({ value })))
+const suggestSavedAccounts = (query: string, callback: (items: { value: string }[]) => void) => {
+  const keyword = query.trim().toLocaleLowerCase()
+  const matched = savedAccounts.value.filter((account) =>
+    account.toLocaleLowerCase().includes(keyword),
+  )
+  callback(matched.map((value) => ({ value })))
 }
 
 const onAccountInput = () => {

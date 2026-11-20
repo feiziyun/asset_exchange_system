@@ -63,15 +63,9 @@
             ¥{{ formatPrice(row.deal_price) }}
           </template>
         </el-table-column>
-        <el-table-column prop="order_status" label="状态" width="100">
+        <el-table-column prop="order_status" label="状态" width="126">
           <template #default="{ row }">
-            <el-tag v-if="row.order_status === 0" type="warning">待确认</el-tag>
-            <el-tag v-else-if="row.order_status === 1" type="primary">待卖家交付</el-tag>
-            <el-tag v-else-if="row.order_status === 2" type="primary">待买家确认</el-tag>
-            <el-tag v-else-if="row.order_status === 3" type="success">已完成</el-tag>
-            <el-tag v-else-if="row.order_status === 4" type="info">已取消</el-tag>
-            <el-tag v-else-if="row.order_status === 5" type="danger">退款中</el-tag>
-            <el-tag v-else type="info">已退款</el-tag>
+            <AdminStatus :label="orderStatus(row.order_status).label" :tone="orderStatus(row.order_status).tone" />
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="180">
@@ -103,13 +97,7 @@
         <el-descriptions-item label="购买数量">{{ currentDetail.buy_qty }}</el-descriptions-item>
         <el-descriptions-item label="价格">¥{{ formatPrice(currentDetail.deal_price) }}</el-descriptions-item>
         <el-descriptions-item label="订单状态">
-          <el-tag v-if="currentDetail.order_status === 0" type="warning">待确认</el-tag>
-          <el-tag v-else-if="currentDetail.order_status === 1" type="primary">待卖家交付</el-tag>
-          <el-tag v-else-if="currentDetail.order_status === 2" type="primary">待买家确认</el-tag>
-          <el-tag v-else-if="currentDetail.order_status === 3" type="success">已完成</el-tag>
-          <el-tag v-else-if="currentDetail.order_status === 4" type="info">已取消</el-tag>
-          <el-tag v-else-if="currentDetail.order_status === 5" type="danger">退款中</el-tag>
-          <el-tag v-else type="info">已退款</el-tag>
+          <AdminStatus :label="orderStatus(currentDetail.order_status).label" :tone="orderStatus(currentDetail.order_status).tone" />
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ formatDateTime(currentDetail.created_at) }}</el-descriptions-item>
         <el-descriptions-item label="更新时间">{{ formatDateTime(currentDetail.updated_at) }}</el-descriptions-item>
@@ -123,6 +111,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { getAdminOrders } from '@/api/admin'
+import AdminStatus from '@/components/AdminStatus.vue'
 import { formatPrice } from '@/utils/price'
 import { formatDateTime } from '@/utils/dateTime'
 
@@ -131,6 +120,16 @@ const loadError = ref('')
 const orderList = ref([])
 const searchQuery = ref('')
 const statusFilter = ref(null)
+const orderStatuses = {
+  0: { label: '待确认', tone: 'warning' },
+  1: { label: '待卖家交付', tone: 'primary' },
+  2: { label: '待买家确认', tone: 'primary' },
+  3: { label: '已完成', tone: 'success' },
+  4: { label: '已取消', tone: 'neutral' },
+  5: { label: '退款中', tone: 'danger' },
+  6: { label: '已退款', tone: 'neutral' },
+}
+const orderStatus = (value) => orderStatuses[value] || orderStatuses[6]
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)

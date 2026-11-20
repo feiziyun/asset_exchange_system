@@ -27,7 +27,7 @@
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '正常' : '冻结' }}</el-tag>
+            <AdminStatus :label="row.status === 0 ? '正常' : '冻结'" :tone="row.status === 0 ? 'success' : 'danger'" />
           </template>
         </el-table-column>
         <el-table-column v-if="selectedType === 'auditor'" label="审计入口" width="160" show-overflow-tooltip>
@@ -71,8 +71,7 @@
         </el-descriptions-item>
         <el-descriptions-item label="邮箱">{{ currentDetail.email || '-' }}</el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag v-if="currentDetail.status === 0" type="success">正常</el-tag>
-          <el-tag v-else type="danger">冻结</el-tag>
+          <AdminStatus :label="currentDetail.status === 0 ? '正常' : '冻结'" :tone="currentDetail.status === 0 ? 'success' : 'danger'" />
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ formatDateTime(currentDetail.create_time) }}</el-descriptions-item>
         <el-descriptions-item label="更新时间">{{ formatDateTime(currentDetail.update_time) }}</el-descriptions-item>
@@ -152,6 +151,7 @@ import { computed, ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createUser, getUserList, updateUserStatus, updateUserIdentity, getAuditNodes } from '@/api/admin'
 import AdminAuditNodes from '@/views/admin/auditNodes/index.vue'
+import AdminStatus from '@/components/AdminStatus.vue'
 import { formatDateTime } from '@/utils/dateTime'
 
 const loading = ref(false)

@@ -59,9 +59,10 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.status === 1" type="success">上架中</el-tag>
-            <el-tag v-else-if="row.status === 2" type="info">已售罄</el-tag>
-            <el-tag v-else type="danger">已下架</el-tag>
+            <AdminStatus
+              :label="row.status === 1 ? '上架中' : row.status === 2 ? '已售罄' : '已下架'"
+              :tone="row.status === 1 ? 'success' : row.status === 2 ? 'neutral' : 'danger'"
+            />
           </template>
         </el-table-column>
         <el-table-column prop="view_count" label="浏览量" width="100" />
@@ -107,6 +108,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { getAdminAssets, updateAssetStatus } from '@/api/admin'
+import AdminStatus from '@/components/AdminStatus.vue'
 import { formatPrice } from '@/utils/price'
 import { formatDateTime } from '@/utils/dateTime'
 

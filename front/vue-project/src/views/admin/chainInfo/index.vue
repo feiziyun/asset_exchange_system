@@ -59,9 +59,10 @@
         </el-table-column>
         <el-table-column prop="chain_status" label="链上状态" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.chain_status === 1" type="success">已上链</el-tag>
-            <el-tag v-else-if="row.chain_status === 0" type="warning">待上链</el-tag>
-            <el-tag v-else type="danger">上链失败</el-tag>
+            <AdminStatus
+              :label="row.chain_status === 1 ? '已上链' : row.chain_status === 0 ? '待上链' : '上链失败'"
+              :tone="row.chain_status === 1 ? 'success' : row.chain_status === 0 ? 'warning' : 'danger'"
+            />
           </template>
         </el-table-column>
         <el-table-column prop="chain_time" label="上链时间" width="180">
@@ -96,9 +97,10 @@
         <el-descriptions-item label="持有者地址">{{ currentDetail.owner_address || '-' }}</el-descriptions-item>
         <el-descriptions-item label="交易哈希">{{ currentDetail.chain_tx_hash || '-' }}</el-descriptions-item>
         <el-descriptions-item label="链上状态">
-          <el-tag v-if="currentDetail.chain_status === 1" type="success">已上链</el-tag>
-          <el-tag v-else-if="currentDetail.chain_status === 0" type="warning">待上链</el-tag>
-          <el-tag v-else type="danger">上链失败</el-tag>
+          <AdminStatus
+            :label="currentDetail.chain_status === 1 ? '已上链' : currentDetail.chain_status === 0 ? '待上链' : '上链失败'"
+            :tone="currentDetail.chain_status === 1 ? 'success' : currentDetail.chain_status === 0 ? 'warning' : 'danger'"
+          />
         </el-descriptions-item>
         <el-descriptions-item label="上链时间">{{ formatDateTime(currentDetail.chain_time) }}</el-descriptions-item>
         <el-descriptions-item label="最后同步时间">{{ formatDateTime(currentDetail.last_sync_time) }}</el-descriptions-item>
@@ -116,6 +118,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, RefreshLeft } from '@element-plus/icons-vue'
 import { getChainInfo } from '@/api/admin'
+import AdminStatus from '@/components/AdminStatus.vue'
 import { formatDateTime } from '@/utils/dateTime'
 
 const loading = ref(false)

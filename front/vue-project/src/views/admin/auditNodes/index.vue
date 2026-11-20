@@ -11,7 +11,7 @@
       <el-table :data="nodes" v-loading="loading" style="width: 100%">
         <el-table-column prop="node_name" label="节点" min-width="160" />
         <el-table-column label="状态" width="100">
-          <template #default="{ row }"><el-tag :type="row.online ? 'success' : 'info'">{{ row.online ? '在线' : '离线' }}</el-tag></template>
+          <template #default="{ row }"><AdminStatus :label="row.online ? '在线' : '离线'" :tone="row.online ? 'success' : 'neutral'" /></template>
         </el-table-column>
         <el-table-column label="节点账号" min-width="170">
           <template #default="{ row }"><el-input v-model="forms[row.node_id].username" placeholder="节点查看账号" /></template>
@@ -31,6 +31,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getAuditNodeCredentials, saveAuditNodeCredentials } from '@/api/admin'
+import AdminStatus from '@/components/AdminStatus.vue'
 
 const nodes = ref([])
 const forms = reactive({})
