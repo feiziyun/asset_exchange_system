@@ -16,13 +16,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { launchAssignedAudit } from '@/utils/auditLaunch'
 import { clearAuthData, parseTokenPayload } from '@/utils/auth'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const errorMessage = ref('')
 
@@ -48,6 +49,13 @@ const logout = () => {
   clearAuthData()
   router.replace('/login')
 }
+
+onMounted(() => {
+  if (route.query.auto === '1') {
+    router.replace('/audit-entry')
+    openAuditPlatform()
+  }
+})
 </script>
 
 <style scoped>

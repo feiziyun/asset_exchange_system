@@ -112,8 +112,7 @@ import forgetPassword from './components/forget_password.vue'
 import { ElMessage } from 'element-plus'
 import { login, register } from '@/api/login'
 import { useRouter } from 'vue-router'
-import { getRoleKey, parseTokenPayload } from '@/utils/auth'
-import { launchAssignedAudit } from '@/utils/auditLaunch'
+import { getRoleKey } from '@/utils/auth'
 import { loadSavedPassword, removeSavedPassword, saveLoginPassword } from '@/utils/savedPasswords'
 
 const router = useRouter()
@@ -235,21 +234,6 @@ const Login = async () => {
       } else {
         localStorage.removeItem('savedAccount')
       }
-      if (savePassword.value) {
-        try {
-          await saveLoginPassword(loginData.account, loginData.password)
-        } catch (error) {
-          console.warn('保存登录密码失败:', error)
-          savePassword.value = false
-        }
-      } else {
-        try {
-          await removeSavedPassword(loginData.account)
-        } catch (error) {
-          console.warn('清除已保存的密码失败:', error)
-        }
-      }
-
       if (rememberAccount.value || savePassword.value) {
         savedAccounts.value = [loginData.account, ...savedAccounts.value.filter((account) => account !== loginData.account)]
       } else {
@@ -257,16 +241,28 @@ const Login = async () => {
       }
       localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(savedAccounts.value))
 
+      // IndexedDB can remain blocked by another tab. Login and audit handoff
+      // must still proceed if the browser does not finish this local operation.
+      let storageTimer: ReturnType<typeof setTimeout> | undefined
+      const passwordStorage = (savePassword.value
+        ? saveLoginPassword(loginData.account, loginData.password)
+        : removeSavedPassword(loginData.account)
+      ).catch((error) => {
+        console.warn('更新已保存的密码失败:', error)
+      })
+      await Promise.race([
+        passwordStorage,
+        new Promise<void>((resolve) => {
+          storageTimer = setTimeout(resolve, 2000)
+        }),
+      ])
+      if (storageTimer) clearTimeout(storageTimer)
+
       const role = getRoleKey(identity)
       if (role === 'admin') {
         router.push('/admin/dashboard')
       } else if (role === 'auditor') {
-        try {
-          await launchAssignedAudit(parseTokenPayload()?.auditor_target)
-        } catch (error: any) {
-          ElMessage.error(error?.response?.data?.message || error?.message || '进入审计平台失败')
-          router.push('/audit-entry')
-        }
+        router.push({ path: '/audit-entry', query: { auto: '1' } })
       } else if (role === 'regulator') {
         router.push('/regulation')
       } else {

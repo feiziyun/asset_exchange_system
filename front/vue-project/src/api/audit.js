@@ -4,6 +4,7 @@ import request from '@/http/index.js'
 const auditRequestConfig = () => ({
   baseURL: window.location.origin,
   withCredentials: true,
+  timeout: 12000,
 })
 
 export const startPamEntry = () => request.post('/api/pam/entry-start', {}, auditRequestConfig())
