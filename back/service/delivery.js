@@ -4,6 +4,7 @@ const pool = db.promise();
 const { isEnabled: digitalContractEnabled } = require('./digitalContract');
 const { mapHeRecordRow } = require('./pcp/he');
 const { mapPreRecordRow } = require('./pcp/pre');
+const { mapMpcAuditRecord } = require('./mpc_audit/view');
 
 const COMPLETED_PCP_STATUSES = new Set(['PAM_PASSED', 'COMPLETED']);
 const COMPLETED_MPC_STATUSES = new Set(['done']);
@@ -574,6 +575,7 @@ async function attachDeliveryMeta(orderList = []) {
   let preRows = [];
   let flRows = [];
   let mpcRows = [];
+  let mpcAuditRows = [];
 
   if (transactionIds.length) {
     const txPlaceholders = buildPlaceholders(transactionIds);
@@ -605,6 +607,14 @@ async function attachDeliveryMeta(orderList = []) {
       `SELECT * FROM mpc_delivery_contracts WHERE transaction_id IN (${txPlaceholders})`,
       transactionIds,
     );
+    try {
+      [mpcAuditRows] = await pool.query(
+        `SELECT * FROM mpc_audit_jobs WHERE transaction_id IN (${txPlaceholders})`,
+        transactionIds,
+      );
+    } catch (error) {
+      if (error.code !== 'ER_NO_SUCH_TABLE') throw error;
+    }
   }
 
   const contractMap = new Map(contractRows.map((row) => [row.transaction_id, mapDigitalContractRow(row)]));
@@ -624,6 +634,7 @@ async function attachDeliveryMeta(orderList = []) {
   const preMap = new Map(preRows.map((row) => [row.transaction_id, mapPreOrderRecord(row)]));
   const flMap = new Map(flRows.map((row) => [row.transaction_id, mapFlRecordRow(row)]));
   const mpcMap = new Map(mpcRows.map((row) => [row.transaction_id, mapMpcRecordRow(row)]));
+  const mpcAuditMap = new Map(mpcAuditRows.map((row) => [row.transaction_id, mapMpcAuditRecord(row)]));
 
   return orderList.map((item) => {
     const transaction = txMap.get(item.order_no) || null;
@@ -638,7 +649,7 @@ async function attachDeliveryMeta(orderList = []) {
       he_record: transactionId ? heMap.get(transactionId) || null : null,
       pre_record: transactionId ? preMap.get(transactionId) || null : null,
       fl_record: transactionId ? flMap.get(transactionId) || null : null,
-      mpc_record: transactionId ? mpcMap.get(transactionId) || null : null,
+      mpc_record: transactionId ? mpcAuditMap.get(transactionId) || mpcMap.get(transactionId) || null : null,
     };
   });
 }

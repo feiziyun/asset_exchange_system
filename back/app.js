@@ -21,6 +21,7 @@ const Joi = require('joi');
 const { memoryUpload } = require('./middleware/upload');
 const { registerHeRoutes, registerPreRoutes, registerFlRoutes } = require('./service/pcp');
 const { registerMpcRoutes } = require('./service/mpc');
+const { registerMpcAuditRoutes } = require('./service/mpc_audit');
 //处理表单数据（就像纸质表格，例如：account=zhangsan&password=123456），
 app.use(bodyParser.urlencoded({extended:false}));//此时值只能是字符串或数组
 //处理json格式数据
@@ -256,6 +257,12 @@ registerFlRoutes({
 });
 
 registerMpcRoutes({
+  app,
+  upload: memoryUpload,
+  dbQuery,
+});
+
+registerMpcAuditRoutes({
   app,
   upload: memoryUpload,
   dbQuery,

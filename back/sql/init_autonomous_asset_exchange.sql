@@ -611,6 +611,37 @@ CREATE TABLE `mpc_delivery_contracts` (
   KEY `idx_mpc_business_contract` (`business_contract_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='MPC交付合约表';
 
+-- MPC 审计链路（对齐 PAM/Multiprover 的 MPC_COMPOSITE 电路）。
+-- 业务语句：每个用户 y = (a + b) * c，可选与 threshold 比较。
+CREATE TABLE IF NOT EXISTS mpc_audit_jobs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  transaction_id VARCHAR(128) NOT NULL,
+  business_contract_id VARCHAR(128) NOT NULL,
+  buyer_id VARCHAR(255) NOT NULL,
+  seller_id VARCHAR(255) NOT NULL,
+  coefficient BIGINT NOT NULL,
+  threshold BIGINT DEFAULT NULL,
+  parties_json JSON DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'CREATED',
+  samples_json JSON DEFAULT NULL,
+  result_json JSON DEFAULT NULL,
+  evidence_json JSON DEFAULT NULL,
+  pcc_contract_id VARCHAR(64) DEFAULT NULL,
+  delivery_id VARCHAR(64) DEFAULT NULL,
+  pam_event_id VARCHAR(64) DEFAULT NULL,
+  consensus_status VARCHAR(32) DEFAULT NULL,
+  consensus_result VARCHAR(32) DEFAULT NULL,
+  responded_nodes INT NOT NULL DEFAULT 0,
+  passed_nodes INT NOT NULL DEFAULT 0,
+  target_nodes_json JSON DEFAULT NULL,
+  last_error TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_mpc_audit_tx (transaction_id),
+  KEY idx_mpc_audit_event (pam_event_id),
+  KEY idx_mpc_audit_business_contract (business_contract_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `reconcile_log` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `biz_type` VARCHAR(20) NOT NULL COMMENT 'asset/order',

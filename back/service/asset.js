@@ -4092,7 +4092,8 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
           fl.pcp_status AS fl_pcp_status,
           fl.buyer_download_token AS fl_buyer_download_token,
           fl.buyer_result_storage_path AS fl_buyer_result_storage_path,
-          mpc.task_status AS mpc_task_status
+          COALESCE(CASE WHEN ma.status = 'AUDIT_PASSED' THEN 'done' ELSE NULL END, mpc.task_status) AS mpc_task_status,
+          ma.status AS mpc_audit_status
         FROM asset_order ao
         LEFT JOIN transactions t ON ao.order_no = t.order_no
         LEFT JOIN digital_contracts dc ON t.transaction_id = dc.transaction_id
@@ -4100,6 +4101,7 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
         LEFT JOIN pre_delivery_contracts pre ON t.transaction_id = pre.transaction_id
         LEFT JOIN fl_delivery_contracts fl ON t.transaction_id = fl.transaction_id
         LEFT JOIN mpc_delivery_contracts mpc ON t.transaction_id = mpc.transaction_id
+        LEFT JOIN mpc_audit_jobs ma ON t.transaction_id = ma.transaction_id
         WHERE ao.order_no = ?
         LIMIT 1
         FOR UPDATE
@@ -4132,7 +4134,7 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
         buyer_result_storage_path: order.fl_buyer_result_storage_path,
       },
       mpcRecord: {
-        task_status: order.mpc_task_status,
+        task_status: order.mpc_audit_status ? (order.mpc_audit_status === 'AUDIT_PASSED' ? 'done' : 'pending') : order.mpc_task_status,
       },
     });
     if (!privacyReady) {
@@ -4256,7 +4258,7 @@ exports.getOrderSummary = async (userId, identity = '') => {
     WHEN 'HE' THEN he.paillier_public_key_json IS NOT NULL AND he.elgamal_public_key_json IS NOT NULL
     WHEN 'PRE' THEN pre.buyer_public_key IS NOT NULL
     WHEN 'FL' THEN fl.pcp_contract_id IS NOT NULL
-    WHEN 'MPC' THEN mpc.remote_task_id IS NOT NULL AND LOWER(mpc.task_status) <> 'failed'
+    WHEN 'MPC' THEN (ma.transaction_id IS NOT NULL OR (mpc.remote_task_id IS NOT NULL AND LOWER(mpc.task_status) <> 'failed'))
     ELSE EXISTS (SELECT 1 FROM delivery_requests dr WHERE dr.order_no = ao.order_no)
   END`;
   const [orderResult, assetResult, buyerRequestResult] = await Promise.all([pool.query(`
@@ -4280,6 +4282,7 @@ exports.getOrderSummary = async (userId, identity = '') => {
       LEFT JOIN pre_delivery_contracts pre ON pre.transaction_id = t.transaction_id
       LEFT JOIN fl_delivery_contracts fl ON fl.transaction_id = t.transaction_id
       LEFT JOIN mpc_delivery_contracts mpc ON mpc.transaction_id = t.transaction_id
+      LEFT JOIN mpc_audit_jobs ma ON ma.transaction_id = t.transaction_id
       WHERE ao.buyer_id = ? AND ao.buyer_deleted_at IS NULL
         AND ao.order_status = 1 AND t.status = '已确认'
     `, [userId])]);
@@ -4370,11 +4373,12 @@ exports.listOrders = async (query, userId, identity = '') => {
       LEFT JOIN pre_delivery_contracts pre ON pre.transaction_id = dt.transaction_id
       LEFT JOIN fl_delivery_contracts fl ON fl.transaction_id = dt.transaction_id
       LEFT JOIN mpc_delivery_contracts mpc ON mpc.transaction_id = dt.transaction_id
+      LEFT JOIN mpc_audit_jobs ma ON ma.transaction_id = dt.transaction_id
       WHERE dt.order_no = ao.order_no AND CASE COALESCE(dc.pc_type, ao.pc_type)
         WHEN 'HE' THEN he.paillier_public_key_json IS NOT NULL AND he.elgamal_public_key_json IS NOT NULL
         WHEN 'PRE' THEN pre.buyer_public_key IS NOT NULL
         WHEN 'FL' THEN fl.pcp_contract_id IS NOT NULL
-        WHEN 'MPC' THEN mpc.remote_task_id IS NOT NULL AND LOWER(mpc.task_status) <> 'failed'
+        WHEN 'MPC' THEN (ma.transaction_id IS NOT NULL OR (mpc.remote_task_id IS NOT NULL AND LOWER(mpc.task_status) <> 'failed'))
         ELSE EXISTS (SELECT 1 FROM delivery_requests dr WHERE dr.order_no = ao.order_no)
       END
     )`;
@@ -4385,11 +4389,12 @@ exports.listOrders = async (query, userId, identity = '') => {
       LEFT JOIN pre_delivery_contracts pre ON pre.transaction_id = dt.transaction_id
       LEFT JOIN fl_delivery_contracts fl ON fl.transaction_id = dt.transaction_id
       LEFT JOIN mpc_delivery_contracts mpc ON mpc.transaction_id = dt.transaction_id
+      LEFT JOIN mpc_audit_jobs ma ON ma.transaction_id = dt.transaction_id
       WHERE dt.order_no = ao.order_no AND CASE COALESCE(dc.pc_type, ao.pc_type)
         WHEN 'HE' THEN UPPER(he.pcp_status) IN ('PAM_PASSED', 'COMPLETED') AND (he.download_token IS NOT NULL OR he.result_storage_path IS NOT NULL)
         WHEN 'PRE' THEN UPPER(pre.pcp_status) IN ('PAM_PASSED', 'COMPLETED') AND (pre.download_token IS NOT NULL OR pre.result_storage_path IS NOT NULL)
         WHEN 'FL' THEN UPPER(fl.pcp_status) IN ('PAM_PASSED', 'COMPLETED') AND (fl.buyer_download_token IS NOT NULL OR fl.buyer_result_storage_path IS NOT NULL)
-        WHEN 'MPC' THEN LOWER(mpc.task_status) = 'done'
+        WHEN 'MPC' THEN CASE WHEN ma.transaction_id IS NOT NULL THEN ma.status = 'AUDIT_PASSED' ELSE LOWER(mpc.task_status) = 'done' END
         ELSE EXISTS (SELECT 1 FROM delivery_records rec WHERE rec.transaction_id = dt.transaction_id AND rec.result_status = 'DELIVERED')
       END
     )`;
@@ -4894,13 +4899,15 @@ async function loadTransactionsForBuyerAddress(buyerAddress) {
         fl.pcp_status AS fl_pcp_status,
         fl.buyer_download_token AS fl_buyer_download_token,
         fl.buyer_result_storage_path AS fl_buyer_result_storage_path,
-        mpc.task_status AS mpc_task_status
+        COALESCE(CASE WHEN ma.status = 'AUDIT_PASSED' THEN 'done' ELSE NULL END, mpc.task_status) AS mpc_task_status,
+        ma.status AS mpc_audit_status
       FROM transactions t
       LEFT JOIN digital_contracts dc ON t.transaction_id = dc.transaction_id
       LEFT JOIN he_delivery_contracts he ON t.transaction_id = he.transaction_id
       LEFT JOIN pre_delivery_contracts pre ON t.transaction_id = pre.transaction_id
       LEFT JOIN fl_delivery_contracts fl ON t.transaction_id = fl.transaction_id
       LEFT JOIN mpc_delivery_contracts mpc ON t.transaction_id = mpc.transaction_id
+      LEFT JOIN mpc_audit_jobs ma ON t.transaction_id = ma.transaction_id
       WHERE t.buyer_address = ?
       ORDER BY t.updated_at DESC, t.id DESC
     `,
@@ -4935,7 +4942,7 @@ exports.getVmExportEligibleCompatible = async ({ buyerAddress } = {}) => {
         buyer_result_storage_path: row.fl_buyer_result_storage_path,
       },
       mpcRecord: {
-        task_status: row.mpc_task_status,
+        task_status: row.mpc_audit_status ? (row.mpc_audit_status === 'AUDIT_PASSED' ? 'done' : 'pending') : row.mpc_task_status,
       },
     }))
     .map((row) => ({
@@ -4967,10 +4974,13 @@ exports.exportVmCompatible = async (payload = {}) => {
         t.pc_type,
         dc.contract_id,
         dc.pc_type AS contract_pc_type,
-        mpc.result_json
+        mpc.result_json,
+        ma.result_json AS mpc_audit_result_json,
+        ma.status AS mpc_audit_status
       FROM transactions t
       LEFT JOIN digital_contracts dc ON t.transaction_id = dc.transaction_id
       LEFT JOIN mpc_delivery_contracts mpc ON t.transaction_id = mpc.transaction_id
+      LEFT JOIN mpc_audit_jobs ma ON t.transaction_id = ma.transaction_id
       WHERE t.transaction_id = ?
       LIMIT 1
     `,
@@ -5017,7 +5027,11 @@ exports.exportVmCompatible = async (payload = {}) => {
   }
 
   if (pcType === 'MPC') {
-    const result = tx.result_json ? JSON.parse(tx.result_json) : {};
+    if (tx.mpc_audit_status && tx.mpc_audit_status !== 'AUDIT_PASSED') {
+      throw new Error('MPC 多节点审计尚未通过，不能导出结果');
+    }
+    const resultJson = tx.mpc_audit_status ? tx.mpc_audit_result_json : tx.result_json;
+    const result = resultJson ? JSON.parse(resultJson) : {};
     return {
       buffer: Buffer.from(JSON.stringify(result, null, 2), 'utf8'),
       filename: `${fileBaseName}.json`,

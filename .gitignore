@@ -9,4 +9,6 @@ back/storage/
 back/public/upload/
 back/config/pcp.local.json
 back/config/audit.integration.local.json
+back/config/mpcAudit.local.json
+back/.pcc-audit-token
 back/.claude/settings.local.json

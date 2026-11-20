@@ -298,6 +298,19 @@ export const getMpcPrivacyResult = (transactionId) => {
   return instance.get('/api/privacy/mpc/result', { params: { transaction_id: transactionId } })
 }
 
+// 原型系统的 MPC_COMPOSITE 多节点审计流程，与旧 GC 任务独立。
+export const createMpcAudit = (data) => instance.post('/api/privacy/mpc-audit/create', data)
+export const uploadMpcAuditData = (formData) => instance.post('/api/privacy/mpc-audit/data', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' },
+})
+export const submitMpcAudit = (transactionId) => instance.post('/api/privacy/mpc-audit/submit', { transactionId })
+export const getMpcAuditStatus = (transactionId) => instance.get('/api/privacy/mpc-audit/status', {
+  params: { transactionId, refresh: 1 },
+})
+export const getMpcAuditResult = (transactionId) => instance.get('/api/privacy/mpc-audit/result', {
+  params: { transactionId },
+})
+
 // 证书：根据用户名获取用户ID
 const CERT_READ_TIMEOUT_MS = 60000
 const CERT_ADDRESS_TIMEOUT_MS = 5 * 60 * 1000

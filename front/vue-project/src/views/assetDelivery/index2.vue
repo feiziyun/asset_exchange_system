@@ -324,6 +324,10 @@
         <span class="dialog-label">统计摘要</span>
         <span>{{ formatMpcQualifiedCount(mpcResultDialog.result) }}</span>
       </div>
+      <div class="dialog-row" v-if="mpcResultDialog.order.mpc_record?.audit_mode === 'MPC_COMPOSITE'">
+        <span class="dialog-label">多节点审计</span>
+        <span>{{ mpcResultDialog.order.mpc_record?.consensus_result || '等待共识' }}（{{ mpcResultDialog.order.mpc_record?.passed_nodes || 0 }} / {{ mpcResultDialog.order.mpc_record?.responded_nodes || 0 }} 节点通过）</span>
+      </div>
       <el-table
         v-if="Array.isArray(mpcResultDialog.result.user_results)"
         :data="mpcResultDialog.result.user_results"
@@ -332,7 +336,7 @@
         style="width: 100%"
       >
         <el-table-column prop="user_id" label="用户ID" min-width="220" />
-        <el-table-column prop="total_assets" label="汇总资产" min-width="140" />
+        <el-table-column :prop="mpcResultDialog.order?.mpc_record?.audit_mode === 'MPC_COMPOSITE' ? 'y' : 'total_assets'" :label="mpcResultDialog.order?.mpc_record?.audit_mode === 'MPC_COMPOSITE' ? '计算结果 y' : '汇总资产'" min-width="140" />
         <el-table-column label="是否达标" min-width="120">
           <template #default="{ row }">
             {{ getMpcResultText(row.is_qualified) }}
@@ -340,7 +344,7 @@
         </el-table-column>
       </el-table>
       <div class="dialog-hint compact-hint">
-        <span>系统会先按用户汇总多份 CSV 中的资产，再执行阈值比较并返回批量筛选结果。</span>
+        <span>按原型计算 y = (a + b) × c，审计通过后可查看结果。</span>
       </div>
     </div>
     <template #footer>
@@ -352,6 +356,7 @@
 
 <script lang="ts" setup>
 import DigitalContractPreview from '@/components/DigitalContractPreview.vue'
+import { mapMpcAuditJob } from '@/utils/mpcAudit'
 // 买家交付页：对应原始系统 frontend/src/views/DeliveryBuyer2.vue。
 // index.vue 只做角色分发，本文件只保留买家“数字资产下载/请求交付”视角。
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
@@ -360,7 +365,12 @@ import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import {
   createFlPrivacyContract,
-  createMpcPrivacyTask,
+  createMpcAudit,
+  getMpcAuditStatus,
+  getMpcAuditResult,
+  getMpcPrivacyResult,
+  uploadMpcAuditData,
+  submitMpcAudit,
   decryptPrePrivacyResult,
   downloadDeliveryResult,
   downloadFlPrivacyResult,
@@ -372,7 +382,6 @@ import {
   getHePublicKeyStatus,
   getHeStatus,
   getMpcStatus,
-  getMpcPrivacyResult,
   getOrderList,
   getPreStatus,
   joinFlPrivacyContract,
@@ -381,7 +390,6 @@ import {
   sellerDeliver,
   submitFlPrivacyBatch,
   submitHePrivacyDelivery,
-  submitMpcSellerData,
   submitPrePrivacyDelivery,
   uploadHePublicKeys,
   uploadPreBuyerPublicKey,
@@ -656,6 +664,14 @@ const normalizedDeliveryStatusText = (order: OrderItem) => {
             : order.latest_delivery_request?.status
   || '').toUpperCase()
 
+  if (pcType === 'MPC' && order.mpc_record?.audit_mode === 'MPC_COMPOSITE') {
+    const audit = String(order.mpc_record.audit_status || '').toUpperCase()
+    if (['AUDIT_FAILED', 'AUDIT_TIMEOUT', 'FAILED'].includes(audit)) return '交付失败'
+    if (audit === 'AUDIT_PENDING' || audit === 'SUBMITTING') return '审计中'
+    if (audit === 'AUDIT_PASSED') return '已完成'
+    if (audit === 'DATA_READY') return '待提交审计'
+    if (audit === 'CREATED') return '待卖方交付'
+  }
   if (['FAILED', 'AUDIT_FAILED', 'PAM_FAILED', 'REJECTED'].includes(status)) return '交付失败'
   if (pcType === 'FL' && status === 'WAITING_EPOCH_INPUT' && order.fl_record?.last_error) return '提交失败'
   if (['PAMING'].includes(status)) return '审计中'
@@ -815,8 +831,15 @@ const syncOrderPrivacyStatus = async (order: OrderItem, silent = true) => {
       const res: any = await getFlStatus(transactionId, { entityId: order.transaction?.buyer_address || order.buyer_address || '' })
       order.fl_record = res?.data?.item || res?.data?.data?.item || order.fl_record || null
     } else if (pcType === 'MPC') {
-      const res: any = await getMpcStatus(transactionId)
-      order.mpc_record = extractPrivacyRecord(res) || order.mpc_record || null
+      try {
+        const res: any = await getMpcAuditStatus(transactionId)
+        order.mpc_record = mapMpcAuditJob(res?.data?.data) || order.mpc_record || null
+      } catch (auditError: any) {
+        if (auditError?.response?.status !== 404) throw auditError
+        // 迁移前已经创建的 GC 任务仍按旧记录展示。
+        const res: any = await getMpcStatus(transactionId)
+        order.mpc_record = extractPrivacyRecord(res) || order.mpc_record || null
+      }
     }
   } catch (error: any) {
     if (!silent) ElMessage.error(error?.response?.data?.message || error?.message || '状态同步失败')
@@ -995,12 +1018,11 @@ const submitMpcBuyerRequest = async () => {
       return
     }
 
-    const formData = new FormData()
-    formData.append('transaction_id', transactionId)
-    formData.append('threshold', String(mpcBuyerDialog.threshold || 0))
-    formData.append('compute_mode', 'asset_threshold_batch')
-    const res: any = await createMpcPrivacyTask(formData)
-    order.mpc_record = extractPrivacyRecord(res) || order.mpc_record
+    const res: any = await createMpcAudit({
+      transactionId,
+      threshold: String(mpcBuyerDialog.threshold ?? 0),
+    })
+    order.mpc_record = mapMpcAuditJob(res?.data?.data) || order.mpc_record
     await syncOrderPrivacyStatus(order, true)
     mpcBuyerDialog.visible = false
     ElMessage.success('MPC 任务已创建，等待卖方提交材料')
@@ -1179,10 +1201,11 @@ const submitMpcSellerDelivery = async () => {
   actionLoadingNo.value = order.order_no
   try {
     const formData = new FormData()
-    formData.append('transaction_id', transactionId)
+    formData.append('transactionId', transactionId)
     mpcSellerDialog.files.forEach((file) => formData.append('files', file, file.name))
-    const res: any = await submitMpcSellerData(formData)
-    order.mpc_record = extractPrivacyRecord(res) || order.mpc_record
+    await uploadMpcAuditData(formData)
+    const res: any = await submitMpcAudit(transactionId)
+    order.mpc_record = mapMpcAuditJob(res?.data?.data) || order.mpc_record
     await submitSellerDeliver(order)
     mpcSellerDialog.visible = false
     ElMessage.success(res?.data?.message || 'MPC 交付已提交')
@@ -1423,9 +1446,16 @@ const downloadBuyerResult = async (order: OrderItem) => {
       return
     }
     if (pcType === 'MPC') {
-      const res: any = await getMpcPrivacyResult(transactionId)
+      let result: any
+      if (order.mpc_record?.audit_mode === 'MPC_COMPOSITE') {
+        const res: any = await getMpcAuditResult(transactionId)
+        result = res?.data?.data?.result || {}
+      } else {
+        const res: any = await getMpcPrivacyResult(transactionId)
+        result = res?.data?.data?.result || res?.data?.result || {}
+      }
       mpcResultDialog.order = order
-      mpcResultDialog.result = res?.data?.data?.result || res?.data?.result || {}
+      mpcResultDialog.result = result
       mpcResultDialog.visible = true
       return
     }
