@@ -1826,7 +1826,11 @@ onBeforeUnmount(() => {
   --el-button-active-bg-color: #e7ebef;
   --el-button-active-border-color: #aeb8c2;
   --el-button-active-text-color: #0550ae;
-  min-width: 76px;
+  width: 104px;
+  min-width: 104px;
+  max-width: 104px;
+  flex: 0 0 104px;
+  box-sizing: border-box;
   height: 30px;
   margin: 0;
   padding: 0 10px;
