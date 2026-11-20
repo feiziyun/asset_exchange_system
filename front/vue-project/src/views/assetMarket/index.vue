@@ -32,21 +32,6 @@
               @click="selectIndustry(item)">{{ item || '全部' }}</span>
           </div>
         </div>
-        <div v-else class="filter-row">
-          <div class="filter-label">地区：</div>
-          <div class="filter-options">
-            <span
-              v-for="item in regionOptions"
-              :key="item.id"
-              class="option-chip"
-              :class="{ active: query.region_id === item.id }"
-              @click="selectRegion(item.id)"
-            >
-              {{ item.name }}
-            </span>
-          </div>
-        </div>
-
         <div class="filter-row">
           <div class="filter-label">数据产品类型：</div>
           <div class="filter-options">
@@ -419,7 +404,6 @@ interface QueryParams {
   page_size: number
   keyword: string
   category_id?: number
-  region_id?: number
   classification_data_level?: string
 }
 
@@ -435,12 +419,6 @@ interface SubCategoryOption {
   category_id: number
   sub_category_name: string
   sub_category_key: string
-}
-
-interface RegionOption {
-  id: number
-  region_name: string
-  region_key: string
 }
 
 const presetAssetCategories: CategoryOption[] = [
@@ -566,7 +544,6 @@ const submitBridge = async () => {
   } finally { bridgeSubmitting.value = false }
 }
 const categories = ref<CategoryOption[]>([])
-const regions = ref<RegionOption[]>([])
 const industries = ref<string[]>([])
 const classificationDataLevels = ref<string[]>([])
 const resolveCover = (item: AssetItem) => {
@@ -583,10 +560,6 @@ const onCoverError = (event: Event) => {
   if (image.src !== new URL(defaultCover, window.location.href).href) image.src = defaultCover
 }
 
-const regionOptions = computed(() => [
-  { id: undefined, name: '全部' },
-  ...regions.value.map((item) => ({ id: item.id, name: item.region_name })),
-])
 const industryOptions = computed(() => ['', ...industries.value])
 
 const categoryOptions = computed(() => [
@@ -668,7 +641,6 @@ const query = reactive<QueryParams>({
   page_size: 10,
   keyword: '',
   category_id: undefined,
-  region_id: undefined,
   classification_data_level: undefined,
   classification_category_name: undefined,
 })
@@ -678,12 +650,6 @@ const pagination = reactive({
   page_size: 10,
   total: 0,
 })
-
-const selectRegion = (id?: number) => {
-  query.region_id = id
-  query.page = 1
-  fetchList()
-}
 
 const selectCategory = (id?: number) => {
   query.category_id = id
@@ -707,7 +673,6 @@ const fetchMeta = async () => {
   const res = await getAssetMeta()
   const data = res.data?.data || {}
   categories.value = mergePresetCategories(data.categories || [])
-  regions.value = data.regions || []
   industries.value = Array.isArray(data.classification_categories) ? data.classification_categories : []
   classificationDataLevels.value = Array.isArray(data.classification_data_levels)
     ? data.classification_data_levels.filter(Boolean)
@@ -914,7 +879,6 @@ onMounted(async () => {
     page_size: 10,
     keyword: '',
     category_id: undefined,
-    region_id: undefined,
     classification_data_level: undefined,
   })
   fetchList(2)

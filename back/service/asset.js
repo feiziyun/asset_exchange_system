@@ -1883,10 +1883,6 @@ exports.listAssets = async (query) => {
     where.push('da.sub_category_id = ?');
     params.push(query.sub_category_id);
   }
-  if (query.region_id) {
-    where.push('da.region_id = ?');
-    params.push(query.region_id);
-  }
   if (query.classification_category_name) {
     where.push('da.classification_category_name = ?');
     params.push(query.classification_category_name);
