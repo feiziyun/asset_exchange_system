@@ -702,9 +702,9 @@ const isSellerDeliveryDisabled = (order: OrderItem) => {
       ['ready', 'computing', 'done'].includes(status)
   }
   if (!canSellerDeliver(order)) return true
-  if (isHeOrder(order)) return Boolean(order.he_record?.result_ready)
-  if (isPreOrder(order)) return Boolean(order.pre_record?.result_ready)
-  if (isFlOrder(order)) return Boolean(order.fl_record?.buyer_result_ready &&
+  if (isHeOrder(order)) return !order.he_record?.public_keys_ready || Boolean(order.he_record?.result_ready)
+  if (isPreOrder(order)) return !order.pre_record?.buyer_public_key_ready || Boolean(order.pre_record?.result_ready)
+  if (isFlOrder(order)) return !order.fl_record?.pcp_contract_id || Boolean(order.fl_record?.buyer_result_ready &&
     ['PAM_PASSED', 'COMPLETED'].includes(String(order.fl_record?.pcp_status || '').toUpperCase()))
   return true
 }
