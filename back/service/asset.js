@@ -3253,6 +3253,8 @@ const getOrderDeliveryContext = async (conn, orderNo) => {
         ao.buyer_certificate_name,
         ao.buyer_address,
         ao.order_status,
+        t.transaction_id,
+        t.status AS transaction_status,
         ao.created_at,
         ao.updated_at,
         ao.payment_confirm_time,
@@ -3268,6 +3270,7 @@ const getOrderDeliveryContext = async (conn, orderNo) => {
         aci.token_id,
         aci.owner_address
       FROM asset_order ao
+      LEFT JOIN transactions t ON t.order_no = ao.order_no
       LEFT JOIN asset_publish_record apr ON ao.publish_id = apr.id
       LEFT JOIN asset_delegations d ON d.id = ao.delegation_id
       LEFT JOIN digital_asset da ON ao.asset_id = da.id

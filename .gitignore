@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .env.*
+.server-start-password
 *.log
 .DS_Store
 back/logs/

@@ -203,24 +203,25 @@
   <el-dialog v-model="heSellerDialog.visible" title="执行交付 - 同态加密" width="620px">
     <el-form label-width="110px">
       <el-form-item label="交易ID"><el-input :model-value="heSellerDialog.order?.transaction?.transaction_id || ''" disabled /></el-form-item>
-      <el-form-item label="交付算法">
+      <el-form-item v-if="!hasSubmittedPccAttempt(heSellerDialog.order?.he_record)" label="交付算法">
         <el-select v-model="heSellerDialog.operation" style="width: 100%">
           <el-option label="加法" value="ADD" />
           <el-option label="乘法" value="MUL" />
         </el-select>
       </el-form-item>
-      <el-form-item label="文件1">
+      <el-form-item v-if="!hasSubmittedPccAttempt(heSellerDialog.order?.he_record)" label="文件1">
         <input ref="heFile1Input" type="file" accept=".csv" @change="onHeSellerFileChange('file1', $event)" />
         <div v-if="heSellerDialog.file1" class="selected-file-name">{{ heSellerDialog.file1.name }}</div>
       </el-form-item>
-      <el-form-item label="文件2">
+      <el-form-item v-if="!hasSubmittedPccAttempt(heSellerDialog.order?.he_record)" label="文件2">
         <input ref="heFile2Input" type="file" accept=".csv" @change="onHeSellerFileChange('file2', $event)" />
         <div v-if="heSellerDialog.file2" class="selected-file-name">{{ heSellerDialog.file2.name }}</div>
       </el-form-item>
+      <div v-if="hasSubmittedPccAttempt(heSellerDialog.order?.he_record)" class="selected-file-name">HE 计算批次已提交，可继续确认交付，无需重新上传文件。</div>
     </el-form>
     <template #footer>
       <el-button @click="heSellerDialog.visible = false">取消</el-button>
-      <el-button type="primary" class="app-primary-action" :loading="heSellerDialog.submitting" :disabled="!heSellerDialog.order || isDeliveryExpired(heSellerDialog.order)" @click="submitHeSellerDelivery">执行交付</el-button>
+      <el-button type="primary" class="app-primary-action" :loading="heSellerDialog.submitting" :disabled="!heSellerDialog.order || isDeliveryExpired(heSellerDialog.order)" @click="submitHeSellerDelivery">{{ hasSubmittedPccAttempt(heSellerDialog.order?.he_record) ? '继续确认交付' : '执行交付' }}</el-button>
     </template>
   </el-dialog>
 
@@ -678,6 +679,10 @@ const ensureDeliveryActive = (order: OrderItem) => {
   ElMessage.warning('数字合约已过期，不能继续交付或下载结果')
   return false
 }
+const hasSubmittedPccAttempt = (record?: NestedRecord | null) => Boolean(
+  record?.pcp_contract_id && record?.current_attempt_id &&
+  !['FAILED', 'PAM_FAILED', 'AUDIT_FAILED'].includes(String(record.pcp_status || '').toUpperCase()),
+)
 const isPrivacyPc = (order: OrderItem) => ['HE', 'PRE', 'FL', 'MPC'].includes(getPcType(order))
 const extractPrivacyRecord = (res: any) => res?.data?.item || res?.data?.data?.item || res?.data?.data || null
 
@@ -1247,29 +1252,35 @@ const submitHeSellerDelivery = async () => {
   const transactionId = order ? getTransactionId(order) : ''
   if (!order || !transactionId) return
   if (!ensureDeliveryActive(order)) return
-  if (!heSellerDialog.file1 || !heSellerDialog.file2) return ElMessage.warning('请先选择两个 CSV 文件')
   heSellerDialog.submitting = true
   actionLoadingNo.value = order.order_no
   try {
-    const encType = heSellerDialog.operation === 'MUL' ? 'ElGamal' : 'Paillier'
-    const publicKey = heCrypto.selectHePublicKey(order.he_record, encType)
-    if (!publicKey) throw new Error(`缺少 ${encType} 公钥`)
-    const [file1Text, file2Text] = await Promise.all([heSellerDialog.file1.text(), heSellerDialog.file2.text()])
-    const [encryptedFile1Text, encryptedFile2Text] = await Promise.all([
-      heCrypto.encryptHeCsv({ algorithm: encType, csvText: file1Text, publicKey }),
-      heCrypto.encryptHeCsv({ algorithm: encType, csvText: file2Text, publicKey }),
-    ])
-    const formData = new FormData()
-    formData.append('transactionId', transactionId)
-    formData.append('encType', encType)
-    formData.append('operation', heSellerDialog.operation)
-    formData.append('file1', new Blob([encryptedFile1Text], { type: 'text/csv' }), heSellerDialog.file1.name)
-    formData.append('file2', new Blob([encryptedFile2Text], { type: 'text/csv' }), heSellerDialog.file2.name)
-    const res: any = await submitHePrivacyDelivery(formData)
-    order.he_record = res?.data?.item || order.he_record
-    await submitSellerDeliver(order)
+    const status: any = await getHePublicKeyStatus(transactionId)
+    order.he_record = status?.data?.item || order.he_record
+    if (!hasSubmittedPccAttempt(order.he_record)) {
+      if (!heSellerDialog.file1 || !heSellerDialog.file2) {
+        ElMessage.warning('请先选择两个 CSV 文件')
+        return
+      }
+      const encType = heSellerDialog.operation === 'MUL' ? 'ElGamal' : 'Paillier'
+      const publicKey = heCrypto.selectHePublicKey(order.he_record, encType)
+      if (!publicKey) throw new Error(`缺少 ${encType} 公钥`)
+      const [file1Text, file2Text] = await Promise.all([heSellerDialog.file1.text(), heSellerDialog.file2.text()])
+      const [encryptedFile1Text, encryptedFile2Text] = await Promise.all([
+        heCrypto.encryptHeCsv({ algorithm: encType, csvText: file1Text, publicKey }),
+        heCrypto.encryptHeCsv({ algorithm: encType, csvText: file2Text, publicKey }),
+      ])
+      const formData = new FormData()
+      formData.append('transactionId', transactionId)
+      formData.append('encType', encType)
+      formData.append('operation', heSellerDialog.operation)
+      formData.append('file1', new Blob([encryptedFile1Text], { type: 'text/csv' }), heSellerDialog.file1.name)
+      formData.append('file2', new Blob([encryptedFile2Text], { type: 'text/csv' }), heSellerDialog.file2.name)
+      const res: any = await submitHePrivacyDelivery(formData)
+      order.he_record = res?.data?.item || order.he_record
+    }
+    if (!(await submitSellerDeliver(order))) return
     heSellerDialog.visible = false
-    ElMessage.success(res?.data?.message || 'HE 交付已提交')
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || error?.message || 'HE 执行交付失败')
   } finally {
@@ -1308,9 +1319,8 @@ const submitPreSellerDelivery = async () => {
     formData.append('source_archive', preSellerDialog.file, preSellerDialog.file.name)
     const res: any = await submitPrePrivacyDelivery(formData)
     order.pre_record = res?.data?.item || order.pre_record
-    await submitSellerDeliver(order)
+    if (!(await submitSellerDeliver(order))) return
     preSellerDialog.visible = false
-    ElMessage.success(res?.data?.message || 'PRE 交付已提交')
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || error?.message || 'PRE 执行交付失败')
   } finally {
@@ -1369,9 +1379,8 @@ const submitFlSellerDelivery = async () => {
     const res: any = await submitFlPrivacyBatch(formData)
     order.fl_record = res?.data?.item || order.fl_record
     await syncOrderPrivacyStatus(order, true)
-    await submitSellerDeliver(order)
+    if (!(await submitSellerDeliver(order))) return
     flSellerDialog.visible = false
-    ElMessage.success(res?.data?.message || 'FL 交付已提交')
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || error?.message || 'FL 执行交付失败')
   } finally {
