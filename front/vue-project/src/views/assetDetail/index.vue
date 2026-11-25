@@ -28,11 +28,9 @@
               </div>
               <p class="desc">{{ detail.description || '暂无详细描述' }}</p>
               <div class="meta-row">
-                <div><span class="meta-label">登记主体</span><span>{{ detail.owner_account || detail.user_id || '-' }}</span></div>
-                <div><span class="meta-label">卖家</span><span>{{ detail.seller_account || detail.owner_account || '-' }}</span></div>
-                <div v-if="detail.proxy_agent_account || detail.proxy_agent_address"><span class="meta-label">代理人</span><span>{{ detail.proxy_agent_account || detail.proxy_agent_address }}</span></div>
-                <div><span class="meta-label">登记时间</span><span>{{ formatDateTime(detail.created_at) }}</span></div>
-                <div><span class="meta-label">登记地区</span><span>{{ detail.region_name || '-' }}</span></div>
+                <span>登记时间：{{ formatDateTime(detail.created_at) }}</span>
+                <span>登记地区：{{ detail.region_name || '-' }}</span>
+                <span v-if="detail.proxy_agent_account || detail.proxy_agent_address">代理人：{{ detail.proxy_agent_account || detail.proxy_agent_address }}</span>
               </div>
             </div>
 
@@ -81,10 +79,6 @@
             <div class="info-block">
               <h3>交易权限</h3>
               <ul>
-                <li>
-                  <label>资产类型：</label>
-                  <span>自动驾驶资产统一不可分割</span>
-                </li>
                 <li>
                   <label>可售所有权：</label>
                   <span>{{ detail.can_sell_ownership === 1 ? '是' : '否' }}</span>
@@ -571,7 +565,6 @@ onMounted(fetchDetail)
   aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid #e4e8f0;
   background: #f6f8fa;
 }
 
@@ -615,25 +608,21 @@ onMounted(fetchDetail)
 }
 
 .meta-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 18px;
-  row-gap: 12px;
-  padding-top: 18px;
-  border-top: 1px solid #d8dee4;
-  color: #3d444d;
-  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  color: #6e7781;
+  font-size: 13px;
+  line-height: 1.6;
 }
-.meta-row > div { min-width: 0; display: flex; gap: 10px; }
-.meta-row > div > span:last-child { min-width: 0; overflow-wrap: anywhere; }
-.meta-label { flex: 0 0 62px; color: #6e7781; }
+.meta-row > span { overflow-wrap: anywhere; }
 
 .main-right {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  border-left: 1px solid #d8dee4;
-  padding-left: 26px;
+  padding: 20px;
+  border-radius: 9px;
+  background: #f6f8fa;
 }
 
 .price-label { color: #6e7781; font-size: 14px; }
@@ -730,10 +719,6 @@ onMounted(fetchDetail)
     display: grid;
     grid-template-columns: 1fr 1fr;
     column-gap: 22px;
-    border-left: 0;
-    border-top: 1px solid #d8dee4;
-    padding-left: 0;
-    padding-top: 18px;
   }
   .price { grid-column: 1; }
   .purchase-details { grid-column: 2; grid-row: 1 / 3; align-content: center; }
@@ -745,7 +730,6 @@ onMounted(fetchDetail)
   .hero-card :deep(.el-card__body), .asset-info-card :deep(.el-card__body) { padding: 18px; }
   .hero-main { grid-template-columns: 1fr; gap: 20px; }
   .asset-cover { aspect-ratio: 16 / 9; }
-  .meta-row { grid-template-columns: 1fr; }
   .main-right { grid-column: 1; display: flex; }
   .info-block li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
