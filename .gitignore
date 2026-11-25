@@ -3,6 +3,8 @@ dist/
 .env
 .env.*
 .server-start-password
+start-server-services.sh
+wjr/
 *.log
 .DS_Store
 back/logs/
