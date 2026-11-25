@@ -14,46 +14,40 @@
         <el-card shadow="never" class="hero-card" v-loading="loading">
           <div class="hero-main">
             <div class="cover-wrap">
-              <img class="asset-cover" :src="coverImage" alt="asset-cover" @error="onCoverError" />
+              <img class="asset-cover" :src="coverImage" :alt="detail.asset_name || '资产预览图'" @error="onCoverError" />
             </div>
             <div class="main-left">
               <div class="title-row">
                 <h2 class="page-title">{{ detail.asset_name || '未命名资产' }}</h2>
-                <span v-if="detail.delegation_id" class="asset-label">代理</span>
-                <span class="asset-label">{{ detail.sub_category_name || '未分类' }}</span>
               </div>
-
+              <div class="asset-categories">
+                <span v-if="detail.delegation_id">代理</span>
+                <span>{{ detail.category_name || '未分类' }}</span>
+                <span>{{ detail.sub_category_name || '未分类' }}</span>
+                <span>{{ detail.classification_data_level || '一般数据' }}</span>
+              </div>
               <p class="desc">{{ detail.description || '暂无详细描述' }}</p>
-
               <div class="meta-row">
-                <span>登记主体：{{ detail.owner_account || detail.user_id || '-' }}</span>
-                <span>卖家：{{ detail.seller_account || detail.owner_account || '-' }}</span>
-                <span v-if="detail.proxy_agent_account || detail.proxy_agent_address">代理人：{{ detail.proxy_agent_account || detail.proxy_agent_address }}</span>
-                <span>登记时间：{{ formatDateTime(detail.created_at) }}</span>
-                <span>登记地区：{{ detail.region_name || '-' }}</span>
-              </div>
-
-              <div class="action-row">
-                <el-button v-if="canBidAuction" type="warning" @click="openBidDialog"
-                  >参与竞拍</el-button
-                >
-                <el-button v-else-if="canBuyAsset && detail.pricing_mode !== 'auction'" type="success" @click="openBuyDialog"
-                  >立即购买</el-button
-                >
+                <div><span class="meta-label">登记主体</span><span>{{ detail.owner_account || detail.user_id || '-' }}</span></div>
+                <div><span class="meta-label">卖家</span><span>{{ detail.seller_account || detail.owner_account || '-' }}</span></div>
+                <div v-if="detail.proxy_agent_account || detail.proxy_agent_address"><span class="meta-label">代理人</span><span>{{ detail.proxy_agent_account || detail.proxy_agent_address }}</span></div>
+                <div><span class="meta-label">登记时间</span><span>{{ formatDateTime(detail.created_at) }}</span></div>
+                <div><span class="meta-label">登记地区</span><span>{{ detail.region_name || '-' }}</span></div>
               </div>
             </div>
 
             <div class="main-right">
+              <div class="price-label">{{ detail.pricing_mode === 'auction' ? '当前价格' : '资产价格' }}</div>
               <div class="price">
                 {{ formatPrice(displayPrice) }}<span>{{ detail.price_unit || '人民币' }}</span>
               </div>
-              <div v-if="detail.pricing_mode === 'auction'" class="side-item">
-                拍卖状态：{{ auctionStatusText }}
+              <div class="purchase-details">
+                <div v-if="detail.pricing_mode === 'auction'" class="side-item"><span>拍卖状态</span><strong>{{ auctionStatusText }}</strong></div>
+                <div class="side-item"><span>可售数量</span><strong>{{ detail.available_qty || 0 }} / {{ detail.total_qty || 0 }}</strong></div>
+                <div class="side-item"><span>浏览量</span><strong>{{ detail.view_count || 0 }}</strong></div>
               </div>
-              <div class="side-item">
-                库存：{{ detail.available_qty || 0 }}/{{ detail.total_qty || 0 }}
-              </div>
-              <div class="side-item">浏览量：{{ detail.view_count || 0 }}</div>
+              <el-button v-if="canBidAuction" class="purchase-button" @click="openBidDialog">参与竞拍</el-button>
+              <el-button v-else-if="canBuyAsset && detail.pricing_mode !== 'auction'" class="purchase-button" @click="openBuyDialog">立即购买</el-button>
             </div>
           </div>
         </el-card>
@@ -520,13 +514,11 @@ onMounted(fetchDetail)
 }
 
 .crumb-row {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  background: #fff;
-  border-radius: 10px;
-  padding: 10px 14px;
-  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
+  min-height: 28px;
+  padding: 0 2px;
 }
 
 .crumb-row :deep(.el-breadcrumb__inner),
@@ -547,9 +539,13 @@ onMounted(fetchDetail)
 .hero-card,
 .asset-info-card {
   border-radius: 10px;
-  border: none;
-  box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
+  border: 1px solid #e4e8f0;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(18, 41, 79, 0.06);
 }
+
+.hero-card :deep(.el-card__body) { padding: 28px; }
+.asset-info-card :deep(.el-card__body) { padding: 26px 30px; }
 
 .buy-permission-tags {
   display: flex;
@@ -559,94 +555,143 @@ onMounted(fetchDetail)
 
 .hero-main {
   display: grid;
-  grid-template-columns: 200px 1fr 280px;
-  gap: 24px;
+  grid-template-columns: minmax(220px, 28%) minmax(0, 1fr) 250px;
+  gap: 28px;
+  align-items: start;
 }
 
 .cover-wrap {
-  width: 200px;
+  width: 100%;
+  min-width: 0;
 }
 
 .asset-cover {
-  width: 200px;
-  height: 120px;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid #e8ecf5;
+  border: 1px solid #e4e8f0;
+  background: #f6f8fa;
 }
+
+.main-left { min-width: 0; }
 
 .title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
 
   h2 {
     margin: 0;
-    color: #24292f;
-    font-size: 32px;
-    font-weight: 700;
+    color: #1f2328;
+    font-size: clamp(23px, 2vw, 29px);
+    font-weight: 650;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
   }
 }
 
-.asset-label { color: #6e7781; font-size: 13px; }
+.asset-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-top: 9px;
+  color: #6e7781;
+  font-size: 13px;
+}
+.asset-categories span + span::before {
+  content: '/';
+  margin: 0 7px;
+  color: #afb6bf;
+}
 
 .desc {
-  margin: 16px 0;
-  color: #57606a;
-  line-height: 1.8;
+  margin: 22px 0;
+  color: #3d444d;
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  color: #57606a;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  row-gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid #d8dee4;
+  color: #3d444d;
+  font-size: 14px;
 }
-
-.action-row {
-  margin-top: 18px;
-  display: flex;
-  gap: 10px;
-}
+.meta-row > div { min-width: 0; display: flex; gap: 10px; }
+.meta-row > div > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.meta-label { flex: 0 0 62px; color: #6e7781; }
 
 .main-right {
-  border-left: 1px solid #e8ecf5;
-  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-left: 1px solid #d8dee4;
+  padding-left: 26px;
 }
+
+.price-label { color: #6e7781; font-size: 14px; }
 
 .price {
   color: #3d444d;
-  font-size: 40px;
-  font-weight: 700;
-  margin-bottom: 14px;
+  font-size: 34px;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 7px 0 20px;
+  white-space: nowrap;
 
   span {
     margin-left: 6px;
     color: #6e7781;
-    font-size: 18px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 400;
   }
 }
 
+.purchase-details { display: grid; gap: 10px; }
 .side-item {
-  margin-bottom: 12px;
-  color: #57606a;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #6e7781;
+  font-size: 14px;
 }
+.side-item strong { color: #3d444d; font-weight: 500; text-align: right; }
+.purchase-button {
+  width: 100%;
+  height: 38px;
+  margin: 24px 0 0;
+  border: 1px solid #1f5fa8;
+  border-radius: 7px;
+  background: #1f5fa8;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+.purchase-button:hover, .purchase-button:focus { border-color: #174d8a; background: #174d8a; color: #fff; }
 
 .asset-info-card {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .info-grid {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 26px;
 }
 
 .info-block {
   h3 {
-    margin: 0 0 12px;
-    color: #24292f;
+    margin: 0 0 10px;
+    color: #1f2328;
+    font-size: 17px;
+    font-weight: 650;
   }
 
   ul {
@@ -656,32 +701,52 @@ onMounted(fetchDetail)
   }
 
   li {
-    display: flex;
-    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eaeef2;
     color: #3d444d;
-    line-height: 1.5;
+    line-height: 1.55;
   }
+  li:last-child { border-bottom: 0; }
 
   label {
-    min-width: 90px;
-    color: var(--app-text-secondary);
+    color: #6e7781;
   }
 
   span {
-    word-break: break-all;
+    overflow-wrap: anywhere;
   }
 }
 
 @media (max-width: 1100px) {
   .hero-main {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(200px, 32%) minmax(0, 1fr);
   }
 
   .main-right {
-    border-left: none;
-    border-top: 1px solid #e8ecf5;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 22px;
+    border-left: 0;
+    border-top: 1px solid #d8dee4;
     padding-left: 0;
-    padding-top: 14px;
+    padding-top: 18px;
   }
+  .price { grid-column: 1; }
+  .purchase-details { grid-column: 2; grid-row: 1 / 3; align-content: center; }
+  .purchase-button { grid-column: 1 / -1; margin-top: 8px; }
+}
+
+@media (max-width: 700px) {
+  .common-wrapped .detail-page { width: 100%; padding: 14px; }
+  .hero-card :deep(.el-card__body), .asset-info-card :deep(.el-card__body) { padding: 18px; }
+  .hero-main { grid-template-columns: 1fr; gap: 20px; }
+  .asset-cover { aspect-ratio: 16 / 9; }
+  .meta-row { grid-template-columns: 1fr; }
+  .main-right { grid-column: 1; display: flex; }
+  .info-block li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 </style>
