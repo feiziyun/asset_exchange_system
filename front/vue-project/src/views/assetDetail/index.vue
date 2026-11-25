@@ -59,102 +59,54 @@
           </div>
         </el-card>
 
-        <el-card shadow="never" class="tabs-card">
-          <el-tabs v-model="activeTab">
-            <el-tab-pane label="资产信息" name="asset">
-              <div class="info-grid">
-                <div class="info-block">
-                  <h3>基本信息</h3>
-                  <ul>
-                    <li>
-                      <label>数据产品类型/方向：</label
-                      ><span
-                        >{{ detail.category_name || '-' }} /
-                        {{ detail.sub_category_name || '-' }}</span
-                      >
-                    </li>
-                    <li>
-                      <label>数据分类：</label
-                      ><span>{{ detail.classification_category_name || '-' }}</span>
-                    </li>
-                    <li>
-                      <label>数据分级：</label
-                      ><span>{{ detail.classification_data_level || '-' }}</span>
-                    </li>
-                    <li>
-                      <label>状态：</label><span>{{ statusText(detail.status) }}</span>
-                    </li>
-                  </ul>
-                </div>
+        <el-card shadow="never" class="asset-info-card">
+          <div class="info-grid">
+            <div class="info-block">
+              <h3>基本信息</h3>
+              <ul>
+                <li>
+                  <label>数据产品类型/方向：</label
+                  ><span
+                    >{{ detail.category_name || '-' }} /
+                    {{ detail.sub_category_name || '-' }}</span
+                  >
+                </li>
+                <li>
+                  <label>数据分类：</label
+                  ><span>{{ detail.classification_category_name || '-' }}</span>
+                </li>
+                <li>
+                  <label>数据分级：</label
+                  ><span>{{ detail.classification_data_level || '-' }}</span>
+                </li>
+                <li>
+                  <label>状态：</label><span>{{ statusText(detail.status) }}</span>
+                </li>
+              </ul>
+            </div>
 
-                <div class="info-block">
-                  <h3>文件与交易</h3>
-                  <ul>
-                    <li>
-                      <label>文件哈希：</label><span>{{ detail.file_hash || '-' }}</span>
-                    </li>
-                    <li>
-                      <label>文件格式：</label><span>{{ detail.file_format || '-' }}</span>
-                    </li>
-                    <li>
-                      <label>文件大小：</label><span>{{ detail.file_size || 0 }} bytes</span>
-                    </li>
-                    <li>
-                      <label>交易次数：</label><span>{{ detail.trade_count || 0 }}</span>
-                    </li>
-                    <li v-if="detail.pricing_mode === 'auction'">
-                      <label>拍卖：</label><span>起拍 {{ detail.auction_start_price || '-' }}，出价 {{ detail.auction_bid_count || 0 }} 次</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div class="info-block">
-                  <h3>交易权限</h3>
-                  <ul>
-                    <li>
-                      <label>资产类型：</label>
-                      <span>自动驾驶资产统一不可分割</span>
-                    </li>
-                    <li>
-                      <label>可售所有权：</label>
-                      <span>{{ detail.can_sell_ownership === 1 ? '是' : '否' }}</span>
-                    </li>
-                    <li>
-                      <label>可售查阅权：</label>
-                      <span>{{ detail.can_sell_view_right === 1 ? '是' : '否' }}</span>
-                    </li>
-                    <li>
-                      <label>可售加工权：</label>
-                      <span>{{ detail.can_sell_process_right === 1 ? '是' : '否' }}</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </el-tab-pane>
-
-            <el-tab-pane label="链上信息" name="chain">
-              <el-descriptions :column="2" border>
-                <el-descriptions-item label="Token ID">{{
-                  detail.token_id || '-'
-                }}</el-descriptions-item>
-                <el-descriptions-item label="Owner Address">{{
-                  detail.owner_address || '-'
-                }}</el-descriptions-item>
-                <el-descriptions-item label="Chain Tx Hash">{{
-                  detail.chain_tx_hash || '-'
-                }}</el-descriptions-item>
-                <el-descriptions-item label="上链时间">{{
-                  formatDateTime(detail.chain_time)
-                }}</el-descriptions-item>
-                <el-descriptions-item label="同步时间">{{
-                  formatDateTime(detail.last_sync_time)
-                }}</el-descriptions-item>
-                <el-descriptions-item label="失败原因">{{
-                  detail.fail_reason || '-'
-                }}</el-descriptions-item>
-              </el-descriptions>
-            </el-tab-pane>
-          </el-tabs>
+            <div class="info-block">
+              <h3>交易权限</h3>
+              <ul>
+                <li>
+                  <label>资产类型：</label>
+                  <span>自动驾驶资产统一不可分割</span>
+                </li>
+                <li>
+                  <label>可售所有权：</label>
+                  <span>{{ detail.can_sell_ownership === 1 ? '是' : '否' }}</span>
+                </li>
+                <li>
+                  <label>可售查阅权：</label>
+                  <span>{{ detail.can_sell_view_right === 1 ? '是' : '否' }}</span>
+                </li>
+                <li>
+                  <label>可售加工权：</label>
+                  <span>{{ detail.can_sell_process_right === 1 ? '是' : '否' }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </el-card>
 
         <el-dialog v-model="buyVisible" title="购买资产" width="420px">
@@ -289,8 +241,6 @@ interface AssetDetail {
   seller_account?: string
   proxy_agent_account?: string
   proxy_agent_address?: string
-  file_format?: string
-  file_size?: number
   price?: number
   price_unit?: string
   total_qty?: number
@@ -300,14 +250,6 @@ interface AssetDetail {
   can_sell_view_right?: number
   can_sell_process_right?: number
   view_count?: number
-  trade_count?: number
-  chain_status?: number
-  token_id?: string
-  owner_address?: string
-  chain_tx_hash?: string
-  chain_time?: string
-  last_sync_time?: string
-  fail_reason?: string
   pricing_mode?: 'fixed' | 'auction'
   publish_status?: number
   publish_price?: number
@@ -322,7 +264,6 @@ interface AssetDetail {
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
-const activeTab = ref('asset')
 const detail = ref<AssetDetail>({})
 const buyVisible = ref(false)
 const buyLoading = ref(false)
@@ -607,7 +548,7 @@ onMounted(fetchDetail)
 .breadcrumb-link:focus-visible { outline: 2px solid #57606a; outline-offset: 3px; }
 
 .hero-card,
-.tabs-card {
+.asset-info-card {
   border-radius: 10px;
   border: none;
   box-shadow: 0 2px 12px rgba(12, 46, 117, 0.06);
@@ -695,13 +636,8 @@ onMounted(fetchDetail)
   color: #57606a;
 }
 
-.tabs-card {
+.asset-info-card {
   margin-top: 10px;
-  --el-color-primary: #3d444d;
-
-  :deep(.el-card__body) {
-    padding-top: 8px;
-  }
 }
 
 .info-grid {
