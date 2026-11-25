@@ -9,7 +9,6 @@
             </el-breadcrumb-item>
             <el-breadcrumb-item>资产详情</el-breadcrumb-item>
           </el-breadcrumb>
-          <el-button size="small" @click="goUpper">返回上级</el-button>
         </div>
 
         <el-card shadow="never" class="hero-card" v-loading="loading">
@@ -517,15 +516,13 @@ onMounted(fetchDetail)
 }
 
 .page-inner {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .crumb-row {
   margin-bottom: 10px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   background: #fff;
   border-radius: 10px;
   padding: 10px 14px;
@@ -641,16 +638,12 @@ onMounted(fetchDetail)
 }
 
 .info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .info-block {
-  border: 1px solid #edf1f8;
-  border-radius: 8px;
-  padding: 16px;
-
   h3 {
     margin: 0 0 12px;
     color: #24292f;
@@ -689,10 +682,6 @@ onMounted(fetchDetail)
     border-top: 1px solid #e8ecf5;
     padding-left: 0;
     padding-top: 14px;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr;
   }
 }
 </style>
