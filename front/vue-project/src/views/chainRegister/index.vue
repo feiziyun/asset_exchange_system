@@ -208,7 +208,6 @@
                   active-text="是"
                   inactive-text="否"
                 />
-                <span class="field-inline-tip field-inline-tip--inline">每项资产默认铸造 100 份</span>
               </el-form-item>
 
               <el-form-item v-if="form.publish_on_register" label="上架份数" class="row-item trade-single-item">
@@ -423,7 +422,7 @@ const initForm = () => ({
   price: 0,
   price_unit: '人民币',
   publish_on_register: false,
-  publish_qty: 100,
+  publish_qty: 1,
   is_divisible: 1,
   can_sell_ownership: 0,
   can_sell_view_right: 0,
