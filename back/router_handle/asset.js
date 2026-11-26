@@ -148,6 +148,19 @@ exports.registerAsset = async (req, res) => {
 
     const result = await assetService.createAsset(data, userId, req.auth?.identity || '');
     const chainResult = result.chain || {};
+    let catalogPublish;
+    try {
+      catalogPublish = await assetService.publishAssetToDataCatalogCompatible({
+        identifier: data.file_hash,
+        assetName: data.asset_name,
+        description: data.description,
+        assetType: data.classification_data_level,
+        userId,
+      });
+    } catch (error) {
+      console.error('[asset][catalog-publish] failed', { assetId: result.assetId, message: error.message });
+      catalogPublish = { success: false, message: error.message || '目录发布失败' };
+    }
     return res.send({
       status: 0,
       message: '资产登记成功',
@@ -155,6 +168,7 @@ exports.registerAsset = async (req, res) => {
         asset_id: result.assetId,
         chain_status: chainResult.chain_status || 1,
         chain: chainResult,
+        catalog_publish: catalogPublish,
       },
     });
   } catch (error) {

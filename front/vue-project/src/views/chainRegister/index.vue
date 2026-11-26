@@ -302,6 +302,10 @@
       </div>
 
       <div v-if="registerStatus.assetId || registerStatus.txHash || registerStatus.tokenId" class="status-detail">
+        <div v-if="registerStatus.catalogText" class="status-detail-row">
+          <span>目录发布</span>
+          <strong>{{ registerStatus.catalogText }}</strong>
+        </div>
         <div v-if="registerStatus.assetId" class="status-detail-row">
           <span>资产ID</span>
           <strong>{{ registerStatus.assetId }}</strong>
@@ -486,6 +490,7 @@ const registerStatus = reactive({
   assetId: '',
   txHash: '',
   tokenId: '',
+  catalogText: '',
 })
 const classificationMethodOptions = [
   { label: DEFAULT_CLASSIFICATION_METHOD, value: DEFAULT_CLASSIFICATION_METHOD },
@@ -552,6 +557,7 @@ const resetRegisterStatus = () => {
   registerStatus.assetId = ''
   registerStatus.txHash = ''
   registerStatus.tokenId = ''
+  registerStatus.catalogText = ''
 }
 
 const statusIconText = (status: RegisterStepStatus) => {
@@ -1216,11 +1222,15 @@ const submitForm = async () => {
       const assetId = Number(res.data.data?.asset_id || 0)
       const chainStatus = Number(res.data.data?.chain_status)
       const chainData = res.data.data?.chain || {}
+      const catalogPublish = res.data.data?.catalog_publish
       const tx = chainData.chain_tx_hash || ''
 
       registerStatus.assetId = assetId ? String(assetId) : ''
       registerStatus.txHash = tx || ''
       registerStatus.tokenId = chainData.token_id || ''
+      registerStatus.catalogText = catalogPublish?.success
+        ? '已发布到目录链'
+        : `未发布：${catalogPublish?.message || '请稍后检查目录服务'}`
       registerStatus.databaseStatus = 'success'
       registerStatus.databaseText = '数据已成功保存'
 
@@ -1232,6 +1242,7 @@ const submitForm = async () => {
         } else {
           ElMessage.success(`登记并上链成功，资产ID：${assetId}，Tx：${tx}`)
         }
+        if (!catalogPublish?.success) ElMessage.warning('资产登记成功，但目录发布失败；请联系管理员补发')
       } else if (chainStatus === 2) {
         registerStatus.chainStatus = 'error'
         registerStatus.chainText = chainData.error || '链上登记失败，请稍后重试'

@@ -32,8 +32,7 @@ const localPrivacyRequest = () => ({
     Authorization: `Bearer ${jwt.sign({ internal: 'privacy-result' }, businessSecretKey, { expiresIn: '30s' })}`,
   },
 });
-const DATA_CATALOG_BASE_URL =
-  process.env.DATA_CATALOG_BASE_URL || 'http://127.0.0.1:8008';
+const DATA_CATALOG_BASE_URL = services.dataCatalogBaseUrl;
 const DATA_CATALOG_PLATFORM_NAME =
   process.env.DATA_CATALOG_PLATFORM_NAME || '数字资产交易平台';
 const DATA_CATALOG_PLATFORM_DID =
@@ -5163,8 +5162,12 @@ exports.publishAssetToDataCatalogCompatible = async (payload = {}) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(10000),
     },
   );
+  if (response?.bizCode !== 'SUCCESS') {
+    throw new Error(response?.message || '目录链未确认发布成功');
+  }
 
   return {
     success: true,
