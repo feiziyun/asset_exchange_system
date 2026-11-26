@@ -26,12 +26,12 @@
                 <span>{{ detail.sub_category_name || '未分类' }}</span>
                 <span>{{ detail.classification_data_level || '一般数据' }}</span>
               </div>
-              <p class="desc">{{ detail.description || '暂无详细描述' }}</p>
               <div class="meta-row">
                 <span>登记时间：{{ formatDateTime(detail.created_at) }}</span>
                 <span>登记地区：{{ detail.region_name || '-' }}</span>
                 <span v-if="detail.proxy_agent_account || detail.proxy_agent_address">代理人：{{ detail.proxy_agent_account || detail.proxy_agent_address }}</span>
               </div>
+              <p class="desc">{{ detail.description || '暂无详细描述' }}</p>
             </div>
 
             <div class="main-right">
@@ -599,7 +599,7 @@ onMounted(fetchDetail)
 }
 
 .desc {
-  margin: 22px 0;
+  margin: 16px 0 0;
   color: #3d444d;
   font-size: 15px;
   line-height: 1.75;
@@ -611,6 +611,7 @@ onMounted(fetchDetail)
   display: flex;
   flex-wrap: wrap;
   gap: 8px 22px;
+  margin-top: 18px;
   color: #6e7781;
   font-size: 13px;
   line-height: 1.6;
