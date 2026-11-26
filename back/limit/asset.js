@@ -48,7 +48,8 @@ exports.registerAsset_limit = {
 
     price: joi.number().min(0).default(0),
     price_unit: joi.string().max(10).default('人民币'),
-    total_qty: joi.number().integer().min(1).default(1),
+    total_qty: joi.number().integer().min(1).default(100),
+    publish_qty: joi.number().integer().min(0),
     available_qty: joi.number().integer().min(0),
     is_divisible: joi.number().integer().valid(0, 1).default(1),
     classification_category_name: joi.string().max(100).allow('').default(''),

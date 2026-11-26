@@ -853,7 +853,8 @@ const normalizeRegisterPayload = (payload = {}) => {
 
   // 旧单份路径保留；新登记多份资产走原型的可分割资产链上接口。
   normalized.is_divisible = Number(payload.is_divisible ?? 1);
-  normalized.total_qty = Number(payload.total_qty ?? 1);
+  normalized.total_qty = Number(payload.total_qty ?? 100);
+  normalized.publish_qty = Number(payload.publish_qty ?? normalized.total_qty);
   normalized.available_qty = normalized.total_qty;
 
   return normalized;
@@ -1227,6 +1228,10 @@ exports.createAsset = async (assetData, userId, identity = '') => {
   }
 
   const shouldPublishOnRegister = Number(registerData.publish_on_register || 0) === 1;
+  if (shouldPublishOnRegister &&
+      (!Number.isSafeInteger(registerData.publish_qty) || registerData.publish_qty < 1 || registerData.publish_qty > registerData.total_qty)) {
+    throw new Error('上架份数必须为 1 到资产总份数之间的整数');
+  }
   const defaultTradeCert = await getDefaultTradeCertInfoByUserId(userId);
   const sellerCertificateName =
     String(defaultTradeCert?.certificate_name || defaultTradeCert?.cert || '').trim() || null;
@@ -1257,9 +1262,9 @@ exports.createAsset = async (assetData, userId, identity = '') => {
     registerData.sub_category_id = subCategory?.id || null;
 
     const initialAssetStatus = shouldPublishOnRegister ? 1 : 0;
-    const initialAvailableQty = shouldPublishOnRegister ? 0 : registerData.available_qty;
-    const initialPublishQty = shouldPublishOnRegister ? registerData.total_qty : 0;
-    const initialRemainingQty = shouldPublishOnRegister ? registerData.total_qty : 0;
+    const initialPublishQty = shouldPublishOnRegister ? registerData.publish_qty : 0;
+    const initialAvailableQty = registerData.total_qty - initialPublishQty;
+    const initialRemainingQty = initialPublishQty;
     const initialPublishStatus = shouldPublishOnRegister ? 1 : 0;
 
     const insertAssetSql = `
