@@ -1909,6 +1909,7 @@ exports.listAssets = async (query) => {
     LEFT JOIN region r ON da.region_id = r.id
     LEFT JOIN asset_chain_info aci ON da.id = aci.asset_id
     WHERE ${where.join(' AND ')}
+      AND da.status IN (1, 2)
       AND apr.id IS NOT NULL
       AND apr.publish_status <> 0
       AND (apr.delegation_id IS NULL OR d.status IN ('ACTIVE','SOLD_OUT'))
@@ -4663,6 +4664,7 @@ exports.getTransactionDetailByTransactionId = async (transactionId) => {
 
 exports.listAvailableAssetsCompatible = async (query = {}) => {
   const where = [
+    'da.status = 1',
     'apr.publish_status = 1',
     'IFNULL(apr.remaining_qty, 0) > 0',
   ];
