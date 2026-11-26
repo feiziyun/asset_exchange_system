@@ -398,6 +398,7 @@ const categories = ref<AssetCategoryItem[]>([])
 const subCategories = ref<AssetSubCategoryItem[]>([])
 const localSubCategories = ref<AssetSubCategoryItem[]>([])
 const regions = ref<RegionItem[]>([])
+const DEFAULT_CLASSIFICATION_METHOD = '类型划分法'
 
 const initForm = () => ({
   username: '',
@@ -446,7 +447,7 @@ const initForm = () => ({
   picture_preview: '',
   classification_category_name: '',
   classification_data_level: '一般数据',
-  classification_method_name: '',
+  classification_method_name: DEFAULT_CLASSIFICATION_METHOD,
   pc_type: 'HE',
   sub_category_name_input: '',
   fingerprint_bits: '',
@@ -486,7 +487,7 @@ const registerStatus = reactive({
   tokenId: '',
 })
 const classificationMethodOptions = [
-  { label: '类型划分法', value: '类型划分法' },
+  { label: DEFAULT_CLASSIFICATION_METHOD, value: DEFAULT_CLASSIFICATION_METHOD },
   { label: '收益法', value: '收益法' },
   { label: '流通性划分法', value: '流通性划分法' },
   { label: '价值稳定性法', value: '价值稳定性法' },
@@ -674,6 +675,9 @@ const restoreRegisterDraft = () => {
         ;(form as any)[key] = data[key]
       }
     })
+    if (!String(form.classification_method_name || '').trim()) {
+      form.classification_method_name = DEFAULT_CLASSIFICATION_METHOD
+    }
     // 登记流程与原始系统一致，仅使用 OmniPrint 数字指纹存证。
     form.algorithm = 'FINGERPRINT'
     form.hash_algorithm = 'FINGERPRINT'
