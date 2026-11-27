@@ -37,12 +37,12 @@
           <div class="system-grid">
             <div class="system-box">
               <div class="system-title">
-                <span>交易 TPS</span>
-                <button class="refresh-btn" :disabled="tpsLoading" @click="fetchTPS">
-                  {{ tpsLoading ? '刷新中' : '刷新' }}
+                <span :title="rateLabel">{{ rateLabel }}</span>
+                <button v-if="isRegulator || isAdmin" class="refresh-btn" title="手动运行底链压测脚本" :disabled="tpsLoading" @click="fetchTPS">
+                  {{ tpsLoading ? '测试中' : '底链测试' }}
                 </button>
               </div>
-              <strong>{{ currentTPS }}</strong>
+              <strong :title="rateDescription">{{ currentTPS }}</strong>
             </div>
 
             <div class="system-box">
@@ -61,7 +61,7 @@
 
       <article class="dashboard-item industry-card">
         <div class="summary-title">
-          <h3>领域交易数量</h3>
+          <h3>数据资产类型</h3>
           <img :src="auditedIcon" alt="industry" class="dashboard-icon" />
         </div>
 
@@ -85,9 +85,10 @@
 import axios from '@/http/index.js'
 import * as echarts from 'echarts'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import transactionIcon from '@/assets/img/transaction-icon.png'
 import auditedIcon from '@/assets/img/audited-icon.png'
-import { getChainTPS, getHomeStats } from '@/api/asset'
+import { getBusinessRate, getChainTPS, getHomeStats } from '@/api/asset'
 import { getTodayTransactionStats, getTotalTransactionStats, getTransactionHistory, getIndustryTransactionStats } from '@/api/regulatorDashboard'
 import { getRoleKey, parseTokenPayload } from '@/utils/auth'
 
@@ -112,6 +113,8 @@ const totalTransactionVolume = ref(0)
 const maxDailyTransactionVolume = ref(0)
 const auditedTransactions = ref(0)
 const currentTPS = ref('--')
+const rateLabel = ref('近5分钟成交速率')
+const rateDescription = ref('近5分钟支付成功订单数 ÷ 300 秒，单位：笔/秒')
 const detectedAccounts = ref(0)
 const anomalyAccountRatio = ref('0.00%')
 const industryStats = ref<IndustryStatItem[]>([])
@@ -190,13 +193,31 @@ const fetchTPS = async () => {
   try {
     const response = await getChainTPS()
     const tps = Number(response?.data?.tps)
-    currentTPS.value = response?.data?.success && response.data.tps != null && Number.isFinite(tps)
-      ? tps.toFixed(2)
+    if (!response?.data?.success || response.data.tps == null || !Number.isFinite(tps)) {
+      throw new Error('底链压测未返回有效 TPS')
+    }
+    currentTPS.value = tps.toFixed(2)
+    rateLabel.value = '底链压测 TPS'
+    rateDescription.value = '手动运行 ChainMaker 压测脚本得到的平均 TPS，非实时交易速率'
+  } catch (_error) {
+    await fetchBusinessRate()
+    ElMessage.warning('底链 TPS 暂不可用，已显示近 5 分钟成交速率')
+  } finally {
+    tpsLoading.value = false
+  }
+}
+
+const fetchBusinessRate = async () => {
+  rateLabel.value = '近5分钟成交速率'
+  rateDescription.value = '近5分钟支付成功订单数 ÷ 300 秒，单位：笔/秒'
+  try {
+    const response = await getBusinessRate()
+    const value = Number(response?.data?.orders_per_second)
+    currentTPS.value = response?.data?.success && Number.isFinite(value)
+      ? value.toFixed(4)
       : '--'
   } catch (_error) {
     currentTPS.value = '--'
-  } finally {
-    tpsLoading.value = false
   }
 }
 
@@ -221,6 +242,8 @@ const fetchLocalDashboard = async () => {
   todayTransactionVolume.value = Number(summary.today_order_count || 0)
   totalTransactionVolume.value = Number(summary.total_order_count || 0)
   maxDailyTransactionVolume.value = Number(summary.max_daily_order_count || 0)
+  const localRate = Number(summary.local_tps)
+  currentTPS.value = Number.isFinite(localRate) ? localRate.toFixed(4) : '--'
 
   transactionHistory.value = Array.isArray(payload.daily_trend)
     ? payload.daily_trend.map((item: any) => ({
@@ -266,6 +289,7 @@ const handleResize = () => {
 
 onMounted(() => {
   // 统计、模型服务分别更新；TPS 脚本仅在用户点击刷新时执行。
+  if (isRegulator || isAdmin) void fetchBusinessRate()
   void (isRegulator || isAdmin ? fetchRegulatorDashboard() : fetchLocalDashboard()).catch((error) => {
     console.warn('获取数据面板统计失败:', error)
   })

@@ -88,6 +88,7 @@ app.use(
       '/api/verifyEmail',
       '/api/resetPassword',
       '/api/get-tps',
+      '/api/get-business-rate',
       '/api/get-today-transaction-stats',
       '/api/get-total-transaction-stats',
       '/api/get-transaction-history',
@@ -158,6 +159,7 @@ app.post('/api/alipay/notify', async (req, res) => {
   }
 });
 app.use('/api/get-tps', businessJwt);
+app.use('/api/get-business-rate', businessJwt);
 app.use([
   '/api/get-today-transaction-stats',
   '/api/get-total-transaction-stats',

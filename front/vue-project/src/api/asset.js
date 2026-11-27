@@ -57,6 +57,10 @@ export const getChainTPS = () => {
   return instance.get('/api/get-tps', { timeout: 910000 })
 }
 
+export const getBusinessRate = () => {
+  return instance.get('/api/get-business-rate')
+}
+
 // 资产详情
 export const getAssetDetail = (id, publishId) => {
   return instance.get(`/asset/detail/${id}`, { params: publishId ? { publish_id: publishId } : {} })

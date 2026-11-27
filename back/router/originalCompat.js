@@ -596,6 +596,23 @@ router.get('/get-tps', async (req, res) => {
   }
 });
 
+router.get('/get-business-rate', async (req, res) => {
+  if (!['admin', 'regulator'].includes(String(req.auth?.identity || '').toLowerCase())) {
+    return res.status(403).send({ success: false, message: '仅管理员或监管方可查看成交速率' });
+  }
+  try {
+    const [[row]] = await pool.query(`
+      SELECT ROUND(COUNT(*) / 300, 4) AS orders_per_second
+      FROM asset_order
+      WHERE payment_confirm_time >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+        AND order_status IN (1, 2, 3, 7)
+    `);
+    return res.send({ success: true, orders_per_second: Number(row?.orders_per_second || 0) });
+  } catch (error) {
+    return res.status(500).send({ success: false, message: error.message || '获取成交速率失败' });
+  }
+});
+
 router.post('/seller-confirm-transaction', async (req, res) => {
   try {
     const result = await assetService.sellerConfirmTransactionCompatible(req.body || {});

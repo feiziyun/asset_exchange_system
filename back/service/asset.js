@@ -2104,9 +2104,9 @@ exports.getHomeStats = async () => {
   const [tpsRows] = await pool.query(
     `
       SELECT
-        ROUND(COUNT(*) / 300, 2) AS local_tps
+        ROUND(COUNT(*) / 300, 4) AS local_tps
       FROM asset_order
-      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+      WHERE payment_confirm_time >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
         AND order_status IN (1, 2, 3, 7)
     `,
   );
