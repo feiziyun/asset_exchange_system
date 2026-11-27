@@ -4,7 +4,6 @@
       <el-select v-model="platform" class="platform" aria-label="所在平台">
         <el-option label="全部平台" value="all" />
         <el-option label="北京国家大数据交易所" value="北京国家大数据交易所" />
-        <el-option label="数字资产交易平台" value="数字资产交易平台" />
       </el-select>
       <span class="count">共 {{ filtered.length }} 条资产</span>
       <el-input v-model.trim="keyword" class="search" clearable placeholder="搜索资产名称 / 机构" />
@@ -42,16 +41,20 @@ import request from '@/http/index.js'
 
 const loading = ref(false)
 const assets = ref([])
-const platform = ref('all')
+const defaultPlatform = '北京国家大数据交易所'
+const platform = ref(defaultPlatform)
 const keyword = ref('')
 const page = ref(1)
 const pageSize = ref(10)
 const selected = ref(null)
 const filtered = computed(() => assets.value.filter(item => {
   const platformName = String(item.platform_name || '')
-  const platformOk = platform.value === 'all' || platformName === platform.value
+  const platformOk = platform.value === 'all'
+    ? platformName === defaultPlatform
+    : platformName === platform.value
   const term = keyword.value.toLowerCase()
-  return platformOk && (!term || `${item.name || ''} ${item.orgId || ''}`.toLowerCase().includes(term))
+  const fields = [item.name, item.code, item.id, item.orgId, item.remark]
+  return platformOk && (!term || fields.some(value => String(value || '').toLowerCase().includes(term)))
 }))
 const paged = computed(() => filtered.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value))
 const platformUrl = computed(() => {
