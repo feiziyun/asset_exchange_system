@@ -4396,7 +4396,8 @@ exports.listOrders = async (query, userId, identity = '') => {
       '待确认'
     ) = '待确认'`;
     if (confirmState === 'pending') where.push(`(${pendingConfirmation})`);
-    else if (confirmState === 'confirmed') where.push(`NOT (${pendingConfirmation})`);
+    else if (confirmState === 'confirmed') where.push(`NOT (${pendingConfirmation})`, 'ao.order_status <> 3');
+    else if (confirmState === 'completed') where.push('ao.order_status = 3');
     else if (confirmState === 'none') where.push('1 = 0');
   }
 
@@ -4411,7 +4412,7 @@ exports.listOrders = async (query, userId, identity = '') => {
 
   const paymentStates = String(query.payment_state || '').toLowerCase().split(',').filter(Boolean);
   const statusGroups = {
-    paid: [1, 2, 3, 7],
+    paid: [1, 2, 7],
     unpaid: [0],
     cancelled: [4, 6],
     completed: [3],

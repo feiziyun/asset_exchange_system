@@ -156,6 +156,7 @@ const statusOptions = [
   { label: '全部', value: 'all' },
   { label: '待确认', value: 'pending' },
   { label: '已确认', value: 'confirmed' },
+  { label: '已完成', value: 'completed' },
 ]
 const selectedStatus = ref('pending')
 

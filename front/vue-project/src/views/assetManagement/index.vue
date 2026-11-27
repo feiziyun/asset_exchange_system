@@ -691,6 +691,7 @@ const purchaseStatusOptions = [
   { label: '全部', value: 'all' },
   { label: '待付款', value: 'unpaid' },
   { label: '已付款', value: 'paid' },
+  { label: '已完成', value: 'completed' },
 ]
 const selectedPurchaseStatus = ref('all')
 
@@ -906,7 +907,7 @@ const fetchPurchasedAssets = async (silent = false) => {
       ...purchasedQuery,
       order_role: 'buyer',
       exclude_cancelled: true,
-      payment_state: selectedPurchaseStatus.value === 'all' ? 'unpaid,paid' : selectedPurchaseStatus.value,
+      payment_state: selectedPurchaseStatus.value === 'all' ? 'unpaid,paid,completed' : selectedPurchaseStatus.value,
     })
     if (res.data.status === 0) {
       purchasedList.value = res.data.data?.list || []
