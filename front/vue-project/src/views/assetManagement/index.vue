@@ -64,7 +64,7 @@
                     <td>
                       <div class="description-cell">{{ item.description || '暂无资产描述' }}</div>
                     </td>
-                    <td>{{ item.is_proxy ? item.quantity_remaining : Number(item.remaining_qty || 0) + Number(item.available_qty || 0) }}</td>
+                    <td>{{ item.is_proxy ? item.quantity_remaining : Number(item.status) === 1 ? Number(item.remaining_qty || 0) : 0 }}</td>
                     <td>
                       <button
                         v-if="!item.is_proxy && !item.active_delegation"
@@ -308,8 +308,8 @@
               @change="normalizeEditAuctionPrice"
             />
           </el-form-item>
-          <el-form-item label="总数量">
-            <el-input-number v-model="editForm.total_qty" :min="1" :max="1" disabled style="width: 100%" />
+          <el-form-item label="上架数量">
+            <el-input-number v-model="editForm.listed_qty" :min="editForm.status === 1 ? 1 : 0" :max="editListedMaxQty" :precision="0" :disabled="editForm.status !== 1 || (editForm.pricing_mode === 'auction' && editAuctionBidCount > 0)" style="width: 100%" />
           </el-form-item>
         </div>
         <div class="edit-grid-row">
@@ -331,8 +331,8 @@
           </el-form-item>
         </div>
         <div class="edit-grid-row">
-          <el-form-item label="可用数量">
-            <el-input-number v-model="editForm.available_qty" :min="0" :max="editForm.total_qty" :precision="0" style="width: 100%" />
+          <el-form-item label="已售数量">
+            <el-input :model-value="editForm.sold_qty_total" disabled />
           </el-form-item>
           <el-form-item label="价格单位">
             <el-input v-model="editForm.price_unit" />
@@ -355,6 +355,7 @@
             :inactive-value="0"
             active-text="已开放交易"
             inactive-text="未开放交易"
+            @change="onEditTradeStatusChange"
           />
         </el-form-item>
         <el-form-item label="估值定价">
@@ -568,6 +569,7 @@ interface AssetItem {
   is_proxy?: boolean
   quantity_remaining?: number
   remaining_qty?: number
+  sold_qty_total?: number
   publish_status?: number
 }
 
@@ -706,6 +708,8 @@ const purchasedPagination = reactive({
 const editVisible = ref(false)
 const editLoading = ref(false)
 const editAssetId = ref<number | null>(null)
+const editInitialStatus = ref(0)
+const editAuctionBidCount = ref(0)
 const editForm = reactive({
   file_hash: '',
   classification_data_level: '一般数据',
@@ -714,6 +718,8 @@ const editForm = reactive({
   price_unit: '人民币',
   total_qty: 1,
   available_qty: 1,
+  listed_qty: 0,
+  sold_qty_total: 0,
   description: '',
   can_sell_ownership: 0,
   can_sell_view_right: 0,
@@ -725,6 +731,11 @@ const editForm = reactive({
   auction_status: '',
   status: 0,
 })
+const editListedMaxQty = computed(() => Math.max(1, Number(editForm.available_qty || 0) + (editInitialStatus.value === 1 ? Number(ownedList.value.find(item => item.id === editAssetId.value)?.remaining_qty || 0) : 0)))
+
+const onEditTradeStatusChange = () => {
+  if (editForm.status === 1 && editForm.listed_qty < 1) editForm.listed_qty = 1
+}
 
 const normalizeAuctionStartPrice = (value: number | string) => {
   const numericValue = Number(value)
@@ -1155,6 +1166,10 @@ const openEdit = (row: AssetItem) => {
   editForm.price_unit = row.price_unit || '人民币'
   editForm.total_qty = Number(row.total_qty || 1)
   editForm.available_qty = Number(row.available_qty ?? 1)
+  editForm.listed_qty = Number(row.status) === 1 ? Number(row.remaining_qty || 0) : 0
+  editForm.sold_qty_total = Number(row.sold_qty_total || 0)
+  editInitialStatus.value = Number(row.status || 0)
+  editAuctionBidCount.value = Number(row.auction_bid_count || 0)
   editForm.description = row.description || ''
   editForm.can_sell_ownership = Number(row.can_sell_ownership || 0)
   editForm.can_sell_view_right = Number(row.can_sell_view_right || 0)
@@ -1282,8 +1297,10 @@ const openPublishFromEdit = () => {
 
 const submitEdit = async () => {
   if (!editAssetId.value) return
-  if (editForm.available_qty > editForm.total_qty) {
-    ElMessage.error('可用数量不能大于总数量')
+  const targetStatus = Number(editForm.status)
+  const listedQty = Number(editForm.listed_qty)
+  if (targetStatus === 1 && (!Number.isSafeInteger(listedQty) || listedQty < 1 || listedQty > editListedMaxQty.value)) {
+    ElMessage.error('上架数量必须在可上架份数范围内')
     return
   }
   if (editForm.pricing_mode === 'auction') {
@@ -1300,15 +1317,28 @@ const submitEdit = async () => {
   }
   editLoading.value = true
   try {
-    const targetStatus = Number(editForm.status)
     const normalizedPrice = roundPrice(editForm.price)
+    const { total_qty: _totalQty, available_qty: _availableQty, listed_qty: _listedQty, sold_qty_total: _soldQty, status: _status, ...editableFields } = editForm
+    const wasListed = editInitialStatus.value === 1 && Number(ownedList.value.find(item => item.id === editAssetId.value)?.remaining_qty || 0) > 0
     const res = await updateAsset(editAssetId.value, {
-      ...editForm,
+      ...editableFields,
+      ...(targetStatus === 1 && wasListed ? { listed_qty: listedQty } : {}),
       price: normalizedPrice,
       auction_start_price: editForm.pricing_mode === 'auction' ? normalizedPrice : null,
     })
     if (res.data.status === 0) {
-      const statusRes = await updateAssetStatus(editAssetId.value, targetStatus)
+      const statusRes = targetStatus === 1 && !wasListed
+        ? await publishAsset({
+            asset_id: editAssetId.value,
+            publish_price: normalizedPrice,
+            publish_qty: listedQty,
+            pricing_mode: editForm.pricing_mode,
+            auction_start_price: editForm.pricing_mode === 'auction' ? normalizedPrice : null,
+            auction_end_time: editForm.auction_end_time || null,
+          })
+        : targetStatus !== editInitialStatus.value
+          ? await updateAssetStatus(editAssetId.value, targetStatus)
+          : { data: { status: 0 } }
       if (statusRes.data.status !== 0) {
         ElMessage.error(statusRes.data.message || '资产状态更新失败')
         return

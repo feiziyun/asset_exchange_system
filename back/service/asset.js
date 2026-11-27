@@ -2342,6 +2342,7 @@ exports.listMyAssets = async (query, userId, identity = '') => {
         da.total_qty,
         da.available_qty,
         IFNULL(apr.remaining_qty, 0) AS remaining_qty,
+        IFNULL(apr.sold_qty_total, 0) AS sold_qty_total,
         IFNULL(apr.publish_status, 0) AS publish_status,
         da.classification_category_name,
         da.classification_data_level,
@@ -2525,7 +2526,8 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
       'auction_start_price',
       'auction_end_time',
     ].some((field) => Object.prototype.hasOwnProperty.call(payload, field));
-    if (!Object.keys(updateData).length && !hasPricingUpdate) throw new Error('没有可更新的字段');
+    const hasListedQtyUpdate = Object.prototype.hasOwnProperty.call(payload, 'listed_qty');
+    if (!Object.keys(updateData).length && !hasPricingUpdate && !hasListedQtyUpdate) throw new Error('没有可更新的字段');
 
     if (Object.keys(updateData).length) {
       await conn.query('UPDATE digital_asset SET ? WHERE id = ?', [updateData, assetId]);
@@ -2533,7 +2535,7 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
 
     const [publishRows] = await conn.query(
       `
-        SELECT id, publish_price, publish_qty, remaining_qty, sold_qty_total, publish_status,
+        SELECT id, publish_price, publish_qty, remaining_qty, sold_qty_total, publish_status, auction_bid_count,
                pricing_mode, auction_start_price, auction_current_price, auction_end_time, auction_status
         FROM asset_publish_record
         WHERE asset_id = ? AND publisher_id = ? AND delegation_id IS NULL
@@ -2544,13 +2546,34 @@ exports.updateAssetByOwner = async (assetId, userId, payload, identity = '') => 
     );
 
     const publishRecord = publishRows[0] || null;
+    let syncedAvailableQty = finalAvailableQty;
+    let requestedListedQty = null;
+    if (hasListedQtyUpdate) {
+      if (!publishRecord || Number(asset.status) !== 1 || Number(publishRecord.publish_status) !== 1) {
+        throw new Error('资产尚未开放交易，请通过上架操作设置上架数量');
+      }
+      requestedListedQty = Number(payload.listed_qty);
+      if (!Number.isSafeInteger(requestedListedQty) || requestedListedQty < 1) {
+        throw new Error('上架数量必须为正整数；关闭交易请修改交易状态');
+      }
+      if (publishRecord.pricing_mode === 'auction' && Number(publishRecord.auction_bid_count) > 0 && requestedListedQty !== Number(publishRecord.remaining_qty)) {
+        throw new Error('已有出价的拍卖资产不能调整上架数量');
+      }
+      syncedAvailableQty = finalAvailableQty + Number(publishRecord.remaining_qty || 0) - requestedListedQty;
+      if (syncedAvailableQty < 0 || syncedAvailableQty > finalTotalQty) {
+        throw new Error('上架数量不能超过剩余可用份数');
+      }
+    }
     if (publishRecord) {
       const soldQtyTotal = Number(publishRecord.sold_qty_total || 0);
       const syncedRemainingQty = Number(asset.status) === 0
         ? 0
-        : Number(publishRecord.remaining_qty || 0);
-      if (finalAvailableQty + syncedRemainingQty + soldQtyTotal > finalTotalQty) {
+        : requestedListedQty ?? Number(publishRecord.remaining_qty || 0);
+      if (syncedAvailableQty + syncedRemainingQty + soldQtyTotal > finalTotalQty) {
         throw new Error('未上架、上架及已售份数之和不能超过资产总份数');
+      }
+      if (hasListedQtyUpdate && syncedAvailableQty !== finalAvailableQty) {
+        await conn.query('UPDATE digital_asset SET available_qty = ? WHERE id = ?', [syncedAvailableQty, assetId]);
       }
       const syncedPublishQty = Math.max(soldQtyTotal + syncedRemainingQty, syncedRemainingQty);
       const syncedPublishPrice = Number(updateData.price ?? asset.price ?? publishRecord.publish_price ?? 0);

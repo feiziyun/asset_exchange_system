@@ -178,6 +178,7 @@ exports.updateAsset_limit = {
     price_unit: joi.string().max(10),
     total_qty: joi.number().integer().min(1),
     available_qty: joi.number().integer().min(0),
+    listed_qty: joi.number().integer().min(0),
 
     can_sell_ownership: joi.number().integer().valid(0, 1),
     can_sell_view_right: joi.number().integer().valid(0, 1),
