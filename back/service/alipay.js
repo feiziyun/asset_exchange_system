@@ -75,7 +75,7 @@ async function settle(payment, result) {
       await assetService.payOrder(payment.order_no, order.buyer_id, {}, { verifiedAlipay: true });
     } catch (error) {
       const [fresh] = await db.query('SELECT order_status FROM asset_order WHERE order_no=?', [payment.order_no]);
-      if (![1, 2, 3].includes(Number(fresh[0]?.order_status))) throw error;
+      if (![1, 2, 3, 7].includes(Number(fresh[0]?.order_status))) throw error;
     }
   }
   const tradeNo = result.tradeNo || result.trade_no || null;

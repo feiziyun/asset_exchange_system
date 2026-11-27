@@ -508,7 +508,7 @@ exports.sellerDeliver = async (req, res) => {
     const chainData = await assetService.sellerDeliver(req.params.order_no, userId, req.body || {});
     return res.send({
       status: 0,
-      message: '卖家交付成功，等待买家确认',
+      message: '卖家交付成功，等待买家取得结果',
       data: chainData,
     });
   } catch (error) {
@@ -524,9 +524,20 @@ exports.confirmDelivery = async (req, res) => {
     const chainData = await assetService.confirmDelivery(req.params.order_no, userId, req.body || {});
     return res.send({
       status: 0,
-      message: '交付确认成功，订单已完成',
+      message: '交易已确认完成',
       data: chainData,
     });
+  } catch (error) {
+    return res.cc(error);
+  }
+};
+
+exports.markDeliveryResultReceived = async (req, res) => {
+  try {
+    const userId = req.auth?.id;
+    if (!userId) return res.cc('缺少用户身份信息');
+    const result = await assetService.markDeliveryResultReceived(req.params.order_no, userId);
+    return res.send({ status: 0, message: '交付结果已取得，等待买家确认完成', data: result });
   } catch (error) {
     return res.cc(error);
   }

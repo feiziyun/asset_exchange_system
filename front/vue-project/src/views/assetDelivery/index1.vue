@@ -567,6 +567,8 @@ const privacyStatusText = (order: OrderItem) => {
 }
 
 const normalizedDeliveryStatusText = (order: OrderItem) => {
+  if (Number(order.order_status) === 3) return '已完成'
+  if (Number(order.order_status) === 7) return '待买家确认完成'
   const pcType = getPcType(order)
   const status = String(
     pcType === 'HE' ? order.he_record?.pcp_status

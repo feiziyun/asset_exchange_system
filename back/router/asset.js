@@ -92,7 +92,7 @@ router.post('/order/contract/:order_no', expressJoi(saveContract_limit), assetHa
 // 买家在交付阶段绑定证书
 router.post('/order/delivery/bind-buyer-certificate/:order_no', assetHandler.bindBuyerDeliveryCertificate);
 
-// 卖家交付（卖家交付后进入待买家确认）
+// 卖家交付（卖家交付后等待买家取得结果）
 router.post('/order/delivery/seller/:order_no', expressJoi(sellerDeliver_limit), assetHandler.sellerDeliver);
 
 // 买家请求安全交付（对齐原始系统）
@@ -105,6 +105,7 @@ router.get('/order/delivery/export-eligible/:order_no', assetHandler.getDelivery
 router.post('/order/delivery/download/:order_no', assetHandler.downloadDeliveryResult);
 
 // 交付确认（买家确认后订单完成）
+router.post('/order/delivery/result-received/:order_no', assetHandler.markDeliveryResultReceived);
 router.post('/order/delivery/confirm/:order_no', expressJoi(confirmDelivery_limit), assetHandler.confirmDelivery);
 
 // 订单列表（资产交付页展示）

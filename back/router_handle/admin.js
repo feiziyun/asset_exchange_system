@@ -50,7 +50,7 @@ exports.listAdminOrders = async (req, res) => {
     }
     if (req.query.status !== undefined && req.query.status !== '') {
       const status = Number(req.query.status);
-      if (!Number.isInteger(status) || status < 0 || status > 6) {
+      if (!Number.isInteger(status) || status < 0 || status > 7) {
         return res.status(400).send({ status: 1, message: '订单状态无效' });
       }
       where.push('ao.order_status = ?');

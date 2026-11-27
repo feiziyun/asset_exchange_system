@@ -304,7 +304,8 @@ const getOrderStatusLabel = (status) => {
   const numericStatus = Number(status);
   if (numericStatus === 0) return '待支付';
   if (numericStatus === 1) return '待卖家交付';
-  if (numericStatus === 2) return '待买家确认';
+  if (numericStatus === 2) return '待取得交付结果';
+  if (numericStatus === 7) return '待确认完成';
   if (numericStatus === 3) return '已完成';
   if (numericStatus === 4) return '已关闭';
   if (numericStatus === 5) return '退款中';
@@ -2013,12 +2014,12 @@ exports.getHomeStats = async () => {
         (
           SELECT IFNULL(SUM(deal_price * buy_qty), 0)
           FROM asset_order
-          WHERE order_status IN (1, 2, 3)
+          WHERE order_status IN (1, 2, 3, 7)
         ) AS total_trade_amount,
         (
           SELECT IFNULL(SUM(deal_price * buy_qty), 0)
           FROM asset_order
-          WHERE order_status IN (1, 2, 3)
+          WHERE order_status IN (1, 2, 3, 7)
             AND DATE(created_at) = CURRENT_DATE
         ) AS today_trade_amount,
         (SELECT COUNT(*) FROM delivery_records) AS total_delivery_count
@@ -2106,7 +2107,7 @@ exports.getHomeStats = async () => {
         ROUND(COUNT(*) / 300, 2) AS local_tps
       FROM asset_order
       WHERE created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
-        AND order_status IN (1, 2, 3)
+        AND order_status IN (1, 2, 3, 7)
     `,
   );
 
@@ -4070,11 +4071,7 @@ exports.sellerDeliver = async (orderNo, sellerId, payload = {}) => {
   }
 };
 
-exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-
+const loadDeliveryCompletionOrder = async (conn, orderNo) => {
     const [orderRows] = await conn.query(
       `
         SELECT
@@ -4083,6 +4080,7 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
           ao.buyer_id,
           ao.order_status,
           ao.order_no,
+          ao.buyer_result_downloaded_at,
           t.transaction_id,
           t.status AS transaction_status,
           COALESCE(dc.pc_type, ao.pc_type) AS pc_type,
@@ -4112,15 +4110,11 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
       `,
       [orderNo],
     );
-    const order = orderRows[0];
-    if (!order) throw new Error('订单不存在');
-    if (Number(order.buyer_id) !== Number(buyerId)) throw new Error('无权限确认该订单交付');
-    if (Number(order.order_status) !== 2) throw new Error('订单当前状态不可确认交付，请等待卖家交付');
-    if (order.expiration_time && new Date(order.expiration_time).getTime() <= Date.now()) {
-      throw new Error('数字合约已过期，不能确认交付');
-    }
+  return orderRows[0] || null;
+};
 
-    const privacyReady = isPrivacyResultReady({
+const isOrderDeliveryResultReady = (order) => {
+  return isPrivacyResultReady({
       digitalContract: { pc_type: order.pc_type },
       heRecord: {
         pcp_status: order.he_pcp_status,
@@ -4141,10 +4135,52 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
         task_status: order.mpc_audit_status ? (order.mpc_audit_status === 'AUDIT_PASSED' ? 'done' : 'pending') : order.mpc_task_status,
       },
     });
-    if (!privacyReady) {
-      throw new Error('当前隐私计算交付结果尚未就绪，不能确认完成');
-    }
+};
 
+exports.markDeliveryResultReceived = async (orderNo, buyerId) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const order = await loadDeliveryCompletionOrder(conn, orderNo);
+    if (!order) throw new Error('订单不存在');
+    if (Number(order.buyer_id) !== Number(buyerId)) throw new Error('无权限确认该订单的交付结果');
+    if ([3, 7].includes(Number(order.order_status))) {
+      await conn.commit();
+      return { order_no: orderNo, order_status: Number(order.order_status), already_received: true };
+    }
+    if (Number(order.order_status) !== 2) throw new Error('订单尚未进入结果交付阶段');
+    if (order.expiration_time && new Date(order.expiration_time).getTime() <= Date.now()) {
+      throw new Error('数字合约已过期，不能取得交付结果');
+    }
+    if (!order.transaction_id || !isOrderDeliveryResultReady(order)) {
+      throw new Error('交付结果尚未就绪');
+    }
+    await conn.query(
+      'UPDATE asset_order SET order_status = 7, buyer_result_downloaded_at = NOW() WHERE id = ? AND order_status = 2',
+      [order.id],
+    );
+    await conn.commit();
+    return { order_no: orderNo, order_status: 7, already_received: false };
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+};
+
+exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const order = await loadDeliveryCompletionOrder(conn, orderNo);
+    if (!order) throw new Error('订单不存在');
+    if (Number(order.buyer_id) !== Number(buyerId)) throw new Error('无权限确认该订单交付');
+    if (Number(order.order_status) !== 7 || !order.buyer_result_downloaded_at) {
+      throw new Error('请先取得交付结果，再确认交易完成');
+    }
+    // 取得结果时已验证合约有效且结果就绪；之后仍允许买家确认这笔交易。
     await conn.query(
       `
         UPDATE asset_order
@@ -4181,7 +4217,7 @@ exports.confirmDelivery = async (orderNo, buyerId, _payload = {}) => {
     return {
       order_no: orderNo,
       transaction_id: order.transaction_id || '',
-      message: '买家确认收货成功，订单已完成',
+      message: '买家确认交易完成',
     };
   } catch (error) {
     await conn.rollback();
@@ -4268,9 +4304,9 @@ exports.getOrderSummary = async (userId, identity = '') => {
   const [orderResult, assetResult, buyerRequestResult] = await Promise.all([pool.query(`
     SELECT
       COUNT(*) AS total_orders,
-      COALESCE(SUM(ao.order_status IN (1, 2, 3)), 0) AS paid_orders,
+      COALESCE(SUM(ao.order_status IN (1, 2, 3, 7)), 0) AS paid_orders,
       COALESCE(SUM(ao.order_status = 1), 0) AS awaiting_delivery,
-      COALESCE(SUM(ao.order_status = 2), 0) AS awaiting_confirmation,
+      COALESCE(SUM(ao.order_status = 7), 0) AS awaiting_confirmation,
       COALESCE(SUM(ao.order_status = 3), 0) AS completed_orders
     ${from}
   `, [userId]), seller
@@ -4330,7 +4366,7 @@ exports.listOrders = async (query, userId, identity = '') => {
 
   if (role === 'seller') {
     // Seller views only include paid orders that have not been cancelled or refunded.
-    where.push('ao.order_status IN (1, 2, 3)');
+    where.push('ao.order_status IN (1, 2, 3, 7)');
     const confirmState = String(query.seller_confirm_state || 'all');
     const pendingConfirmation = `ao.order_status = 1 AND COALESCE(
       (SELECT t.status FROM transactions t WHERE t.order_no = ao.order_no LIMIT 1),
@@ -4352,7 +4388,7 @@ exports.listOrders = async (query, userId, identity = '') => {
 
   const paymentStates = String(query.payment_state || '').toLowerCase().split(',').filter(Boolean);
   const statusGroups = {
-    paid: [1, 2, 3],
+    paid: [1, 2, 3, 7],
     unpaid: [0],
     cancelled: [4, 6],
     completed: [3],
@@ -4470,6 +4506,7 @@ exports.listOrders = async (query, userId, identity = '') => {
         ao.updated_at,
         ao.payment_confirm_time,
         ao.seller_delivery_time,
+        ao.buyer_result_downloaded_at,
         ao.buyer_confirm_time,
         (SELECT wop.status FROM wallet_order_payment wop WHERE wop.order_no=ao.order_no) AS wallet_payment_status,
         (SELECT t.status FROM transactions t WHERE t.order_no=ao.order_no LIMIT 1) AS transaction_status,

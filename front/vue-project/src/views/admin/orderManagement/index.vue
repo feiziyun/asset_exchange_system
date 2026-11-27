@@ -39,7 +39,8 @@
           <el-option label="全部" :value="null" />
           <el-option label="待确认" :value="0" />
           <el-option label="待卖家交付" :value="1" />
-          <el-option label="待买家确认" :value="2" />
+          <el-option label="待取得交付结果" :value="2" />
+          <el-option label="待确认完成" :value="7" />
           <el-option label="已完成" :value="3" />
           <el-option label="已取消" :value="4" />
           <el-option label="退款中" :value="5" />
@@ -123,7 +124,8 @@ const statusFilter = ref(null)
 const orderStatuses = {
   0: { label: '待确认', tone: 'warning' },
   1: { label: '待卖家交付', tone: 'primary' },
-  2: { label: '待买家确认', tone: 'primary' },
+  2: { label: '待取得交付结果', tone: 'primary' },
+  7: { label: '待确认完成', tone: 'primary' },
   3: { label: '已完成', tone: 'success' },
   4: { label: '已取消', tone: 'neutral' },
   5: { label: '退款中', tone: 'danger' },

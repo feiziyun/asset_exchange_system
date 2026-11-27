@@ -70,7 +70,7 @@ function buildPlainContract(row, now = new Date()) {
     throw new Error('交付次数已耗尽或配置无效');
   }
   if (!row.asset_file_hash) throw new Error('缺少资产文件哈希');
-  if (![1, 2, 3].includes(Number(row.order_status))) throw new Error('订单未付款或不可执行');
+  if (![1, 2, 3, 7].includes(Number(row.order_status))) throw new Error('订单未付款或不可执行');
   const policy = sanitizePolicy(parse(row.policy_json));
   const manifest = parse(row.model_manifest_json);
   const modelHash = modelCommitment(manifest, row.pc_type);

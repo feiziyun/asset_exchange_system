@@ -172,6 +172,10 @@ export const sellerDeliver = (orderNo, data = {}) => {
 }
 
 // 交付确认
+export const markDeliveryResultReceived = (orderNo) => {
+  return instance.post(`/asset/order/delivery/result-received/${encodeURIComponent(orderNo)}`)
+}
+
 export const confirmDelivery = (orderNo, data = {}) => {
   return instance.post(`/asset/order/delivery/confirm/${orderNo}`, data)
 }

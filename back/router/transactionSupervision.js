@@ -6,7 +6,7 @@ const pool = db.promise();
 const SOURCE_MESSAGE = '当前为本系统业务交易记录。区块、Gas 和风险事件须接入原型的独立交易监管数据服务。';
 const STATUS_SQL = `CASE
   WHEN t.status = 'PAMING' THEN 'auditing'
-  WHEN ao.order_status = 3 OR t.status IN ('已完成', '已交付') THEN 'finished'
+  WHEN ao.order_status = 3 OR (ao.id IS NULL AND t.status = '已完成') THEN 'finished'
   ELSE 'submitted' END`;
 
 router.use((req, res, next) => {

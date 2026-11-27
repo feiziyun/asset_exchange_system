@@ -373,6 +373,7 @@ import {
   submitMpcAudit,
   decryptPrePrivacyResult,
   downloadDeliveryResult,
+  markDeliveryResultReceived,
   downloadFlPrivacyResult,
   downloadHePrivacyResult,
   downloadPrePrivacyResult,
@@ -655,6 +656,8 @@ const privacyStatusText = (order: OrderItem) => {
 }
 
 const normalizedDeliveryStatusText = (order: OrderItem) => {
+  if (Number(order.order_status) === 3) return '已完成'
+  if (Number(order.order_status) === 7) return '待确认完成'
   const pcType = getPcType(order)
   const status = String(
     pcType === 'HE' ? order.he_record?.pcp_status
@@ -1457,6 +1460,7 @@ const downloadBuyerResult = async (order: OrderItem) => {
       mpcResultDialog.order = order
       mpcResultDialog.result = result
       mpcResultDialog.visible = true
+      await markResultReceived(order)
       return
     }
     const response = await downloadDeliveryResult(order.order_no, {
@@ -1469,11 +1473,22 @@ const downloadBuyerResult = async (order: OrderItem) => {
     link.download = `encrypted_result_${order.transaction?.transaction_id || order.order_no}.bin`
     link.click()
     window.URL.revokeObjectURL(url)
+    await markResultReceived(order)
   } catch (error: any) {
     const message = await resolveBlobErrorMessage(error, '下载结果失败')
     ElMessage.error(message)
   } finally {
     actionLoadingNo.value = ''
+  }
+}
+
+const markResultReceived = async (order: OrderItem) => {
+  try {
+    const res = await markDeliveryResultReceived(order.order_no)
+    if (res.data?.status !== 0) throw new Error(res.data?.message || '结果状态更新失败')
+    order.order_status = Number(res.data.data?.order_status || 7)
+  } catch (error: any) {
+    ElMessage.warning(`结果已取得，但订单状态更新失败：${error?.response?.data?.message || error?.message || '请重试下载结果'}`)
   }
 }
 
@@ -1506,6 +1521,7 @@ const confirmHeDecryptResult = async () => {
       csvText,
       filename: `he-result-${getTransactionId(heDecryptDialog.order)}.csv`,
     })
+    await markResultReceived(heDecryptDialog.order)
     heDecryptDialog.visible = false
     ElMessage.success('HE 结果已解密并下载')
   } catch (error: any) {
@@ -1570,6 +1586,7 @@ const confirmPreDecryptResult = async () => {
       blob: response.data,
       filename: `pre-result-${getTransactionId(preDecryptDialog.order)}.zip`,
     })
+    await markResultReceived(preDecryptDialog.order)
     preDecryptDialog.visible = false
     ElMessage.success('PRE 结果已解密并下载')
   } catch (error: any) {
@@ -1601,6 +1618,7 @@ const confirmFlDecryptResult = async () => {
       transactionId: getTransactionId(flDecryptDialog.order),
       batchIndex: null,
     })
+    await markResultReceived(flDecryptDialog.order)
     flDecryptDialog.visible = false
     ElMessage.success('FL 结果已解密并下载')
   } catch (error: any) {

@@ -169,6 +169,7 @@ const transactionStatusText = (order?: OrderItem | null) => {
   if (Number(order?.order_status) === 0) return '待支付'
   if (Number(order?.order_status) === 4) return '已关闭'
   if (Number(order?.order_status) === 3) return '已完成'
+  if (Number(order?.order_status) === 7) return '待买家确认完成'
   const status = String(order?.transaction?.status || '').trim()
   return status || (Number(order?.order_status) === 1 ? '待确认' : order?.order_status_text || '-')
 }
@@ -179,7 +180,7 @@ const isPendingOrder = (order?: OrderItem | null) => {
 
 const isConfirmedOrder = (order?: OrderItem | null) => {
   const status = Number(order?.order_status)
-  return [1, 2, 3].includes(status) && (status >= 2 || ['已确认', '已完成'].includes(String(order?.transaction?.status || '')))
+  return [1, 2, 3, 7].includes(status) && (status >= 2 || ['已确认', '已完成'].includes(String(order?.transaction?.status || '')))
 }
 
 const goToDelivery = (order: OrderItem) => {
@@ -188,7 +189,7 @@ const goToDelivery = (order: OrderItem) => {
 
 const statusTagType = (order: OrderItem) => {
   if (isPendingOrder(order)) return 'warning'
-  if ([1, 2, 3].includes(Number(order.order_status))) return 'success'
+  if ([1, 2, 3, 7].includes(Number(order.order_status))) return 'success'
   return 'info'
 }
 

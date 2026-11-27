@@ -183,7 +183,7 @@
                               @click="deleteCurrentOrder(item.order_no)"
                             >删除订单</el-button>
                             <el-button
-                              v-if="item.order_status >= 1 && item.order_status <= 3"
+                              v-if="[1, 2, 3, 7].includes(Number(item.order_status))"
                               type="primary"
                               link
                               @click="goWorkbench(item.order_no)"
@@ -191,14 +191,13 @@
                               交付工作台
                             </el-button>
                             <el-button
-                              v-if="item.order_status === 2"
+                              v-if="item.order_status === 7"
                               type="success"
                               link
                               :loading="actionLoadingNo === item.order_no"
-                              :disabled="!canConfirmPurchase(item)"
                               @click="openConfirmDialog(item.order_no)"
                             >
-                              {{ canConfirmPurchase(item) ? '确认收货' : '等待交付结果' }}
+                              确认交易完成
                             </el-button>
                           </div>
                         </td>
@@ -447,11 +446,11 @@
     @price-updated="handleValuationPriceUpdated"
   />
 
-  <el-dialog v-model="confirmDialogVisible" title="确认收货" width="420px">
+  <el-dialog v-model="confirmDialogVisible" title="确认交易完成" width="420px">
     <template #footer>
       <el-button @click="confirmDialogVisible = false">取消</el-button>
       <el-button type="primary" :loading="actionLoadingNo === confirmOrderNo" @click="submitConfirm">
-        确认收货
+        确认交易完成
       </el-button>
     </template>
   </el-dialog>
@@ -805,7 +804,8 @@ const statusTag = (status?: number) => {
 
 const orderStatusText = (status?: number) => {
   if (status === 1) return '待卖家交付'
-  if (status === 2) return '待买家确认'
+  if (status === 2) return '待取得交付结果'
+  if (status === 7) return '待确认完成'
   if (status === 3) return '已完成'
   if (status === 0) return '待支付'
   if (status === 4) return '已关闭'
@@ -1018,30 +1018,20 @@ const openConfirmDialog = (orderNo?: string) => {
   confirmDialogVisible.value = true
 }
 
-const canConfirmPurchase = (item: PurchasedItem) => {
-  const type = String(item.pc_type || '').toUpperCase()
-  const passed = (status?: string) => ['PAM_PASSED', 'COMPLETED'].includes(String(status || '').toUpperCase())
-  if (type === 'HE') return passed(item.he_record?.pcp_status) && Boolean(item.he_record?.result_ready)
-  if (type === 'PRE') return passed(item.pre_record?.pcp_status) && Boolean(item.pre_record?.result_ready)
-  if (type === 'FL') return passed(item.fl_record?.pcp_status) && Boolean(item.fl_record?.buyer_result_ready)
-  if (type === 'MPC') return String(item.mpc_record?.task_status || '').toLowerCase() === 'done'
-  return true
-}
-
 const submitConfirm = async () => {
   if (!confirmOrderNo.value) return
   actionLoadingNo.value = confirmOrderNo.value
   try {
     const res = await confirmDelivery(confirmOrderNo.value, {})
     if (res.data.status === 0) {
-      ElMessage.success('确认收货成功，订单已完成')
+      ElMessage.success('交易已完成')
       confirmDialogVisible.value = false
       fetchPurchasedAssets()
     } else {
-      ElMessage.error(res.data.message || '确认收货失败')
+      ElMessage.error(res.data.message || '确认交易失败')
     }
   } catch (error: any) {
-    ElMessage.error(error?.response?.data?.message || '确认收货失败')
+    ElMessage.error(error?.response?.data?.message || '确认交易失败')
   } finally {
     actionLoadingNo.value = ''
   }
