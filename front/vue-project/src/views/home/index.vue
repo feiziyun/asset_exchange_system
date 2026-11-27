@@ -6,8 +6,8 @@
       <article class="dashboard-item summary-card">
         <div class="summary-top">
           <div class="summary-title">
+            <img :src="auditedIcon" alt="transaction" class="dashboard-icon" />
             <h3>交易概览</h3>
-            <img :src="transactionIcon" alt="transaction" class="dashboard-icon" />
           </div>
 
           <div class="main-trade">
@@ -61,8 +61,8 @@
 
       <article class="dashboard-item industry-card">
         <div class="summary-title">
+          <img :src="transactionIcon" alt="industry" class="dashboard-icon" />
           <h3>数据资产类型</h3>
-          <img :src="auditedIcon" alt="industry" class="dashboard-icon" />
         </div>
 
         <div class="industry-grid">
@@ -372,8 +372,9 @@ onBeforeUnmount(() => {
 
 .summary-title {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  gap: 10px;
   height: 35px;
   flex-shrink: 0;
 }

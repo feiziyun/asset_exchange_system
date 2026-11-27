@@ -20,23 +20,23 @@
       </div>
 
       <el-table :data="userList" style="width: 100%" v-loading="loading" empty-text="暂无用户">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="account" label="账号" width="160" show-overflow-tooltip />
-        <el-table-column label="身份" width="100">
+        <el-table-column prop="id" label="ID" width="72" />
+        <el-table-column prop="account" label="账号" min-width="150" show-overflow-tooltip />
+        <el-table-column label="身份" width="96">
           <template #default="{ row }">{{ identityLabel(row.identity) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="96">
           <template #default="{ row }">
             <AdminStatus :label="row.status === 0 ? '正常' : '冻结'" :tone="row.status === 0 ? 'success' : 'danger'" />
           </template>
         </el-table-column>
-        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" width="160" show-overflow-tooltip>
+        <el-table-column v-if="selectedType === 'auditor'" label="审计入口" min-width="145" show-overflow-tooltip>
           <template #default="{ row }">{{ targetLabel(row.auditor_target) }}</template>
         </el-table-column>
-        <el-table-column label="创建时间" width="160">
+        <el-table-column label="创建时间" min-width="150">
           <template #default="{ row }">{{ formatDateTime(row.create_time) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="300" fixed="right" class-name="actions-column">
+        <el-table-column label="操作" min-width="250" fixed="right" class-name="actions-column">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" size="small" @click="handleViewDetail(row)">查看详情</el-button>
@@ -407,6 +407,9 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .user-management {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   .page-alert { margin-bottom: 16px; }
   .audit-node-hint { margin: -8px 0 14px; color: #667085; font-size: 13px; }
   .user-type-tabs {
@@ -437,6 +440,12 @@ onMounted(() => {
     .search-input { width: 220px; max-width: 100%; }
     .el-button { margin: 0; }
   }
+  .users-panel {
+    width: 100%;
+    margin: 0;
+    :deep(.el-card__body) { padding: 18px 20px 20px; }
+  }
+  :deep(.el-table) { width: 100%; }
   .action-buttons {
     display: flex;
     flex-wrap: wrap;
