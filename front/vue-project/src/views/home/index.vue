@@ -38,11 +38,11 @@
             <div class="system-box">
               <div class="system-title">
                 <span :title="rateLabel">{{ rateLabel }}</span>
-                <button v-if="isRegulator || isAdmin" class="refresh-btn" title="手动运行底链压测脚本" :disabled="tpsLoading" @click="fetchTPS">
-                  {{ tpsLoading ? '测试中' : '底链测试' }}
-                </button>
               </div>
               <strong :title="rateDescription">{{ currentTPS }}</strong>
+              <button v-if="isRegulator || isAdmin" class="refresh-btn" title="手动运行底链压测脚本" :disabled="tpsLoading" @click="fetchTPS">
+                {{ tpsLoading ? '测试中' : '测试' }}
+              </button>
             </div>
 
             <div class="system-box">
@@ -458,7 +458,7 @@ onBeforeUnmount(() => {
 .system-box {
   background: #f6f8fc;
   border-radius: 8px;
-  height: 65px;
+  height: 78px;
   padding: 8px 12px;
   box-sizing: border-box;
   text-align: center;
@@ -496,12 +496,15 @@ onBeforeUnmount(() => {
 }
 
 .refresh-btn {
-  border: none;
-  background: #409eff;
-  color: white;
+  display: block;
+  margin: 2px auto 0;
+  border: 1px solid #d0d7de;
+  background: #fff;
+  color: #46566a;
   border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 11px;
+  padding: 1px 7px;
+  font-size: 10px;
+  line-height: 15px;
   cursor: pointer;
 }
 
@@ -511,7 +514,7 @@ onBeforeUnmount(() => {
 }
 
 .industry-grid {
-  margin-top: 15px;
+  margin-top: 36px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
