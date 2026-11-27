@@ -514,11 +514,11 @@ onBeforeUnmount(() => {
 }
 
 .industry-grid {
-  margin-top: 36px;
+  margin-top: 54px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  max-height: 210px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
